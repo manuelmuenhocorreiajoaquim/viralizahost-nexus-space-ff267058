@@ -86,7 +86,3 @@ function PlanCard({ p, idx }: { p: typeof plans[number]; idx: number }) {
           </motion.div>
   );
 }
-      </div>
-    </Section>
-  );
-}
