@@ -43,10 +43,15 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currOpen, setCurrOpen] = useState(false);
   const { currency, setCurrency } = useCurrency();
-  const currencies: { code: Currency; flag: string; label: string }[] = [
-    { code: "BRL", flag: "🇧🇷", label: "BRL" },
-    { code: "AKZ", flag: "🇦🇴", label: "AKZ" },
+  const currencies: { code: Currency; flag: string; cc: string; label: string; country: string }[] = [
+    { code: "BRL", flag: "🇧🇷", cc: "BR", label: "BRL", country: "Brasil" },
+    { code: "AKZ", flag: "🇦🇴", cc: "AO", label: "AKZ", country: "Angola" },
   ];
+  const flagStyle = {
+    fontFamily:
+      '"Twemoji Country Flags","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Segoe UI Symbol",sans-serif',
+    fontSize: "18px",
+  } as const;
   const active = currencies.find((c) => c.code === currency)!;
 
   useEffect(() => {
