@@ -1,4 +1,4 @@
-import { Megaphone, TrendingUp, Rocket } from "lucide-react";
+import { Sparkles, Megaphone, TrendingUp, Rocket } from "lucide-react";
 import PlansGrid from "./PlansGrid";
 
 export default function TrafficPlans() {
@@ -8,8 +8,11 @@ export default function TrafficPlans() {
       eyebrow="Tráfego Pago"
       title="Gestão de tráfego pago para vender mais"
       desc="Campanhas de alta performance com criativos, otimização e relatórios executivos."
-      cols={3}
       plans={[
+        {
+          icon: Sparkles, name: "Tráfego Start", price: "R$ 350", per: "/mês", tag: "Início",
+          features: ["Campanha inicial Meta Ads", "1 público personalizado", "Configuração básica", "1 relatório mensal"],
+        },
         {
           icon: Megaphone, name: "Meta Ads Starter", price: "R$ 500", per: "/mês", tag: "Entrada",
           features: ["Campanhas Instagram/Facebook", "2 criativos por mês", "Relatório mensal", "Pixel & eventos"],
