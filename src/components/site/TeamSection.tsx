@@ -68,6 +68,30 @@ export default function TeamSection() {
           box-shadow: 0 0 12px rgba(59,169,255,0.55);
           object-fit: cover; background: #0b1220;
         }
+        /* Hierarchy connector lines (dashed + animated energy flow) */
+        @keyframes hFlow { to { background-position: 24px 0; } }
+        @keyframes vFlow { to { background-position: 0 24px; } }
+        .org-h {
+          height: 2px;
+          background-image: linear-gradient(to right, #3BA9FF 60%, transparent 40%);
+          background-size: 12px 2px;
+          background-repeat: repeat-x;
+          filter: drop-shadow(0 0 6px rgba(59,169,255,0.85));
+          animation: hFlow 1.6s linear infinite;
+        }
+        .org-v {
+          width: 2px;
+          background-image: linear-gradient(to bottom, #3BA9FF 60%, transparent 40%);
+          background-size: 2px 12px;
+          background-repeat: repeat-y;
+          filter: drop-shadow(0 0 6px rgba(59,169,255,0.85));
+          animation: vFlow 1.6s linear infinite;
+        }
+        .org-node {
+          width: 10px; height: 10px; border-radius: 999px;
+          background: #3BA9FF;
+          box-shadow: 0 0 12px rgba(59,169,255,0.9), 0 0 22px rgba(59,169,255,0.5);
+        }
       `}</style>
 
       <div className="relative mx-auto max-w-7xl px-4 lg:px-8">
