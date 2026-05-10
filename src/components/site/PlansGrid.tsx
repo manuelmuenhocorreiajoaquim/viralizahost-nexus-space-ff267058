@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Check, ArrowRight, type LucideIcon } from "lucide-react";
 import { Section, SectionHeader } from "./Section";
+import { usePrice } from "@/lib/currency";
 
 export type Plan = {
   icon: LucideIcon;
@@ -34,8 +35,17 @@ export default function PlansGrid({
       <SectionHeader eyebrow={eyebrow} title={title} desc={desc} />
       <div className={`grid md:grid-cols-2 ${grid} gap-6`}>
         {plans.map((p, i) => (
-          <motion.div
-            key={p.name}
+          <PlanCard key={p.name} p={p} i={i} />
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+function PlanCard({ p, i }: { p: Plan; i: number }) {
+  const displayPrice = usePrice(p.price);
+  return (
+    <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -61,7 +71,7 @@ export default function PlansGrid({
             )}
             <h3 className="text-xl font-bold mb-3">{p.name}</h3>
             <div className="flex items-baseline gap-1 mb-5">
-              <span className="text-4xl font-bold text-gradient-primary">{p.price}</span>
+              <span className="text-4xl font-bold text-gradient-primary">{displayPrice}</span>
               {p.per && <span className="text-sm text-muted-foreground">{p.per}</span>}
             </div>
             <ul className="space-y-2.5 mb-6">
@@ -83,8 +93,5 @@ export default function PlansGrid({
               {p.cta || "Contratar"} <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition" />
             </a>
           </motion.div>
-        ))}
-      </div>
-    </Section>
   );
 }

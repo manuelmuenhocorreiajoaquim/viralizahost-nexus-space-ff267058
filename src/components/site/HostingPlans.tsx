@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Check, Zap, Crown, Cloud, Server, ArrowRight } from "lucide-react";
 import { Section, SectionHeader } from "./Section";
+import { usePrice } from "@/lib/currency";
 
 const plans = [
   {
@@ -36,8 +37,17 @@ export default function HostingPlans() {
 
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         {plans.map((p, idx) => (
+          <PlanCard key={p.name} p={p} idx={idx} />
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+function PlanCard({ p, idx }: { p: typeof plans[number]; idx: number }) {
+  const displayPrice = usePrice(p.price);
+  return (
           <motion.div
-            key={p.name}
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -57,8 +67,7 @@ export default function HostingPlans() {
             <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">{p.tag}</div>
             <h3 className="text-xl font-bold mb-3">{p.name}</h3>
             <div className="flex items-baseline gap-1 mb-5">
-              <span className="text-sm text-muted-foreground">R$</span>
-              <span className="text-5xl font-bold text-gradient-primary">{p.price}</span>
+              <span className="text-5xl font-bold text-gradient-primary">{displayPrice}</span>
               <span className="text-sm text-muted-foreground">/mês</span>
             </div>
             <ul className="space-y-2.5 mb-6">
@@ -75,8 +84,5 @@ export default function HostingPlans() {
               Contratar <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition" />
             </a>
           </motion.div>
-        ))}
-      </div>
-    </Section>
   );
 }

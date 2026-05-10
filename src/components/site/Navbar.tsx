@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Globe, Server, Cloud, Cpu, Megaphone, Palette, Film, Building2, Phone, ArrowRight, MessageCircle, ChevronDown, Mail, Shield, Zap, Bot, BarChart3 } from "lucide-react";
 import logo from "@/assets/viralizahost-logo.png";
+import { useCurrency, type Currency } from "@/lib/currency";
 
 const menu = [
   { label: "Domínios", icon: Globe, items: [
@@ -40,6 +41,13 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [currOpen, setCurrOpen] = useState(false);
+  const { currency, setCurrency } = useCurrency();
+  const currencies: { code: Currency; flag: string; label: string }[] = [
+    { code: "BRL", flag: "🇧🇷", label: "BRL" },
+    { code: "AKZ", flag: "🇦🇴", label: "AKZ" },
+  ];
+  const active = currencies.find((c) => c.code === currency)!;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -102,17 +110,44 @@ export default function Navbar() {
             ))}
           </nav>
 
-          <div className="hidden lg:flex items-center gap-3 shrink-0">
-            <a href="#" className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white/90 hover:text-[#3BA9FF] transition whitespace-nowrap">
-              <MessageCircle className="h-4 w-4" /> WhatsApp
-            </a>
-            <a
-              href="#planos"
-              className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-primary text-primary-foreground text-sm font-semibold shadow-glow hover:scale-105 transition"
-              style={{ minWidth: 180, whiteSpace: "nowrap", padding: "14px 26px" }}
+          <div className="hidden lg:flex items-center gap-3 shrink-0 relative">
+            <button
+              onClick={() => setCurrOpen((v) => !v)}
+              onBlur={() => setTimeout(() => setCurrOpen(false), 150)}
+              className="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold bg-white/10 backdrop-blur-md border border-white/15 text-white hover:text-[#3BA9FF] hover:border-[#3BA9FF]/40 transition"
             >
-              Começar Agora <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition" />
-            </a>
+              <span className="text-base leading-none">{active.flag}</span>
+              <span>{active.label}</span>
+              <ChevronDown className={`h-3 w-3 opacity-70 transition ${currOpen ? "rotate-180" : ""}`} />
+            </button>
+            <AnimatePresence>
+              {currOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full right-0 mt-2 w-44 glass rounded-xl p-1.5 shadow-elegant text-foreground z-50"
+                >
+                  {currencies.map((c) => (
+                    <button
+                      key={c.code}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setCurrency(c.code);
+                        setCurrOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                        c.code === currency ? "bg-primary/15 text-primary" : "hover:bg-primary/10"
+                      }`}
+                    >
+                      <span className="text-base leading-none">{c.flag}</span>
+                      <span>{c.label}</span>
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden p-2 text-white">
@@ -136,17 +171,21 @@ export default function Navbar() {
                   <span className="text-sm font-medium">{m.label}</span>
                 </a>
               ))}
-              <a href="#" className="flex items-center gap-3 px-3 py-3 rounded-lg text-white hover:bg-white/10 transition">
-                <MessageCircle className="h-4 w-4 text-[#3BA9FF]" />
-                <span className="text-sm font-medium">WhatsApp</span>
-              </a>
-              <a
-                href="#planos"
-                className="block mt-2 text-center rounded-full bg-gradient-primary text-primary-foreground text-sm font-semibold"
-                style={{ padding: "14px 26px", whiteSpace: "nowrap" }}
-              >
-                Começar Agora
-              </a>
+              <div className="flex items-center gap-2 px-3 py-3">
+                {currencies.map((c) => (
+                  <button
+                    key={c.code}
+                    onClick={() => setCurrency(c.code)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold border transition ${
+                      c.code === currency
+                        ? "bg-[#3BA9FF]/20 border-[#3BA9FF]/60 text-white"
+                        : "bg-white/5 border-white/10 text-white/80"
+                    }`}
+                  >
+                    <span>{c.flag}</span> {c.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </motion.div>
         )}
