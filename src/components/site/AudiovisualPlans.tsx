@@ -5,15 +5,14 @@ import audiovisualBg from "@/assets/design-bg.jpg";
 export default function AudiovisualPlans() {
   return (
     <section
-      className="relative overflow-hidden bg-center bg-cover bg-no-repeat"
+      className="audiovisual-dark relative overflow-hidden bg-center bg-cover bg-no-repeat"
       style={{ backgroundImage: `url(${audiovisualBg})` }}
     >
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "linear-gradient(180deg, rgba(8,12,24,0.72) 0%, rgba(8,12,24,0.62) 40%, rgba(8,12,24,0.78) 100%)",
-          backdropFilter: "blur(1px)",
+            "linear-gradient(180deg, rgba(0,0,0,0.48) 0%, rgba(0,0,0,0.42) 50%, rgba(0,0,0,0.55) 100%)",
         }}
       />
       <div className="relative z-10">

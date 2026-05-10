@@ -167,3 +167,24 @@
   0% { transform: scale(1.05) translate(0, 0); }
   100% { transform: scale(1.18) translate(-1.5%, -1%); }
 }
+
+/* Audiovisual section — light text on cinematic background */
+.audiovisual-dark .text-gradient,
+.audiovisual-dark h2 {
+  background: none !important;
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+}
+.audiovisual-dark p {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+.audiovisual-dark .glass {
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: #1d9bff !important;
+}
+.audiovisual-dark .glass span:not(.bg-primary) {
+  color: #1d9bff !important;
+}
+.audiovisual-dark [class*="rounded-2xl"][class*="bg-card"] {
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18) !important;
+}
