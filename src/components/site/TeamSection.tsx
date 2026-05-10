@@ -180,36 +180,38 @@ export default function TeamSection() {
           </motion.div>
         </div>
 
-        {/* Connector SVG (desktop only) — clean organogram */}
-        <div className="relative hidden lg:block">
-          <svg viewBox="0 0 1200 80" preserveAspectRatio="none" className="w-full h-20" aria-hidden>
+        {/* Connector SVG (desktop only) — full dashed hierarchy: CEO → trunk → specialists */}
+        <div className="relative hidden lg:block -mt-4 mb-2">
+          <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-28" aria-hidden>
             <defs>
               <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%"  stopColor="#3BA9FF" stopOpacity="1" />
-                <stop offset="100%" stopColor="#3BA9FF" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#3BA9FF" stopOpacity="0.5" />
               </linearGradient>
               <filter id="lineGlow">
                 <feGaussianBlur stdDeviation="2.5" result="b" />
                 <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
               </filter>
             </defs>
-            <g stroke="url(#lineGrad)" strokeWidth="2.5" fill="none" filter="url(#lineGlow)" strokeLinecap="round">
-              {/* vertical from CEO */}
-              <line x1="600" y1="0" x2="600" y2="30" />
-              {/* horizontal trunk across all 6 columns */}
-              <line x1="100" y1="30" x2="1100" y2="30" />
-              {/* drops to each of the 6 cards (centers spread evenly) */}
+            <g stroke="url(#lineGrad)" strokeWidth="2" fill="none" filter="url(#lineGlow)" strokeLinecap="round">
+              {/* vertical from CEO down to trunk — dashed animated */}
+              <line className="org-line" x1="600" y1="0" x2="600" y2="60" />
+              {/* horizontal trunk — dashed animated */}
+              <line className="org-line" x1="100" y1="60" x2="1100" y2="60" />
+              {/* vertical drops to each specialist card — dashed animated */}
               {[100, 300, 500, 700, 900, 1100].map((x) => (
-                <line key={x} x1={x} y1="30" x2={x} y2="80" />
+                <line key={x} className="org-line" x1={x} y1="60" x2={x} y2="120" />
               ))}
-              {/* animated pulse overlay */}
-              <line className="org-line" x1="100" y1="30" x2="1100" y2="30" stroke="#3BA9FF" strokeWidth="2" opacity="0.9" />
             </g>
-            {/* nodes */}
-            {[100, 300, 500, 700, 900, 1100].map((x) => (
-              <circle key={`n-${x}`} cx={x} cy="30" r="4" fill="#3BA9FF" filter="url(#lineGlow)" />
-            ))}
+            {/* nodes — junctions of the network */}
             <circle cx="600" cy="0" r="5" fill="#3BA9FF" filter="url(#lineGlow)" />
+            <circle cx="600" cy="60" r="5" fill="#3BA9FF" filter="url(#lineGlow)" />
+            {[100, 300, 500, 700, 900, 1100].map((x) => (
+              <circle key={`n-${x}`} cx={x} cy="60" r="4" fill="#3BA9FF" filter="url(#lineGlow)" />
+            ))}
+            {[100, 300, 500, 700, 900, 1100].map((x) => (
+              <circle key={`b-${x}`} cx={x} cy="120" r="3" fill="#3BA9FF" filter="url(#lineGlow)" />
+            ))}
           </svg>
         </div>
 
