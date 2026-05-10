@@ -38,10 +38,10 @@ const slides = [
     img: s4,
     icon: Film,
     eyebrow: "Audiovisual Premium",
-    title: "Produção audiovisual de alto impacto",
-    desc: "Vídeos institucionais, reels e comerciais com qualidade cinematográfica.",
-    cta1: "Solicitar projeto",
-    cta2: "Ver showreel",
+    title: "Produção Audiovisual Cinematográfica",
+    desc: "Criamos vídeos institucionais, comerciais, podcasts, reels, documentários e conteúdos premium com equipamentos profissionais e qualidade de cinema.",
+    cta1: "Ver Produções",
+    cta2: "Solicitar Orçamento",
   },
 ];
 
