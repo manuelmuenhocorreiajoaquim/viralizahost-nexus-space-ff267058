@@ -49,23 +49,27 @@ export default function Navbar() {
   }, []);
 
   return (
-    <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? "glass-strong text-foreground" : "bg-transparent text-white"}`}>
+    <header
+      className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 text-white ${
+        scrolled
+          ? "bg-[oklch(0.15_0.02_255/0.7)] backdrop-blur-xl border-b border-white/10"
+          : "bg-gradient-to-b from-black/40 to-transparent"
+      }`}
+    >
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
-        <div className="flex h-20 items-center justify-between">
-          <a href="#" className="flex items-center gap-2 group">
-            <div className="relative">
-              <div className="absolute inset-0 bg-primary/40 blur-xl rounded-full group-hover:bg-primary/60 transition" />
-              <img src={logo} alt="ViralizaHost" className="relative h-10 w-auto" />
-            </div>
-            <span className="hidden sm:block font-display font-bold text-lg tracking-tight">
-              VIRALIZA<span className="text-primary">HOST</span>
-            </span>
+        <div className="flex h-20 items-center justify-between gap-4">
+          <a href="#" className="flex items-center gap-2 group shrink-0">
+            <img
+              src={logo}
+              alt="ViralizaHost"
+              className="relative h-12 lg:h-14 w-auto drop-shadow-[0_4px_20px_rgba(0,123,255,0.4)]"
+            />
           </a>
 
           <nav className="hidden lg:flex items-center gap-1" onMouseLeave={() => setOpen(null)}>
             {menu.map((m) => (
               <div key={m.label} className="relative" onMouseEnter={() => setOpen(m.items ? m.label : null)}>
-                <button className="flex items-center gap-1 px-3 py-2 text-sm text-foreground/80 hover:text-foreground transition rounded-md">
+                <button className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/90 hover:text-[#3BA9FF] transition-colors rounded-md whitespace-nowrap">
                   {m.label}
                   {m.items && <ChevronDown className="h-3 w-3 opacity-60" />}
                 </button>
@@ -76,7 +80,7 @@ export default function Navbar() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 10 }}
                       transition={{ duration: 0.18 }}
-                      className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[420px] glass rounded-2xl p-3 shadow-elegant"
+                      className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[420px] glass rounded-2xl p-3 shadow-elegant text-foreground"
                     >
                       <div className="grid grid-cols-1 gap-1">
                         {m.items.map((it) => (
@@ -98,16 +102,20 @@ export default function Navbar() {
             ))}
           </nav>
 
-          <div className="hidden lg:flex items-center gap-2">
-            <a href="#" className="flex items-center gap-2 px-3 py-2 text-sm text-foreground/80 hover:text-primary transition">
+          <div className="hidden lg:flex items-center gap-3 shrink-0">
+            <a href="#" className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white/90 hover:text-[#3BA9FF] transition whitespace-nowrap">
               <MessageCircle className="h-4 w-4" /> WhatsApp
             </a>
-            <a href="#planos" className="group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-primary text-primary-foreground text-sm font-semibold shadow-glow hover:scale-105 transition">
+            <a
+              href="#planos"
+              className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-primary text-primary-foreground text-sm font-semibold shadow-glow hover:scale-105 transition"
+              style={{ minWidth: 180, whiteSpace: "nowrap", padding: "14px 26px" }}
+            >
               Começar Agora <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition" />
             </a>
           </div>
 
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden p-2 text-foreground">
+          <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden p-2 text-white">
             {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
@@ -119,16 +127,24 @@ export default function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden glass-strong overflow-hidden"
+            className="lg:hidden bg-[oklch(0.15_0.02_255/0.95)] backdrop-blur-xl overflow-hidden border-t border-white/10"
           >
             <div className="px-4 py-4 space-y-1">
               {menu.map((m) => (
-                <a key={m.label} href="#" className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-primary/10">
-                  <m.icon className="h-4 w-4 text-primary" />
-                  <span className="text-sm">{m.label}</span>
+                <a key={m.label} href="#" className="flex items-center gap-3 px-3 py-3 rounded-lg text-white hover:bg-white/10 hover:text-[#3BA9FF] transition">
+                  <m.icon className="h-4 w-4 text-[#3BA9FF]" />
+                  <span className="text-sm font-medium">{m.label}</span>
                 </a>
               ))}
-              <a href="#planos" className="block mt-2 text-center px-5 py-3 rounded-full bg-gradient-primary text-primary-foreground text-sm font-semibold">
+              <a href="#" className="flex items-center gap-3 px-3 py-3 rounded-lg text-white hover:bg-white/10 transition">
+                <MessageCircle className="h-4 w-4 text-[#3BA9FF]" />
+                <span className="text-sm font-medium">WhatsApp</span>
+              </a>
+              <a
+                href="#planos"
+                className="block mt-2 text-center rounded-full bg-gradient-primary text-primary-foreground text-sm font-semibold"
+                style={{ padding: "14px 26px", whiteSpace: "nowrap" }}
+              >
                 Começar Agora
               </a>
             </div>
