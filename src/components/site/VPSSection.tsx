@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Cpu, HardDrive, Wifi, Check, Zap } from "lucide-react";
 import { Section, SectionHeader } from "./Section";
+import { usePrice } from "@/lib/currency";
 
 const tiers = [
   { name: "VPS NVMe 2", cpu: "2 vCPU", ram: "4 GB", ssd: "80 GB", bw: "4 TB", price: "89", badge: null },
@@ -20,8 +21,17 @@ export default function VPSSection() {
 
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
         {tiers.map((t, i) => (
+          <Tier key={t.name} t={t} i={i} />
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+function Tier({ t, i }: { t: typeof tiers[number]; i: number }) {
+  const displayPrice = usePrice(t.price);
+  return (
           <motion.div
-            key={t.name}
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -44,17 +54,13 @@ export default function VPSSection() {
               <Row icon={Wifi} label="Banda" value={t.bw} />
             </div>
             <div className="flex items-baseline gap-1 mb-4">
-              <span className="text-xs text-muted-foreground">R$</span>
-              <span className="text-4xl font-bold text-gradient-primary">{t.price}</span>
+              <span className="text-4xl font-bold text-gradient-primary">{displayPrice}</span>
               <span className="text-xs text-muted-foreground">/mês</span>
             </div>
             <a href="#" className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-gradient-primary text-primary-foreground text-sm font-semibold shadow-glow hover:scale-[1.02] transition">
               <Check className="h-4 w-4" /> Contratar
             </a>
           </motion.div>
-        ))}
-      </div>
-    </Section>
   );
 }
 
