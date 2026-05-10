@@ -225,9 +225,19 @@ export default function TeamSection() {
               {/* light sweep */}
               <div className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
+              {/* country flag */}
+              <img
+                src={m.flag} alt={m.country} title={`${m.country} ${m.flag === AO ? "🇦🇴" : "🇧🇷"}`}
+                className="flag-badge absolute top-3 right-3 z-10"
+              />
+
               <div className="flex justify-center mb-4">
-                <div className="relative">
-                  <div className="absolute -inset-1 rounded-full bg-[#3BA9FF]/40 blur-lg group-hover:bg-[#3BA9FF]/60 transition" />
+                <div className="relative h-32 w-32 grid place-items-center">
+                  <div className="absolute inset-0 rounded-full bg-[#3BA9FF]/40 blur-lg group-hover:bg-[#3BA9FF]/60 transition" />
+                  <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100" aria-hidden>
+                    <circle cx="50" cy="50" r="48" fill="none" stroke="#3BA9FF" strokeWidth="1.4"
+                      strokeDasharray="4 6" className="dashed-ring" />
+                  </svg>
                   <img
                     src={m.photo} alt={m.name}
                     loading="lazy" decoding="async"
