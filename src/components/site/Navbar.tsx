@@ -49,13 +49,13 @@ export default function Navbar() {
   }, []);
 
   return (
-    <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? "glass-strong" : "bg-transparent"}`}>
+    <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? "glass-strong text-foreground" : "bg-transparent text-white"}`}>
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
         <div className="flex h-20 items-center justify-between">
           <a href="#" className="flex items-center gap-2 group">
             <div className="relative">
               <div className="absolute inset-0 bg-primary/40 blur-xl rounded-full group-hover:bg-primary/60 transition" />
-              <img src={logo} alt="ViralizaHost" className="relative h-10 w-auto brightness-0 invert" />
+              <img src={logo} alt="ViralizaHost" className="relative h-10 w-auto" />
             </div>
             <span className="hidden sm:block font-display font-bold text-lg tracking-tight">
               VIRALIZA<span className="text-primary">HOST</span>
