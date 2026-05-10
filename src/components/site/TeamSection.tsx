@@ -60,6 +60,14 @@ export default function TeamSection() {
         }
         .org-line { stroke-dasharray: 8 12; animation: lineFlow 3s linear infinite; }
         .team-photo { image-rendering: auto; -webkit-backface-visibility: hidden; backface-visibility: hidden; transform: translateZ(0); }
+        @keyframes dashSpin { to { stroke-dashoffset: -100; } }
+        .dashed-ring { animation: dashSpin 6s linear infinite; filter: drop-shadow(0 0 6px rgba(59,169,255,0.7)); }
+        .flag-badge {
+          width: 28px; height: 28px; border-radius: 999px;
+          border: 1.5px solid rgba(59,169,255,0.75);
+          box-shadow: 0 0 12px rgba(59,169,255,0.55);
+          object-fit: cover; background: #0b1220;
+        }
       `}</style>
 
       <div className="relative mx-auto max-w-7xl px-4 lg:px-8">
