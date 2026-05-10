@@ -71,7 +71,7 @@ function PlanCard({ p, i }: { p: Plan; i: number }) {
             )}
             <h3 className="text-xl font-bold mb-3">{p.name}</h3>
             <div className="flex items-baseline gap-1 mb-5">
-              <span className="text-4xl font-bold text-gradient-primary">{p.price}</span>
+              <span className="text-4xl font-bold text-gradient-primary">{displayPrice}</span>
               {p.per && <span className="text-sm text-muted-foreground">{p.per}</span>}
             </div>
             <ul className="space-y-2.5 mb-6">
@@ -93,8 +93,5 @@ function PlanCard({ p, i }: { p: Plan; i: number }) {
               {p.cta || "Contratar"} <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition" />
             </a>
           </motion.div>
-        ))}
-      </div>
-    </Section>
   );
 }
