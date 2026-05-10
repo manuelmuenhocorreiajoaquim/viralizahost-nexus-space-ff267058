@@ -68,6 +68,30 @@ export default function TeamSection() {
           box-shadow: 0 0 12px rgba(59,169,255,0.55);
           object-fit: cover; background: #0b1220;
         }
+        /* Hierarchy connector lines (dashed + animated energy flow) */
+        @keyframes hFlow { to { background-position: 24px 0; } }
+        @keyframes vFlow { to { background-position: 0 24px; } }
+        .org-h {
+          height: 2px;
+          background-image: linear-gradient(to right, #3BA9FF 60%, transparent 40%);
+          background-size: 12px 2px;
+          background-repeat: repeat-x;
+          filter: drop-shadow(0 0 6px rgba(59,169,255,0.85));
+          animation: hFlow 1.6s linear infinite;
+        }
+        .org-v {
+          width: 2px;
+          background-image: linear-gradient(to bottom, #3BA9FF 60%, transparent 40%);
+          background-size: 2px 12px;
+          background-repeat: repeat-y;
+          filter: drop-shadow(0 0 6px rgba(59,169,255,0.85));
+          animation: vFlow 1.6s linear infinite;
+        }
+        .org-node {
+          width: 10px; height: 10px; border-radius: 999px;
+          background: #3BA9FF;
+          box-shadow: 0 0 12px rgba(59,169,255,0.9), 0 0 22px rgba(59,169,255,0.5);
+        }
       `}</style>
 
       <div className="relative mx-auto max-w-7xl px-4 lg:px-8">
@@ -180,39 +204,32 @@ export default function TeamSection() {
           </motion.div>
         </div>
 
-        {/* Connector SVG (desktop only) — full dashed hierarchy: CEO → trunk → specialists */}
-        <div className="relative hidden lg:block -mt-4 mb-2">
-          <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-28" aria-hidden>
-            <defs>
-              <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"  stopColor="#3BA9FF" stopOpacity="1" />
-                <stop offset="100%" stopColor="#3BA9FF" stopOpacity="0.5" />
-              </linearGradient>
-              <filter id="lineGlow">
-                <feGaussianBlur stdDeviation="2.5" result="b" />
-                <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-              </filter>
-            </defs>
-            <g stroke="url(#lineGrad)" strokeWidth="2" fill="none" filter="url(#lineGlow)" strokeLinecap="round">
-              {/* vertical from CEO down to trunk — dashed animated */}
-              <line className="org-line" x1="600" y1="0" x2="600" y2="60" />
-              {/* horizontal trunk — dashed animated */}
-              <line className="org-line" x1="100" y1="60" x2="1100" y2="60" />
-              {/* vertical drops to each specialist card — dashed animated */}
-              {[100, 300, 500, 700, 900, 1100].map((x) => (
-                <line key={x} className="org-line" x1={x} y1="60" x2={x} y2="120" />
-              ))}
-            </g>
-            {/* nodes — junctions of the network */}
-            <circle cx="600" cy="0" r="5" fill="#3BA9FF" filter="url(#lineGlow)" />
-            <circle cx="600" cy="60" r="5" fill="#3BA9FF" filter="url(#lineGlow)" />
-            {[100, 300, 500, 700, 900, 1100].map((x) => (
-              <circle key={`n-${x}`} cx={x} cy="60" r="4" fill="#3BA9FF" filter="url(#lineGlow)" />
-            ))}
-            {[100, 300, 500, 700, 900, 1100].map((x) => (
-              <circle key={`b-${x}`} cx={x} cy="120" r="3" fill="#3BA9FF" filter="url(#lineGlow)" />
-            ))}
-          </svg>
+        {/* Hierarchy connector (desktop only) — full dashed network: CEO → trunk → specialists */}
+        <div className="relative hidden lg:block h-24 mb-2" aria-hidden>
+          {/* vertical from CEO down to trunk */}
+          <div className="org-v absolute left-1/2 -translate-x-1/2 top-0 h-12" />
+          {/* node at CEO connection */}
+          <div className="org-node absolute left-1/2 -translate-x-1/2 top-[-5px]" />
+          {/* horizontal trunk — spans the 6 column centers */}
+          <div
+            className="org-h absolute top-12"
+            style={{ left: "8.333%", right: "8.333%" }}
+          />
+          {/* node where vertical meets trunk */}
+          <div className="org-node absolute left-1/2 -translate-x-1/2 top-[42px]" />
+          {/* vertical drops to each of the 6 specialist cards (centers at 1/12, 3/12, ... 11/12) */}
+          {[8.333, 25, 41.667, 58.333, 75, 91.667].map((leftPct) => (
+            <div key={leftPct}>
+              <div
+                className="org-v absolute top-12 h-12"
+                style={{ left: `${leftPct}%`, transform: "translateX(-1px)" }}
+              />
+              <div
+                className="org-node absolute top-[42px]"
+                style={{ left: `${leftPct}%`, transform: "translate(-50%, 0)", width: 8, height: 8 }}
+              />
+            </div>
+          ))}
         </div>
 
         {/* Team grid — equal cards */}
