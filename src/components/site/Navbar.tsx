@@ -43,10 +43,16 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currOpen, setCurrOpen] = useState(false);
   const { currency, setCurrency } = useCurrency();
-  const currencies: { code: Currency; flag: string; label: string }[] = [
-    { code: "BRL", flag: "🇧🇷", label: "BRL" },
-    { code: "AKZ", flag: "🇦🇴", label: "AKZ" },
+  const currencies: { code: Currency; flag: string; cc: string; label: string; country: string }[] = [
+    { code: "BRL", flag: "🇧🇷", cc: "BR", label: "BRL", country: "Brasil" },
+    { code: "AKZ", flag: "🇦🇴", cc: "AO", label: "AKZ", country: "Angola" },
   ];
+  const flagStyle = {
+    fontFamily:
+      '"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji","Twemoji Country Flags","Segoe UI Symbol",sans-serif',
+    fontSize: "18px",
+    lineHeight: 1,
+  } as const;
   const active = currencies.find((c) => c.code === currency)!;
 
   useEffect(() => {
@@ -116,8 +122,8 @@ export default function Navbar() {
               onBlur={() => setTimeout(() => setCurrOpen(false), 150)}
               className="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold bg-white/10 backdrop-blur-md border border-white/15 text-white hover:text-[#3BA9FF] hover:border-[#3BA9FF]/40 transition"
             >
-              <span className="text-base leading-none">{active.flag}</span>
-              <span>{active.label}</span>
+              <span style={flagStyle} className="leading-none">{active.flag}</span>
+              <span>{active.cc} · {active.label}</span>
               <ChevronDown className={`h-3 w-3 opacity-70 transition ${currOpen ? "rotate-180" : ""}`} />
             </button>
             <AnimatePresence>
@@ -141,8 +147,8 @@ export default function Navbar() {
                         c.code === currency ? "bg-primary/15 text-primary" : "hover:bg-primary/10"
                       }`}
                     >
-                      <span className="text-base leading-none">{c.flag}</span>
-                      <span>{c.label}</span>
+                      <span style={flagStyle} className="leading-none">{c.flag}</span>
+                      <span>{c.country} — {c.label}</span>
                     </button>
                   ))}
                 </motion.div>
@@ -182,7 +188,7 @@ export default function Navbar() {
                         : "bg-white/5 border-white/10 text-white/80"
                     }`}
                   >
-                    <span>{c.flag}</span> {c.label}
+                    <span style={flagStyle}>{c.flag}</span> {c.cc} · {c.label}
                   </button>
                 ))}
               </div>
