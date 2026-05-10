@@ -11,13 +11,16 @@ import vladmiro from "@/assets/team/vladmiro.jpeg";
 import israel from "@/assets/team/israel.png";
 import arnaldo from "@/assets/team/arnaldo.jpeg";
 
+const AO = "https://flagcdn.com/w80/ao.png";
+const BR = "https://flagcdn.com/w80/br.png";
+
 const team = [
-  { photo: lucas,    name: "Lucas Marcelino",  role: "Tráfego Pago",                 icon: TrendingUp, desc: "Especialista em Meta Ads, Google Ads e estratégias de conversão e crescimento digital." },
-  { photo: jacob,    name: "Jacob Pessela",    role: "Design Gráfico",               icon: Palette,    desc: "Especialista em branding, identidade visual e comunicação criativa empresarial." },
-  { photo: felipe,   name: "Felipe Nóbrega",   role: "Automação IA",                 icon: Bot,        desc: "Especialista em Inteligência Artificial, automação de processos e soluções inteligentes." },
-  { photo: vladmiro, name: "Vladmiro Macedo",  role: "Hosting & Infraestrutura",     icon: Server,     desc: "Especialista em servidores web, cloud hosting, e-mails corporativos e infraestrutura." },
-  { photo: israel,   name: "Israel Soares",    role: "Crescimento Digital",          icon: Share2,     desc: "Especialista em crescimento digital, estratégias sociais e posicionamento online." },
-  { photo: arnaldo,  name: "Arnaldo Eduardo",  role: "Audiovisual",                  icon: Video,      desc: "Especialista em produção audiovisual, motion graphics e conteúdos digitais premium." },
+  { photo: lucas,    name: "Lucas Marcelino",  role: "Tráfego Pago",                 icon: TrendingUp, desc: "Especialista em Meta Ads, Google Ads e estratégias de conversão e crescimento digital.", flag: BR, country: "Brasil" },
+  { photo: jacob,    name: "Jacob Pessela",    role: "Design Gráfico",               icon: Palette,    desc: "Especialista em branding, identidade visual e comunicação criativa empresarial.", flag: AO, country: "Angola" },
+  { photo: felipe,   name: "Felipe Nóbrega",   role: "Automação IA",                 icon: Bot,        desc: "Especialista em Inteligência Artificial, automação de processos e soluções inteligentes.", flag: BR, country: "Brasil" },
+  { photo: vladmiro, name: "Vladmiro Macedo",  role: "Hosting & Infraestrutura",     icon: Server,     desc: "Especialista em servidores web, cloud hosting, e-mails corporativos e infraestrutura.", flag: AO, country: "Angola" },
+  { photo: israel,   name: "Israel Soares",    role: "Crescimento Digital",          icon: Share2,     desc: "Especialista em crescimento digital, estratégias sociais e posicionamento online.", flag: BR, country: "Brasil" },
+  { photo: arnaldo,  name: "Arnaldo Eduardo",  role: "Audiovisual",                  icon: Video,      desc: "Especialista em produção audiovisual, motion graphics e conteúdos digitais premium.", flag: AO, country: "Angola" },
 ];
 
 const stats = [
@@ -57,6 +60,14 @@ export default function TeamSection() {
         }
         .org-line { stroke-dasharray: 8 12; animation: lineFlow 3s linear infinite; }
         .team-photo { image-rendering: auto; -webkit-backface-visibility: hidden; backface-visibility: hidden; transform: translateZ(0); }
+        @keyframes dashSpin { to { stroke-dashoffset: -100; } }
+        .dashed-ring { animation: dashSpin 6s linear infinite; filter: drop-shadow(0 0 6px rgba(59,169,255,0.7)); }
+        .flag-badge {
+          width: 28px; height: 28px; border-radius: 999px;
+          border: 1.5px solid rgba(59,169,255,0.75);
+          box-shadow: 0 0 12px rgba(59,169,255,0.55);
+          object-fit: cover; background: #0b1220;
+        }
       `}</style>
 
       <div className="relative mx-auto max-w-7xl px-4 lg:px-8">
@@ -105,13 +116,24 @@ export default function TeamSection() {
               <div className="absolute -top-20 -right-20 h-60 w-60 rounded-full bg-[#3BA9FF]/30 blur-3xl" />
               <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-[#7B5BFF]/25 blur-3xl" />
 
+              {/* country flag */}
+              <img
+                src={AO} alt="Angola" title="Angola 🇦🇴"
+                className="flag-badge absolute top-4 right-4 z-10"
+              />
+
               <div className="relative flex flex-col md:flex-row gap-8 items-center md:items-start">
-                <div className="relative shrink-0">
-                  <div className="absolute -inset-2 rounded-3xl bg-gradient-to-br from-[#3BA9FF] to-[#7B5BFF] opacity-60 blur-xl" />
+                <div className="relative shrink-0 h-56 w-56 grid place-items-center">
+                  <div className="absolute inset-0 rounded-full bg-[#3BA9FF]/30 blur-2xl" />
+                  {/* dashed animated ring */}
+                  <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100" aria-hidden>
+                    <circle cx="50" cy="50" r="48" fill="none" stroke="#3BA9FF" strokeWidth="1.2"
+                      strokeDasharray="4 6" className="dashed-ring" />
+                  </svg>
                   <img
                     src={manuel} alt="Manuel Muenho"
                     loading="eager" decoding="async"
-                    className="team-photo relative h-52 w-52 rounded-2xl object-cover object-center border-2 border-[#3BA9FF]/60 shadow-[0_0_50px_-10px_rgba(59,169,255,0.7)]"
+                    className="team-photo relative h-44 w-44 rounded-full object-cover object-center border-2 border-[#3BA9FF]/60 shadow-[0_0_50px_-10px_rgba(59,169,255,0.7)]"
                   />
                 </div>
                 <div className="flex-1 text-center md:text-left">
@@ -203,9 +225,19 @@ export default function TeamSection() {
               {/* light sweep */}
               <div className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
+              {/* country flag */}
+              <img
+                src={m.flag} alt={m.country} title={`${m.country} ${m.flag === AO ? "🇦🇴" : "🇧🇷"}`}
+                className="flag-badge absolute top-3 right-3 z-10"
+              />
+
               <div className="flex justify-center mb-4">
-                <div className="relative">
-                  <div className="absolute -inset-1 rounded-full bg-[#3BA9FF]/40 blur-lg group-hover:bg-[#3BA9FF]/60 transition" />
+                <div className="relative h-32 w-32 grid place-items-center">
+                  <div className="absolute inset-0 rounded-full bg-[#3BA9FF]/40 blur-lg group-hover:bg-[#3BA9FF]/60 transition" />
+                  <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100" aria-hidden>
+                    <circle cx="50" cy="50" r="48" fill="none" stroke="#3BA9FF" strokeWidth="1.4"
+                      strokeDasharray="4 6" className="dashed-ring" />
+                  </svg>
                   <img
                     src={m.photo} alt={m.name}
                     loading="lazy" decoding="async"
