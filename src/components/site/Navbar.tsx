@@ -121,8 +121,8 @@ export default function Navbar() {
               onBlur={() => setTimeout(() => setCurrOpen(false), 150)}
               className="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold bg-white/10 backdrop-blur-md border border-white/15 text-white hover:text-[#3BA9FF] hover:border-[#3BA9FF]/40 transition"
             >
-              <span className="text-base leading-none">{active.flag}</span>
-              <span>{active.label}</span>
+              <span style={flagStyle} className="leading-none">{active.flag}</span>
+              <span>{active.cc} · {active.label}</span>
               <ChevronDown className={`h-3 w-3 opacity-70 transition ${currOpen ? "rotate-180" : ""}`} />
             </button>
             <AnimatePresence>
@@ -146,8 +146,8 @@ export default function Navbar() {
                         c.code === currency ? "bg-primary/15 text-primary" : "hover:bg-primary/10"
                       }`}
                     >
-                      <span className="text-base leading-none">{c.flag}</span>
-                      <span>{c.label}</span>
+                      <span style={flagStyle} className="leading-none">{c.flag}</span>
+                      <span>{c.country} — {c.label}</span>
                     </button>
                   ))}
                 </motion.div>
@@ -187,7 +187,7 @@ export default function Navbar() {
                         : "bg-white/5 border-white/10 text-white/80"
                     }`}
                   >
-                    <span>{c.flag}</span> {c.label}
+                    <span style={flagStyle}>{c.flag}</span> {c.cc} · {c.label}
                   </button>
                 ))}
               </div>
