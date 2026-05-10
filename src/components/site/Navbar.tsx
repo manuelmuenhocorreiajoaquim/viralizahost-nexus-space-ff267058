@@ -49,8 +49,9 @@ export default function Navbar() {
   ];
   const flagStyle = {
     fontFamily:
-      '"Twemoji Country Flags","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Segoe UI Symbol",sans-serif',
+      '"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji","Twemoji Country Flags","Segoe UI Symbol",sans-serif',
     fontSize: "18px",
+    lineHeight: 1,
   } as const;
   const active = currencies.find((c) => c.code === currency)!;
 
