@@ -116,13 +116,24 @@ export default function TeamSection() {
               <div className="absolute -top-20 -right-20 h-60 w-60 rounded-full bg-[#3BA9FF]/30 blur-3xl" />
               <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-[#7B5BFF]/25 blur-3xl" />
 
+              {/* country flag */}
+              <img
+                src={AO} alt="Angola" title="Angola 🇦🇴"
+                className="flag-badge absolute top-4 right-4 z-10"
+              />
+
               <div className="relative flex flex-col md:flex-row gap-8 items-center md:items-start">
-                <div className="relative shrink-0">
-                  <div className="absolute -inset-2 rounded-3xl bg-gradient-to-br from-[#3BA9FF] to-[#7B5BFF] opacity-60 blur-xl" />
+                <div className="relative shrink-0 h-56 w-56 grid place-items-center">
+                  <div className="absolute inset-0 rounded-full bg-[#3BA9FF]/30 blur-2xl" />
+                  {/* dashed animated ring */}
+                  <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100" aria-hidden>
+                    <circle cx="50" cy="50" r="48" fill="none" stroke="#3BA9FF" strokeWidth="1.2"
+                      strokeDasharray="4 6" className="dashed-ring" />
+                  </svg>
                   <img
                     src={manuel} alt="Manuel Muenho"
                     loading="eager" decoding="async"
-                    className="team-photo relative h-52 w-52 rounded-2xl object-cover object-center border-2 border-[#3BA9FF]/60 shadow-[0_0_50px_-10px_rgba(59,169,255,0.7)]"
+                    className="team-photo relative h-44 w-44 rounded-full object-cover object-center border-2 border-[#3BA9FF]/60 shadow-[0_0_50px_-10px_rgba(59,169,255,0.7)]"
                   />
                 </div>
                 <div className="flex-1 text-center md:text-left">
