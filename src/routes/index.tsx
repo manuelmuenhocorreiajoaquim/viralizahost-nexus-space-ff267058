@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import Navbar from "@/components/site/Navbar";
 import Hero from "@/components/site/Hero";
+import DomainsSection from "@/components/site/DomainsSection";
+import EmailPlans from "@/components/site/EmailPlans";
 import HostingPlans from "@/components/site/HostingPlans";
+import AIPlans from "@/components/site/AIPlans";
+import TrafficPlans from "@/components/site/TrafficPlans";
+import DesignPlans from "@/components/site/DesignPlans";
+import AudiovisualPlans from "@/components/site/AudiovisualPlans";
 import ServiceGrid from "@/components/site/ServiceGrid";
-import VPSSection from "@/components/site/VPSSection";
-import AISection from "@/components/site/AISection";
-import GlobalSection from "@/components/site/GlobalSection";
-import Testimonials from "@/components/site/Testimonials";
 import CTAFooter from "@/components/site/CTAFooter";
 import FloatingActions from "@/components/site/FloatingActions";
 
@@ -15,9 +17,9 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "ViralizaHost — Hospedagem, IA, Marketing e Audiovisual Premium" },
-      { name: "description", content: "Ecossistema digital premium: hospedagem cloud LiteSpeed, VPS NVMe, IA e automação, design, audiovisual e marketing digital." },
+      { name: "description", content: "Ecossistema digital premium: domínios, e-mail corporativo, hospedagem cloud, IA, tráfego pago, design e audiovisual." },
       { property: "og:title", content: "ViralizaHost — Hospedagem · Performance · Confiança" },
-      { property: "og:description", content: "Infraestrutura cloud global, IA empresarial, marketing digital e produção audiovisual premium." },
+      { property: "og:description", content: "Domínios, hospedagem cloud, IA empresarial, tráfego pago, design e produção audiovisual premium." },
     ],
   }),
 });
@@ -27,12 +29,14 @@ function Index() {
     <main className="relative">
       <Navbar />
       <Hero />
+      <DomainsSection />
+      <EmailPlans />
       <HostingPlans />
+      <AIPlans />
+      <TrafficPlans />
+      <DesignPlans />
+      <AudiovisualPlans />
       <ServiceGrid />
-      <VPSSection />
-      <AISection />
-      <GlobalSection />
-      <Testimonials />
       <CTAFooter />
       <FloatingActions />
     </main>
