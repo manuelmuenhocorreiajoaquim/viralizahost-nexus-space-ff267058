@@ -55,7 +55,7 @@ export default function Navbar() {
           <a href="#" className="flex items-center gap-2 group">
             <div className="relative">
               <div className="absolute inset-0 bg-primary/40 blur-xl rounded-full group-hover:bg-primary/60 transition" />
-              <img src={logo} alt="ViralizaHost" className="relative h-10 w-auto brightness-0 invert" />
+              <img src={logo} alt="ViralizaHost" className="relative h-10 w-auto" />
             </div>
             <span className="hidden sm:block font-display font-bold text-lg tracking-tight">
               VIRALIZA<span className="text-primary">HOST</span>
