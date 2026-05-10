@@ -4,6 +4,7 @@ import Hero from "@/components/site/Hero";
 import DomainsSection from "@/components/site/DomainsSection";
 import EmailPlans from "@/components/site/EmailPlans";
 import HostingPlans from "@/components/site/HostingPlans";
+import TeamSection from "@/components/site/TeamSection";
 import AIPlans from "@/components/site/AIPlans";
 import TrafficPlans from "@/components/site/TrafficPlans";
 import DesignPlans from "@/components/site/DesignPlans";
@@ -32,6 +33,7 @@ function Index() {
       <DomainsSection />
       <EmailPlans />
       <HostingPlans />
+      <TeamSection />
       <AIPlans />
       <TrafficPlans />
       <DesignPlans />
