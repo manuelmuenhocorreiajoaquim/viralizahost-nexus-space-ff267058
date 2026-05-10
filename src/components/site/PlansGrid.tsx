@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Check, ArrowRight, type LucideIcon } from "lucide-react";
 import { Section, SectionHeader } from "./Section";
+import { usePrice } from "@/lib/currency";
 
 export type Plan = {
   icon: LucideIcon;
@@ -34,8 +35,17 @@ export default function PlansGrid({
       <SectionHeader eyebrow={eyebrow} title={title} desc={desc} />
       <div className={`grid md:grid-cols-2 ${grid} gap-6`}>
         {plans.map((p, i) => (
-          <motion.div
-            key={p.name}
+          <PlanCard key={p.name} p={p} i={i} />
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+function PlanCard({ p, i }: { p: Plan; i: number }) {
+  const displayPrice = usePrice(p.price);
+  return (
+    <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
