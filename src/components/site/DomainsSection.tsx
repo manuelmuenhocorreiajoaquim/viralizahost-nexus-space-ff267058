@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Search, Globe } from "lucide-react";
 import { Section, SectionHeader } from "./Section";
+import { formatPrice, useCurrency } from "@/lib/currency";
 
 const domains = [
   { ext: ".com", price: "R$ 59", per: "/ano", popular: true },
@@ -12,6 +13,7 @@ const domains = [
 ];
 
 export default function DomainsSection() {
+  const { currency } = useCurrency();
   return (
     <Section id="dominios" className="bg-background">
       <SectionHeader
@@ -62,7 +64,7 @@ export default function DomainsSection() {
             )}
             <div className="text-2xl font-display font-bold text-gradient-primary">{d.ext}</div>
             <div className="mt-2 text-sm">
-              <span className="font-bold text-foreground">{d.price}</span>
+              <span className="font-bold text-foreground">{formatPrice(d.price, currency)}</span>
               <span className="text-muted-foreground">{d.per}</span>
             </div>
           </motion.div>
