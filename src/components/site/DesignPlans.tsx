@@ -12,12 +12,13 @@ export default function DesignPlans() {
         loading="lazy"
         width={1920}
         height={1280}
-        className="absolute inset-0 -z-10 h-full w-full object-cover opacity-[0.18]"
+        className="absolute inset-0 -z-10 h-full w-full object-cover"
+        style={{ opacity: 0.38, filter: "contrast(1.1) brightness(0.9)" }}
       />
       <div
         aria-hidden="true"
         className="absolute inset-0 -z-10"
-        style={{ background: "rgba(255,255,255,0.88)", backdropFilter: "blur(2px)" }}
+        style={{ background: "rgba(255,255,255,0.55)", backdropFilter: "blur(1px)" }}
       />
       <PlansGrid
         id="design"
