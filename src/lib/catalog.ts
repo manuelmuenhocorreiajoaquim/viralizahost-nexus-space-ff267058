@@ -25,10 +25,10 @@ export type Product = {
 
 export const CATALOG: Product[] = [
   // Hospedagem
-  { id: "host-start", type: "hosting", name: "Host Start", basePriceBRL: 19, needsDomain: true, emailUpsell: true },
-  { id: "host-pro", type: "hosting", name: "Host Pro", basePriceBRL: 49, needsDomain: true, emailUpsell: true },
-  { id: "host-business", type: "hosting", name: "Host Business", basePriceBRL: 99, needsDomain: true, emailUpsell: true },
-  { id: "host-cloud", type: "hosting", name: "Cloud Premium", basePriceBRL: 199, needsDomain: true, emailUpsell: true },
+  { id: "host-start", type: "hosting", name: "Starter Host", basePriceBRL: 19, needsDomain: true, emailUpsell: true },
+  { id: "host-business", type: "hosting", name: "Business Cloud", basePriceBRL: 79, needsDomain: true, emailUpsell: true },
+  { id: "host-pro", type: "hosting", name: "Cloud Pro", basePriceBRL: 159, needsDomain: true, emailUpsell: true },
+  { id: "host-revenda", type: "hosting", name: "Revenda WHM", basePriceBRL: 249, needsDomain: true, emailUpsell: true },
   // VPS
   { id: "vps-1", type: "vps", name: "VPS NVMe 1", basePriceBRL: 79 },
   { id: "vps-2", type: "vps", name: "VPS NVMe 2", basePriceBRL: 149 },
