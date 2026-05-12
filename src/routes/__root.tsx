@@ -9,6 +9,8 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import { AuthProvider } from "@/lib/use-auth";
+import { Toaster } from "sonner";
 
 function NotFoundComponent() {
   return (
@@ -117,7 +119,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <AuthProvider>
+        <Toaster richColors position="top-right" />
+        <Outlet />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

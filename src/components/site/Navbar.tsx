@@ -119,6 +119,12 @@ export default function Navbar() {
           </nav>
 
           <div className="hidden lg:flex items-center gap-3 shrink-0 relative">
+            <a
+              href="/login"
+              className="px-3 py-2 rounded-full text-sm font-semibold text-white/90 hover:text-[#3BA9FF] transition"
+            >
+              Área do Cliente
+            </a>
             <button
               onClick={() => setCurrOpen((v) => !v)}
               onBlur={() => setTimeout(() => setCurrOpen(false), 150)}
