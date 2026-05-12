@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Search, Globe } from "lucide-react";
 import { Section, SectionHeader } from "./Section";
 import { formatPrice, useCurrency } from "@/lib/currency";
+import DomainSearchDialog from "./DomainSearchDialog";
 
 const domains = [
   { ext: ".com", price: "R$ 59", per: "/ano", popular: true },
@@ -14,6 +16,16 @@ const domains = [
 
 export default function DomainsSection() {
   const { currency } = useCurrency();
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim()) return;
+    setOpen(true);
+  };
+
+
   return (
     <Section id="dominios" className="bg-background">
       <SectionHeader
