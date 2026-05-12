@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import logo from "@/assets/viralizahost-logo.png";
+import supportImg from "@/assets/login-support.jpg";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -28,15 +29,65 @@ function LoginPage() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-[#0b1220] text-white">
-      <div className="hidden lg:flex flex-col justify-between p-12 bg-gradient-to-br from-[#0b1220] via-[#0e1a3a] to-[#1a2b6b]">
-        <img src={logo} alt="ViralizaHost" className="h-12 w-auto object-contain" />
-        <div>
-          <h2 className="text-4xl font-bold leading-tight">Bem-vindo à sua área de cliente.</h2>
-          <p className="mt-3 text-white/70 max-w-md">
-            Gerencie hospedagens, domínios, e-mails e muito mais — tudo num só painel premium.
-          </p>
+      <div
+        className="relative hidden lg:flex flex-col justify-between p-12 overflow-hidden"
+        style={{
+          backgroundImage: `url(${supportImg})`,
+          backgroundAttachment: "fixed",
+          backgroundPosition: "center",
+          backgroundSize: "cover",
+        }}
+      >
+        {/* Gradient overlays for premium depth */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#050b1f]/85 via-[#0b1f55]/55 to-[#1a2b6b]/40" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(59,130,246,0.35),transparent_60%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(29,155,255,0.25),transparent_55%)]" />
+        {/* Subtle grid */}
+        <div
+          className="absolute inset-0 opacity-[0.08]"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.5) 1px,transparent 1px)",
+            backgroundSize: "48px 48px",
+          }}
+        />
+
+        <div className="relative z-10">
+          <img src={logo} alt="ViralizaHost" className="h-12 w-auto object-contain drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)]" />
         </div>
-        <p className="text-sm text-white/50">© ViralizaHost · Premium hosting & digital services</p>
+
+        <div className="relative z-10 space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-medium">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            Suporte humano 24/7 · Resposta em minutos
+          </div>
+          <h2 className="text-4xl xl:text-5xl font-bold leading-tight tracking-tight drop-shadow-lg">
+            Suporte premium <br />
+            <span className="bg-gradient-to-r from-sky-300 to-blue-100 bg-clip-text text-transparent">
+              que faz a diferença.
+            </span>
+          </h2>
+          <p className="text-white/80 max-w-md text-base leading-relaxed">
+            Entra no teu painel ViralizaHost e gere hospedagens, domínios, e-mails
+            e serviços digitais — com uma equipa real ao teu lado, sempre.
+          </p>
+          <div className="grid grid-cols-3 gap-4 max-w-md pt-4">
+            {[
+              { v: "99.9%", l: "Uptime" },
+              { v: "<2min", l: "Resposta" },
+              { v: "+10k", l: "Clientes" },
+            ].map((s) => (
+              <div key={s.l} className="rounded-xl bg-white/10 backdrop-blur-md border border-white/15 p-3 text-center">
+                <div className="text-lg font-bold text-white">{s.v}</div>
+                <div className="text-[11px] uppercase tracking-wider text-white/70">{s.l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p className="relative z-10 text-xs text-white/60">
+          © ViralizaHost · Premium hosting & digital services
+        </p>
       </div>
       <div className="flex items-center justify-center p-6 lg:p-12 bg-white text-slate-900">
         <form onSubmit={handle} className="w-full max-w-sm space-y-5">
