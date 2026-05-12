@@ -31,15 +31,20 @@ function LoginPage() {
     <div className="min-h-screen grid lg:grid-cols-2 bg-[#0b1220] text-white">
       <div
         className="relative hidden lg:flex flex-col justify-between p-12 overflow-hidden"
-        style={{
-          backgroundImage: `url(${supportImg})`,
-          backgroundAttachment: "fixed",
-          backgroundPosition: "center right",
-          backgroundSize: "contain",
-          backgroundRepeat: "no-repeat",
-          backgroundColor: "#0B2A55",
-        }}
+        style={{ backgroundColor: "#0B2A55" }}
       >
+        {/* Call center woman image overlaid on blue background */}
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: `url(${supportImg})`,
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "right center",
+            backgroundSize: "contain",
+            opacity: 0.28,
+          }}
+        />
         {/* Gradient overlays for premium depth */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#050b1f]/85 via-[#0b1f55]/55 to-[#1a2b6b]/40" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(59,130,246,0.35),transparent_60%)]" />
