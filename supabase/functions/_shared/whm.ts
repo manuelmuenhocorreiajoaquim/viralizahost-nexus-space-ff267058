@@ -1,19 +1,30 @@
 // Shared WHM API helpers — server side only.
 // Uses WHM API Token with header `Authorization: whm USERNAME:TOKEN`.
 
+import { decryptSecretMaybe } from "./crypto.ts";
+
 export interface WhmServerRow {
   id: string;
   hostname: string;
   api_url: string;
   username: string;
-  token: string;
+  token: string | null;
+  token_encrypted?: string | null;
   server_ip: string | null;
   nameserver1: string;
   nameserver2: string;
+  nameservers?: string[] | null;
 }
 
 function authHeader(s: { username: string; token: string }) {
   return `whm ${s.username}:${s.token}`;
+}
+
+export async function withDecryptedWhmToken<T extends WhmServerRow>(server: T): Promise<T & { token: string }> {
+  const secret = Deno.env.get("WHM_ENCRYPTION_KEY") ?? "";
+  const token = await decryptSecretMaybe(server.token_encrypted ?? server.token, secret);
+  if (!token) throw new Error("WHM API token missing");
+  return { ...server, token };
 }
 
 function normalizeBaseUrl(api_url: string) {
