@@ -26,6 +26,7 @@ import {
   Menu,
   X,
   Search,
+  ShieldCheck,
 } from "lucide-react";
 import logo from "@/assets/viralizahost-logo.png";
 
