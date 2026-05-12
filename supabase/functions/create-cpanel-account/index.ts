@@ -117,26 +117,8 @@ Deno.serve(async (req) => {
         const cpanel_url = `https://${server.hostname}:2083`;
         const nameservers = [server.nameserver1, server.nameserver2];
 
-        // Encrypt password using pgcrypto via RPC
-        let pwdEnc: string | null = null;
-        if (ENC_KEY) {
-          const { data: encRow } = await admin
-            .rpc("pgp_sym_encrypt" as any, { data: password, psw: ENC_KEY })
-            .single()
-            .then((r) => r)
-            .catch(() => ({ data: null }));
-          if (typeof encRow === "string") pwdEnc = encRow;
-        }
-        // Fallback: store via raw SQL using a one-off select
-        if (!pwdEnc && ENC_KEY) {
-          const { data: row } = await admin
-            .from("whm_servers") // dummy to get a SQL session — we use raw via rpc workaround
-            .select("id")
-            .limit(1);
-          // Use an explicit insert with encryption inline:
-          void row;
-        }
-
+        // Encrypt password using AES-GCM (Web Crypto)
+        const pwdEnc = ENC_KEY ? await encryptSecret(password, ENC_KEY) : null;
         const { data: acct, error: aErr } = await admin
           .from("cpanel_accounts")
           .insert({
