@@ -34,7 +34,7 @@ function LoginPage() {
         style={{
           backgroundImage: `url(${supportImg})`,
           backgroundAttachment: "fixed",
-          backgroundPosition: "center",
+          backgroundPosition: "center right",
           backgroundSize: "cover",
         }}
       >
