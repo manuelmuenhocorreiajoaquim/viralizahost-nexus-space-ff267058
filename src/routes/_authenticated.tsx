@@ -54,7 +54,7 @@ const navItems = [
 ] as const;
 
 function AuthLayout() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
