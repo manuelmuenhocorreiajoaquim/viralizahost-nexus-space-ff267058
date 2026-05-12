@@ -10,6 +10,8 @@ import {
 
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/lib/use-auth";
+import { CartProvider } from "@/lib/cart";
+import { CurrencyProvider } from "@/lib/currency";
 import { Toaster } from "sonner";
 
 function NotFoundComponent() {
@@ -120,8 +122,12 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Toaster richColors position="top-right" />
-        <Outlet />
+        <CurrencyProvider>
+          <CartProvider>
+            <Toaster richColors position="top-right" />
+            <Outlet />
+          </CartProvider>
+        </CurrencyProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
