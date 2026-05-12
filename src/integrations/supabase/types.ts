@@ -107,6 +107,110 @@ export type Database = {
         }
         Relationships: []
       }
+      order_items: {
+        Row: {
+          created_at: string
+          cycle: string
+          domain: string | null
+          id: string
+          metadata: Json
+          order_id: string
+          product_id: string
+          product_name: string
+          product_type: string
+          quantity: number
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          cycle?: string
+          domain?: string | null
+          id?: string
+          metadata?: Json
+          order_id: string
+          product_id: string
+          product_name: string
+          product_type: string
+          quantity?: number
+          total?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          cycle?: string
+          domain?: string | null
+          id?: string
+          metadata?: Json
+          order_id?: string
+          product_id?: string
+          product_name?: string
+          product_type?: string
+          quantity?: number
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          currency: string
+          cycle: string
+          discount: number
+          id: string
+          notes: string | null
+          payment_method: string | null
+          payment_provider: string | null
+          payment_ref: string | null
+          status: string
+          subtotal: number
+          total: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          cycle?: string
+          discount?: number
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          payment_provider?: string | null
+          payment_ref?: string | null
+          status?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          cycle?: string
+          discount?: number
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          payment_provider?: string | null
+          payment_ref?: string | null
+          status?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           country: string | null
