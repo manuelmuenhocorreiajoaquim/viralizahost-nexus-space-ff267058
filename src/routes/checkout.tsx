@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
+import logo from "@/assets/viralizahost-logo.png";
 import { useCart, lineMonthly, CATALOG } from "@/lib/cart";
 import { CYCLES, findCycle, findProduct, cyclePeriodTotal, cycleSavings, type CycleId } from "@/lib/catalog";
 import { useCurrency, formatPrice } from "@/lib/currency";
@@ -46,7 +47,6 @@ function CheckoutPage() {
   const cart = useCart();
   const step: StepId = search.step ?? "cycle";
 
-  // Auto-add product from URL once on mount
   useEffect(() => {
     if (search.product && !cart.items.some((i) => i.productId === search.product)) {
       cart.add(search.product);
@@ -58,14 +58,17 @@ function CheckoutPage() {
   const goto = (s: StepId) => navigate({ to: "/checkout", search: { step: s } });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#050b18] via-[#0a1428] to-[#050b18] text-white">
-      <header className="border-b border-white/10 backdrop-blur-xl bg-black/20">
-        <div className="max-w-6xl mx-auto px-4 lg:px-8 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 font-bold text-lg">
-            <span className="text-gradient-primary">ViralizaHost</span>
+    <div
+      className="min-h-screen text-foreground"
+      style={{ background: "linear-gradient(180deg, #F8FAFC 0%, #EEF2F7 100%)" }}
+    >
+      <header className="border-b border-slate-200/70 bg-white/70 backdrop-blur-xl sticky top-0 z-30">
+        <div className="max-w-6xl mx-auto px-4 lg:px-8 h-[72px] flex items-center justify-between">
+          <Link to="/" className="flex items-center">
+            <img src={logo} alt="ViralizaHost" className="h-[44px] w-auto object-contain" />
           </Link>
-          <div className="flex items-center gap-2 text-xs text-white/60">
-            <Lock className="h-3.5 w-3.5" /> Compra 100% segura
+          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+            <Lock className="h-3.5 w-3.5 text-emerald-600" /> Compra 100% segura
           </div>
         </div>
       </header>
@@ -88,7 +91,7 @@ function CheckoutPage() {
 function Stepper({ current }: { current: StepId }) {
   const idx = STEPS.findIndex((s) => s.id === current);
   return (
-    <div className="border-b border-white/10 bg-black/10">
+    <div className="border-b border-slate-200/70 bg-white/40 backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-4 lg:px-8 py-4 overflow-x-auto">
         <ol className="flex items-center gap-2 min-w-max">
           {STEPS.map((s, i) => {
@@ -98,15 +101,15 @@ function Stepper({ current }: { current: StepId }) {
             return (
               <li key={s.id} className="flex items-center gap-2">
                 <div className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-semibold transition ${
-                  active ? "bg-gradient-primary text-primary-foreground shadow-glow" :
-                  done ? "bg-white/10 text-white" : "bg-white/5 text-white/40"
+                  active ? "bg-gradient-primary text-primary-foreground shadow-glow-soft" :
+                  done ? "bg-white text-slate-700 border border-slate-200" : "bg-white/60 text-slate-400 border border-slate-200/60"
                 }`}>
-                  <span className={`grid place-items-center h-5 w-5 rounded-full ${done ? "bg-emerald-500" : active ? "bg-white/20" : "bg-white/10"}`}>
+                  <span className={`grid place-items-center h-5 w-5 rounded-full ${done ? "bg-emerald-500 text-white" : active ? "bg-white/25 text-white" : "bg-slate-100 text-slate-400"}`}>
                     {done ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
                   </span>
                   <span className="hidden sm:inline">{i + 1}. {s.label}</span>
                 </div>
-                {i < STEPS.length - 1 && <ChevronRight className="h-3 w-3 text-white/20" />}
+                {i < STEPS.length - 1 && <ChevronRight className="h-3 w-3 text-slate-300" />}
               </li>
             );
           })}
@@ -120,7 +123,6 @@ function Stepper({ current }: { current: StepId }) {
 function CycleStep({ onNext }: { onNext: () => void }) {
   const cart = useCart();
   const { currency } = useCurrency();
-  // Reference price: first item or generic R$50
   const refBase = cart.items[0] ? findProduct(cart.items[0].productId)?.basePriceBRL ?? 50 : 50;
 
   return (
@@ -137,24 +139,24 @@ function CycleStep({ onNext }: { onNext: () => void }) {
               key={c.id}
               whileHover={{ y: -4 }}
               onClick={() => cart.setCycle(c.id)}
-              className={`text-left rounded-2xl p-5 border transition-all relative ${
-                active ? "border-primary bg-primary/10 shadow-glow" : "border-white/10 bg-white/5 hover:border-white/30"
+              className={`text-left rounded-2xl p-5 border transition-all relative bg-white ${
+                active ? "border-primary shadow-glow ring-1 ring-primary/30" : "border-slate-200 shadow-card hover:shadow-glow-soft hover:border-slate-300"
               }`}
             >
               {c.badge && (
-                <div className="absolute -top-2 right-4 px-2 py-0.5 rounded-full bg-gradient-primary text-[10px] font-bold text-primary-foreground">
+                <div className="absolute -top-2 right-4 px-2 py-0.5 rounded-full bg-gradient-primary text-[10px] font-bold text-primary-foreground shadow-glow-soft">
                   {c.badge}
                 </div>
               )}
-              <div className="text-xs uppercase tracking-wider text-white/50">{c.label}</div>
+              <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">{c.label}</div>
               <div className="mt-3 flex items-baseline gap-1">
                 <span className="text-2xl font-bold text-gradient-primary">{brl(monthly, currency)}</span>
-                <span className="text-xs text-white/60">/mês</span>
+                <span className="text-xs text-slate-500">/mês</span>
               </div>
-              <div className="mt-3 space-y-1 text-xs text-white/70">
-                <div>Total: <span className="font-semibold text-white">{brl(total, currency)}</span></div>
-                {save > 0 && <div className="text-emerald-400">Economize {brl(save, currency)}</div>}
-                <div className="text-white/50">Renova em {c.months}m pelo mesmo valor</div>
+              <div className="mt-3 space-y-1 text-xs text-slate-600">
+                <div>Total: <span className="font-semibold text-slate-900">{brl(total, currency)}</span></div>
+                {save > 0 && <div className="text-emerald-600 font-medium">Economize {brl(save, currency)}</div>}
+                <div className="text-slate-400">Renova em {c.months}m pelo mesmo valor</div>
               </div>
               {active && (
                 <div className="mt-3 flex items-center gap-1 text-xs text-primary font-semibold">
@@ -179,10 +181,10 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
   if (cart.items.length === 0) {
     return (
       <div className="text-center py-16">
-        <ShoppingCart className="h-12 w-12 mx-auto text-white/30 mb-4" />
+        <ShoppingCart className="h-12 w-12 mx-auto text-slate-300 mb-4" />
         <h2 className="text-2xl font-bold mb-2">Seu carrinho está vazio</h2>
-        <p className="text-white/60 mb-6">Escolha um plano na página inicial para começar.</p>
-        <Link to="/" className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-primary text-primary-foreground font-semibold">
+        <p className="text-slate-500 mb-6">Escolha um plano na página inicial para começar.</p>
+        <Link to="/" className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-primary text-primary-foreground font-semibold shadow-glow">
           Ver planos <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
@@ -200,37 +202,37 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
             const monthly = lineMonthly(it.productId, cart.cycle);
             const total = monthly * findCycle(cart.cycle).months * it.qty;
             return (
-              <div key={it.productId} className="rounded-2xl border border-white/10 bg-white/5 p-5 flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-gradient-primary grid place-items-center shrink-0">
+              <div key={it.productId} className="rounded-2xl border border-slate-200 bg-white shadow-card p-5 flex items-center gap-4">
+                <div className="h-12 w-12 rounded-xl bg-gradient-primary grid place-items-center shrink-0 shadow-glow-soft">
                   <Sparkles className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold">{p.name}</div>
-                  <div className="text-xs text-white/50 capitalize">{p.type} · {brl(monthly, currency)}/mês</div>
+                  <div className="font-semibold text-slate-900">{p.name}</div>
+                  <div className="text-xs text-slate-500 capitalize">{p.type} · {brl(monthly, currency)}/mês</div>
                 </div>
-                <div className="flex items-center gap-1 bg-white/5 rounded-full p-1">
-                  <button onClick={() => cart.setQty(it.productId, it.qty - 1)} className="h-7 w-7 grid place-items-center rounded-full hover:bg-white/10"><Minus className="h-3 w-3" /></button>
+                <div className="flex items-center gap-1 bg-slate-100 rounded-full p-1">
+                  <button onClick={() => cart.setQty(it.productId, it.qty - 1)} className="h-7 w-7 grid place-items-center rounded-full hover:bg-white"><Minus className="h-3 w-3" /></button>
                   <span className="w-6 text-center text-sm font-semibold">{it.qty}</span>
-                  <button onClick={() => cart.setQty(it.productId, it.qty + 1)} className="h-7 w-7 grid place-items-center rounded-full hover:bg-white/10"><Plus className="h-3 w-3" /></button>
+                  <button onClick={() => cart.setQty(it.productId, it.qty + 1)} className="h-7 w-7 grid place-items-center rounded-full hover:bg-white"><Plus className="h-3 w-3" /></button>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="font-bold">{brl(total, currency)}</div>
-                  <button onClick={() => cart.remove(it.productId)} className="text-xs text-white/40 hover:text-red-400 inline-flex items-center gap-1 mt-1">
+                  <div className="font-bold text-slate-900">{brl(total, currency)}</div>
+                  <button onClick={() => cart.remove(it.productId)} className="text-xs text-slate-400 hover:text-red-500 inline-flex items-center gap-1 mt-1">
                     <Trash2 className="h-3 w-3" /> Remover
                   </button>
                 </div>
               </div>
             );
           })}
-          <button onClick={() => setShowAdd((v) => !v)} className="w-full py-3 rounded-2xl border border-dashed border-white/20 text-sm text-white/60 hover:bg-white/5 transition">
+          <button onClick={() => setShowAdd((v) => !v)} className="w-full py-3 rounded-2xl border border-dashed border-slate-300 text-sm text-slate-500 hover:bg-white hover:border-primary/40 hover:text-primary transition">
             <Plus className="h-4 w-4 inline mr-1" /> Adicionar outro serviço
           </button>
           {showAdd && (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 grid sm:grid-cols-2 gap-2 max-h-72 overflow-y-auto">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 grid sm:grid-cols-2 gap-2 max-h-72 overflow-y-auto shadow-card">
               {CATALOG.filter((p) => !cart.items.some((i) => i.productId === p.id)).map((p) => (
-                <button key={p.id} onClick={() => { cart.add(p.id); setShowAdd(false); }} className="text-left p-3 rounded-xl hover:bg-white/10 transition">
+                <button key={p.id} onClick={() => { cart.add(p.id); setShowAdd(false); }} className="text-left p-3 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200">
                   <div className="text-sm font-semibold">{p.name}</div>
-                  <div className="text-xs text-white/50 capitalize">{p.type} · {brl(p.basePriceBRL, currency)}/mês</div>
+                  <div className="text-xs text-slate-500 capitalize">{p.type} · {brl(p.basePriceBRL, currency)}/mês</div>
                 </button>
               ))}
             </div>
@@ -251,8 +253,8 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
   if (hostingItems.length === 0) {
     return (
       <div className="text-center py-12">
-        <Globe className="h-10 w-10 mx-auto text-white/30 mb-3" />
-        <p className="text-white/60">Nenhum serviço requer domínio. Avançar para a próxima etapa.</p>
+        <Globe className="h-10 w-10 mx-auto text-slate-300 mb-3" />
+        <p className="text-slate-500">Nenhum serviço requer domínio. Avançar para a próxima etapa.</p>
         <Footer onBack={onBack} onNext={onNext} />
       </div>
     );
@@ -278,14 +280,14 @@ function DomainPicker({ name, value, onChange }: { name: string; value: string; 
   useEffect(() => { onChange(domain); }, [domain]); // eslint-disable-line
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-      <div className="text-xs text-white/50 uppercase tracking-wider mb-1">Para</div>
-      <div className="font-semibold mb-4">{name}</div>
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-card p-5">
+      <div className="text-xs text-slate-500 uppercase tracking-wider mb-1 font-semibold">Para</div>
+      <div className="font-semibold mb-4 text-slate-900">{name}</div>
       <div className="grid sm:grid-cols-3 gap-2 mb-4">
         {(["new", "existing", "later"] as const).map((m) => (
           <button key={m} onClick={() => setMode(m)}
             className={`p-3 rounded-xl border text-sm font-medium transition ${
-              mode === m ? "border-primary bg-primary/10 text-white" : "border-white/10 bg-white/5 text-white/60 hover:border-white/30"
+              mode === m ? "border-primary bg-primary/5 text-primary" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
             }`}>
             {m === "new" ? "Registar novo" : m === "existing" ? "Já tenho" : "Decidir depois"}
           </button>
@@ -293,7 +295,7 @@ function DomainPicker({ name, value, onChange }: { name: string; value: string; 
       </div>
       {mode !== "later" && (
         <input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="meudominio.com"
-          className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-white/30 focus:border-primary outline-none" />
+          className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-primary focus:bg-white outline-none transition" />
       )}
     </div>
   );
@@ -310,18 +312,18 @@ function EmailStep({ onBack, onNext }: { onBack: () => void; onNext: () => void 
     <div>
       <Header title="Adicione e-mail profissional" subtitle="Caixas com seu domínio (você@suaempresa.com), antispam e IA." />
       {has ? (
-        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-sm text-emerald-200">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-700">
           <Check className="h-4 w-4 inline mr-2" /> Você já tem um plano de e-mail no carrinho.
         </div>
       ) : (
         <div className="grid md:grid-cols-3 gap-4">
           {emailPlans.map((p, i) => (
             <button key={p.id} onClick={() => cart.add(p.id)}
-              className={`text-left rounded-2xl border p-5 transition ${
-                i === 1 ? "border-primary bg-primary/5 shadow-glow" : "border-white/10 bg-white/5 hover:border-white/30"
+              className={`text-left rounded-2xl border p-5 transition bg-white ${
+                i === 1 ? "border-primary shadow-glow ring-1 ring-primary/20" : "border-slate-200 shadow-card hover:border-slate-300 hover:shadow-glow-soft"
               }`}>
-              <div className="font-bold text-lg">{p.name}</div>
-              <div className="mt-2 text-2xl font-bold text-gradient-primary">{brl(p.basePriceBRL, currency)}<span className="text-xs text-white/50 font-normal">/mês</span></div>
+              <div className="font-bold text-lg text-slate-900">{p.name}</div>
+              <div className="mt-2 text-2xl font-bold text-gradient-primary">{brl(p.basePriceBRL, currency)}<span className="text-xs text-slate-500 font-normal">/mês</span></div>
               <div className="mt-4 inline-flex items-center gap-1 text-xs text-primary font-semibold">
                 <Plus className="h-3 w-3" /> Adicionar ao pedido
               </div>
@@ -329,7 +331,7 @@ function EmailStep({ onBack, onNext }: { onBack: () => void; onNext: () => void 
           ))}
         </div>
       )}
-      <div className="mt-6 text-sm text-white/50">Não precisa? Pule esta etapa.</div>
+      <div className="mt-6 text-sm text-slate-500">Não precisa? Pule esta etapa.</div>
       <Footer onBack={onBack} onNext={onNext} nextLabel={has ? "Continuar" : "Pular e continuar"} />
     </div>
   );
@@ -348,12 +350,12 @@ function AuthStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
     return (
       <div>
         <Header title="Identificação" />
-        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 max-w-md">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 max-w-md">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-gradient-primary grid place-items-center"><User className="h-5 w-5 text-primary-foreground" /></div>
+            <div className="h-10 w-10 rounded-full bg-gradient-primary grid place-items-center shadow-glow-soft"><User className="h-5 w-5 text-primary-foreground" /></div>
             <div>
-              <div className="font-semibold">{user.email}</div>
-              <div className="text-xs text-emerald-200">Sessão ativa</div>
+              <div className="font-semibold text-slate-900">{user.email}</div>
+              <div className="text-xs text-emerald-700">Sessão ativa</div>
             </div>
           </div>
         </div>
@@ -387,11 +389,11 @@ function AuthStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
   return (
     <div>
       <Header title="Identifique-se" subtitle="Crie sua conta ou faça login para finalizar o pedido." />
-      <div className="max-w-md rounded-2xl border border-white/10 bg-white/5 p-6">
-        <div className="flex bg-black/30 rounded-full p-1 mb-5">
+      <div className="max-w-md rounded-2xl border border-slate-200 bg-white shadow-card p-6">
+        <div className="flex bg-slate-100 rounded-full p-1 mb-5">
           {(["signup", "login"] as const).map((m) => (
             <button key={m} onClick={() => setMode(m)}
-              className={`flex-1 py-2 rounded-full text-sm font-semibold transition ${mode === m ? "bg-gradient-primary text-primary-foreground" : "text-white/60"}`}>
+              className={`flex-1 py-2 rounded-full text-sm font-semibold transition ${mode === m ? "bg-gradient-primary text-primary-foreground shadow-glow-soft" : "text-slate-500"}`}>
               {m === "signup" ? "Criar conta" : "Entrar"}
             </button>
           ))}
@@ -399,14 +401,14 @@ function AuthStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
         <div className="space-y-3">
           {mode === "signup" && (
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome completo"
-              className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-white/30 focus:border-primary outline-none" />
+              className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-primary focus:bg-white outline-none transition" />
           )}
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email"
-            className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-white/30 focus:border-primary outline-none" />
+            className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-primary focus:bg-white outline-none transition" />
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Senha"
-            className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-white/30 focus:border-primary outline-none" />
+            className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-primary focus:bg-white outline-none transition" />
           <button onClick={submit} disabled={loading || !email || !password}
-            className="w-full py-3 rounded-xl bg-gradient-primary text-primary-foreground font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-50">
+            className="w-full py-3 rounded-xl bg-gradient-primary text-primary-foreground font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-50 shadow-glow">
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             {mode === "signup" ? "Criar conta" : "Entrar"}
           </button>
@@ -470,25 +472,25 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
             { id: "boleto" as const, label: "Boleto bancário", desc: "Vence em 3 dias" },
           ].map((m) => (
             <button key={m.id} onClick={() => setMethod(m.id)}
-              className={`w-full text-left p-5 rounded-2xl border transition ${
-                method === m.id ? "border-primary bg-primary/10" : "border-white/10 bg-white/5 hover:border-white/30"
+              className={`w-full text-left p-5 rounded-2xl border transition bg-white ${
+                method === m.id ? "border-primary ring-1 ring-primary/20 shadow-glow-soft" : "border-slate-200 shadow-card hover:border-slate-300"
               }`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-semibold">{m.label}</div>
-                  <div className="text-xs text-white/50">{m.desc}</div>
+                  <div className="font-semibold text-slate-900">{m.label}</div>
+                  <div className="text-xs text-slate-500">{m.desc}</div>
                 </div>
-                <div className={`h-5 w-5 rounded-full border-2 ${method === m.id ? "border-primary bg-primary" : "border-white/30"}`} />
+                <div className={`h-5 w-5 rounded-full border-2 ${method === m.id ? "border-primary bg-primary" : "border-slate-300"}`} />
               </div>
             </button>
           ))}
-          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-xs text-amber-200">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
             <Lock className="h-3 w-3 inline mr-1" /> Modo simulação. Seu pedido será registado como <strong>pendente</strong>.
           </div>
         </div>
         <Summary>
           <button onClick={submit} disabled={loading}
-            className="w-full mt-4 py-3 rounded-xl bg-gradient-primary text-primary-foreground font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-50">
+            className="w-full mt-4 py-3 rounded-xl bg-gradient-primary text-primary-foreground font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-50 shadow-glow">
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             Finalizar pedido <ArrowRight className="h-4 w-4" />
           </button>
@@ -506,14 +508,14 @@ function DoneStep({ orderId }: { orderId?: string }) {
       <div className="h-20 w-20 mx-auto rounded-full bg-gradient-primary grid place-items-center shadow-glow mb-6">
         <PartyPopper className="h-10 w-10 text-primary-foreground" />
       </div>
-      <h1 className="text-3xl font-bold mb-2">Pedido confirmado!</h1>
-      <p className="text-white/60 mb-2">Recebemos seu pedido e a equipa irá ativar os serviços.</p>
-      {orderId && <p className="text-xs text-white/40 mb-8">Nº do pedido: <span className="font-mono">{orderId.slice(0, 8)}</span></p>}
+      <h1 className="text-3xl font-bold mb-2 text-slate-900">Pedido confirmado!</h1>
+      <p className="text-slate-600 mb-2">Recebemos seu pedido e a equipa irá ativar os serviços.</p>
+      {orderId && <p className="text-xs text-slate-400 mb-8">Nº do pedido: <span className="font-mono">{orderId.slice(0, 8)}</span></p>}
       <div className="flex flex-wrap items-center justify-center gap-3">
-        <Link to="/dashboard" className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-primary text-primary-foreground font-semibold">
+        <Link to="/dashboard" className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-primary text-primary-foreground font-semibold shadow-glow">
           Ir para o painel <ArrowRight className="h-4 w-4" />
         </Link>
-        <Link to="/" className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-white/20 text-white font-semibold hover:bg-white/5">
+        <Link to="/" className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-slate-300 bg-white text-slate-700 font-semibold hover:bg-slate-50">
           Voltar ao site
         </Link>
       </div>
@@ -525,8 +527,8 @@ function DoneStep({ orderId }: { orderId?: string }) {
 function Header({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="mb-8">
-      <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
-      {subtitle && <p className="text-white/60 mt-2">{subtitle}</p>}
+      <h1 className="text-3xl font-bold tracking-tight text-slate-900">{title}</h1>
+      {subtitle && <p className="text-slate-600 mt-2">{subtitle}</p>}
     </div>
   );
 }
@@ -535,12 +537,12 @@ function Footer({ onBack, onNext, nextLabel = "Continuar" }: { onBack?: () => vo
   return (
     <div className="mt-10 flex items-center justify-between gap-3">
       {onBack ? (
-        <button onClick={onBack} className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm text-white/70 hover:text-white">
+        <button onClick={onBack} className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm text-slate-600 hover:text-slate-900 hover:bg-white transition">
           <ArrowLeft className="h-4 w-4" /> Voltar
         </button>
       ) : <span />}
       {onNext && (
-        <button onClick={onNext} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-primary text-primary-foreground font-semibold shadow-glow">
+        <button onClick={onNext} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-primary text-primary-foreground font-semibold shadow-glow hover:scale-[1.02] transition">
           {nextLabel} <ArrowRight className="h-4 w-4" />
         </button>
       )}
@@ -553,8 +555,8 @@ function Summary({ children }: { children?: React.ReactNode }) {
   const { currency } = useCurrency();
   const c = findCycle(cart.cycle);
   return (
-    <aside className="rounded-2xl border border-white/10 bg-white/5 p-6 h-fit sticky top-24">
-      <div className="text-xs uppercase tracking-wider text-white/50 mb-3">Resumo · {c.label}</div>
+    <aside className="rounded-2xl border border-slate-200 bg-white shadow-card p-6 h-fit sticky top-24">
+      <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">Resumo · {c.label}</div>
       <div className="space-y-2 text-sm mb-4 max-h-48 overflow-y-auto">
         {cart.items.map((it) => {
           const p = findProduct(it.productId);
@@ -562,13 +564,13 @@ function Summary({ children }: { children?: React.ReactNode }) {
           const total = lineMonthly(it.productId, cart.cycle) * c.months * it.qty;
           return (
             <div key={it.productId} className="flex justify-between gap-2">
-              <span className="text-white/80 truncate">{p.name} ×{it.qty}</span>
-              <span className="font-semibold shrink-0">{brl(total, currency)}</span>
+              <span className="text-slate-700 truncate">{p.name} ×{it.qty}</span>
+              <span className="font-semibold text-slate-900 shrink-0">{brl(total, currency)}</span>
             </div>
           );
         })}
       </div>
-      <div className="border-t border-white/10 pt-3 space-y-1.5 text-sm">
+      <div className="border-t border-slate-200 pt-3 space-y-1.5 text-sm">
         <Row label="Subtotal" value={brl(cart.totals.subtotal, currency)} />
         {cart.totals.discount > 0 && <Row label="Desconto" value={`- ${brl(cart.totals.discount, currency)}`} highlight />}
         <Row label="Total" value={brl(cart.totals.total, currency)} bold />
@@ -580,8 +582,8 @@ function Summary({ children }: { children?: React.ReactNode }) {
 
 function Row({ label, value, bold, highlight }: { label: string; value: string; bold?: boolean; highlight?: boolean }) {
   return (
-    <div className={`flex justify-between ${bold ? "text-base font-bold" : ""} ${highlight ? "text-emerald-400" : ""}`}>
-      <span className={bold ? "" : "text-white/60"}>{label}</span>
+    <div className={`flex justify-between ${bold ? "text-base font-bold text-slate-900" : ""} ${highlight ? "text-emerald-600" : ""}`}>
+      <span className={bold ? "" : "text-slate-500"}>{label}</span>
       <span>{value}</span>
     </div>
   );
