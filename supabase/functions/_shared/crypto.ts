@@ -44,3 +44,13 @@ export async function decryptSecret(token: string, secret: string): Promise<stri
   );
   return new TextDecoder().decode(pt);
 }
+
+export async function decryptSecretMaybe(token: string | null | undefined, secret: string): Promise<string> {
+  if (!token) return "";
+  if (!secret || !token.includes(".")) return token;
+  try {
+    return await decryptSecret(token, secret);
+  } catch {
+    return token;
+  }
+}

@@ -4,7 +4,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "../_shared/cors.ts";
-import { whmCall, type WhmServerRow } from "../_shared/whm.ts";
+import { whmCall, withDecryptedWhmToken, type WhmServerRow } from "../_shared/whm.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -23,14 +23,16 @@ Deno.serve(async (req) => {
     const { data: u } = await userClient.auth.getUser();
     if (!u.user) return json({ error: "Unauthorized" }, 401);
 
-    const { data: isAdmin } = await userClient.rpc("has_role" as any, {
-      _user_id: u.user.id,
-      _role: "admin",
-    });
-    if (!isAdmin) return json({ error: "Forbidden" }, 403);
+    const { data: role } = await userClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", u.user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (!role) return json({ error: "Forbidden" }, 403);
 
     const body = await req.json().catch(() => ({}));
-    let server: WhmServerRow | null = null;
+    let server: (WhmServerRow & { token: string }) | null = null;
 
     if (body.server_id) {
       const { data, error } = await admin
@@ -39,7 +41,7 @@ Deno.serve(async (req) => {
         .eq("id", body.server_id)
         .single();
       if (error || !data) return json({ error: "Server not found" }, 404);
-      server = data as WhmServerRow;
+      server = await withDecryptedWhmToken(data as WhmServerRow);
     } else {
       if (!body.api_url || !body.username || !body.token) {
         return json({ error: "Missing api_url/username/token" }, 400);

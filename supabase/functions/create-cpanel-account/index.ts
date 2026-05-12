@@ -8,6 +8,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 import {
   deriveUsername,
   generatePassword,
+  withDecryptedWhmToken,
   whmCall,
   type WhmServerRow,
 } from "../_shared/whm.ts";
@@ -74,8 +75,8 @@ Deno.serve(async (req) => {
       .order("current_accounts", { ascending: true })
       .limit(1);
     if (sErr) throw sErr;
-    const server = (servers?.[0] ?? null) as WhmServerRow | null;
-    if (!server) {
+    const storedServer = (servers?.[0] ?? null) as WhmServerRow | null;
+    if (!storedServer) {
       const msg = "No active WHM server configured";
       await admin
         .from("orders")
@@ -90,6 +91,7 @@ Deno.serve(async (req) => {
       });
       return json({ error: msg }, 503);
     }
+    const server = await withDecryptedWhmToken(storedServer);
 
     const ENC_KEY = Deno.env.get("WHM_ENCRYPTION_KEY") ?? "";
     const created: any[] = [];

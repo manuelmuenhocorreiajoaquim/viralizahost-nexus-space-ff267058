@@ -54,13 +54,21 @@ const navItems = [
 ] as const;
 
 function AuthLayout() {
-  const { user, loading, signOut, isAdmin } = useAuth();
+  const { user, loading, authLoading, roleLoading, signOut, isAdmin, roles } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/login" });
-  }, [loading, user, navigate]);
+    console.info("[auth] layout guard", {
+      authLoading,
+      roleLoading,
+      userId: user?.id ?? null,
+      roles,
+      isAdmin,
+      redirectReason: !authLoading && !user ? "no_authenticated_user" : null,
+    });
+    if (!authLoading && !user) navigate({ to: "/login" });
+  }, [authLoading, roleLoading, user, roles, isAdmin, navigate]);
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
