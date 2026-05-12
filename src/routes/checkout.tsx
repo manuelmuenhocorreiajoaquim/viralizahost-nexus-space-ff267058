@@ -433,7 +433,7 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
     setLoading(true);
     try {
       const { data: order, error } = await supabase.from("orders").insert({
-        user_id: user.id, status: "pending", cycle: cart.cycle, currency,
+        user_id: user.id, status: "paid", cycle: cart.cycle, currency,
         subtotal: cart.totals.subtotal, discount: cart.totals.discount, total: cart.totals.total,
         payment_method: method, payment_provider: "mock",
       }).select("id").single();
@@ -451,6 +451,23 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
       });
       const { error: e2 } = await supabase.from("order_items").insert(items);
       if (e2) throw e2;
+
+      // Register a payment row
+      await supabase.from("payments").insert({
+        user_id: user.id,
+        order_id: order.id,
+        amount: cart.totals.total,
+        currency,
+        method,
+        provider: "mock",
+        status: "succeeded",
+        paid_at: new Date().toISOString(),
+      });
+
+      // Trigger automatic cPanel provisioning (fire and forget; result shown on /done)
+      supabase.functions
+        .invoke("create-cpanel-account", { body: { order_id: order.id } })
+        .catch((err) => console.error("provision error", err));
 
       cart.clear();
       onDone(order.id);
