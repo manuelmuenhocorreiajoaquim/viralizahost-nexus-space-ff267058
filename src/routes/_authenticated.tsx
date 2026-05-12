@@ -26,6 +26,7 @@ import {
   Menu,
   X,
   Search,
+  ShieldCheck,
 } from "lucide-react";
 import logo from "@/assets/viralizahost-logo.png";
 
@@ -53,7 +54,7 @@ const navItems = [
 ] as const;
 
 function AuthLayout() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -98,6 +99,19 @@ function AuthLayout() {
           {navItems.map((item) => (
             <SideLink key={item.to} {...item} onClick={() => setMobileOpen(false)} />
           ))}
+          {isAdmin && (
+            <>
+              <div className="px-3 mt-4 mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                Admin
+              </div>
+              <SideLink
+                to="/admin/servers"
+                label="Servidores WHM"
+                icon={ShieldCheck}
+                onClick={() => setMobileOpen(false)}
+              />
+            </>
+          )}
         </nav>
         <div className="p-4 border-t border-slate-200">
           <button
