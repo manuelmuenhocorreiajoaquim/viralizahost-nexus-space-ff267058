@@ -33,7 +33,7 @@ function normalizeBaseUrl(api_url: string) {
 }
 
 export async function whmCall(
-  s: WhmServerRow,
+  s: WhmServerRow & { token: string },
   endpoint: string,
   params: Record<string, string | number> = {},
 ): Promise<any> {
