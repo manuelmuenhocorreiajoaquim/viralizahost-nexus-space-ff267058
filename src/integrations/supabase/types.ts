@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      cpanel_accounts: {
+        Row: {
+          bandwidth_quota_mb: number | null
+          created_at: string
+          disk_quota_mb: number | null
+          domain: string
+          id: string
+          plan_name: string | null
+          server: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          bandwidth_quota_mb?: number | null
+          created_at?: string
+          disk_quota_mb?: number | null
+          domain: string
+          id?: string
+          plan_name?: string | null
+          server?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          bandwidth_quota_mb?: number | null
+          created_at?: string
+          disk_quota_mb?: number | null
+          domain?: string
+          id?: string
+          plan_name?: string | null
+          server?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
       domains: {
         Row: {
           created_at: string
@@ -68,6 +110,54 @@ export type Database = {
           status?: string
           storage_gb?: number
           user_id?: string
+        }
+        Relationships: []
+      }
+      hosting_plans: {
+        Row: {
+          created_at: string
+          currency: string
+          description: string | null
+          features: Json
+          id: string
+          is_active: boolean
+          is_featured: boolean
+          name: string
+          price_annual: number
+          price_monthly: number
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          name: string
+          price_annual?: number
+          price_monthly?: number
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          name?: string
+          price_annual?: number
+          price_monthly?: number
+          slug?: string
+          sort_order?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -210,6 +300,72 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          invoice_id: string | null
+          metadata: Json
+          method: string | null
+          order_id: string | null
+          paid_at: string | null
+          provider: string | null
+          provider_ref: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_id?: string | null
+          metadata?: Json
+          method?: string | null
+          order_id?: string | null
+          paid_at?: string | null
+          provider?: string | null
+          provider_ref?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_id?: string | null
+          metadata?: Json
+          method?: string | null
+          order_id?: string | null
+          paid_at?: string | null
+          provider?: string | null
+          provider_ref?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
