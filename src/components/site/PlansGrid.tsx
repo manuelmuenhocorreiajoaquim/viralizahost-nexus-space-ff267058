@@ -84,8 +84,9 @@ function PlanCard({ p, i }: { p: Plan; i: number }) {
                 </li>
               ))}
             </ul>
-            <a
-              href="#"
+            <Link
+              to="/checkout"
+              search={p.productId ? { step: "cycle" as const, product: p.productId } : { step: "cycle" as const }}
               className={`group flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl font-semibold transition ${
                 p.popular
                   ? "bg-gradient-primary text-primary-foreground shadow-glow hover:scale-[1.02]"
@@ -93,7 +94,7 @@ function PlanCard({ p, i }: { p: Plan; i: number }) {
               }`}
             >
               {p.cta || "Contratar"} <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition" />
-            </a>
+            </Link>
           </motion.div>
   );
 }
