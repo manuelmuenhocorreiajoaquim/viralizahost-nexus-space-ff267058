@@ -17,12 +17,22 @@ export type Database = {
       cpanel_accounts: {
         Row: {
           bandwidth_quota_mb: number | null
+          cpanel_url: string | null
           created_at: string
           disk_quota_mb: number | null
           domain: string
+          expiry_date: string | null
           id: string
+          last_error: string | null
+          nameservers: Json
+          order_id: string | null
+          package: string | null
+          password_encrypted: string | null
           plan_name: string | null
+          provisioned_at: string | null
           server: string | null
+          server_id: string | null
+          server_ip: string | null
           status: string
           updated_at: string
           user_id: string
@@ -30,12 +40,22 @@ export type Database = {
         }
         Insert: {
           bandwidth_quota_mb?: number | null
+          cpanel_url?: string | null
           created_at?: string
           disk_quota_mb?: number | null
           domain: string
+          expiry_date?: string | null
           id?: string
+          last_error?: string | null
+          nameservers?: Json
+          order_id?: string | null
+          package?: string | null
+          password_encrypted?: string | null
           plan_name?: string | null
+          provisioned_at?: string | null
           server?: string | null
+          server_id?: string | null
+          server_ip?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -43,18 +63,43 @@ export type Database = {
         }
         Update: {
           bandwidth_quota_mb?: number | null
+          cpanel_url?: string | null
           created_at?: string
           disk_quota_mb?: number | null
           domain?: string
+          expiry_date?: string | null
           id?: string
+          last_error?: string | null
+          nameservers?: Json
+          order_id?: string | null
+          package?: string | null
+          password_encrypted?: string | null
           plan_name?: string | null
+          provisioned_at?: string | null
           server?: string | null
+          server_id?: string | null
+          server_ip?: string | null
           status?: string
           updated_at?: string
           user_id?: string
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cpanel_accounts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cpanel_accounts_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "whm_servers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       domains: {
         Row: {
@@ -261,6 +306,8 @@ export type Database = {
           payment_method: string | null
           payment_provider: string | null
           payment_ref: string | null
+          provisioned: boolean
+          provisioning_error: string | null
           status: string
           subtotal: number
           total: number
@@ -277,6 +324,8 @@ export type Database = {
           payment_method?: string | null
           payment_provider?: string | null
           payment_ref?: string | null
+          provisioned?: boolean
+          provisioning_error?: string | null
           status?: string
           subtotal?: number
           total?: number
@@ -293,6 +342,8 @@ export type Database = {
           payment_method?: string | null
           payment_provider?: string | null
           payment_ref?: string | null
+          provisioned?: boolean
+          provisioning_error?: string | null
           status?: string
           subtotal?: number
           total?: number
@@ -394,6 +445,54 @@ export type Database = {
         }
         Relationships: []
       }
+      provisioning_logs: {
+        Row: {
+          cpanel_account_id: string | null
+          created_at: string
+          event: string
+          id: string
+          order_id: string | null
+          payload: Json
+          success: boolean
+          user_id: string | null
+        }
+        Insert: {
+          cpanel_account_id?: string | null
+          created_at?: string
+          event: string
+          id?: string
+          order_id?: string | null
+          payload?: Json
+          success?: boolean
+          user_id?: string | null
+        }
+        Update: {
+          cpanel_account_id?: string | null
+          created_at?: string
+          event?: string
+          id?: string
+          order_id?: string | null
+          payload?: Json
+          success?: boolean
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provisioning_logs_cpanel_account_id_fkey"
+            columns: ["cpanel_account_id"]
+            isOneToOne: false
+            referencedRelation: "cpanel_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provisioning_logs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
           created_at: string
@@ -457,15 +556,93 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      whm_servers: {
+        Row: {
+          active: boolean
+          api_url: string
+          created_at: string
+          current_accounts: number
+          hostname: string
+          id: string
+          max_accounts: number
+          nameserver1: string
+          nameserver2: string
+          notes: string | null
+          server_ip: string | null
+          token: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          active?: boolean
+          api_url: string
+          created_at?: string
+          current_accounts?: number
+          hostname: string
+          id?: string
+          max_accounts?: number
+          nameserver1: string
+          nameserver2: string
+          notes?: string | null
+          server_ip?: string | null
+          token: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          active?: boolean
+          api_url?: string
+          created_at?: string
+          current_accounts?: number
+          hostname?: string
+          id?: string
+          max_accounts?: number
+          nameserver1?: string
+          nameserver2?: string
+          notes?: string | null
+          server_ip?: string | null
+          token?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -592,6 +769,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
