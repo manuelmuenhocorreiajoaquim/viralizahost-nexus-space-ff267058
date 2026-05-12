@@ -15,7 +15,13 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
+import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticated/invoices'
+import { Route as AuthenticatedHostingRouteImport } from './routes/_authenticated/hosting'
+import { Route as AuthenticatedEmailsRouteImport } from './routes/_authenticated/emails'
+import { Route as AuthenticatedDomainsRouteImport } from './routes/_authenticated/domains'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -46,9 +52,39 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedInvoicesRoute = AuthenticatedInvoicesRouteImport.update({
+  id: '/invoices',
+  path: '/invoices',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedHostingRoute = AuthenticatedHostingRouteImport.update({
+  id: '/hosting',
+  path: '/hosting',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedEmailsRoute = AuthenticatedEmailsRouteImport.update({
+  id: '/emails',
+  path: '/emails',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedDomainsRoute = AuthenticatedDomainsRouteImport.update({
+  id: '/domains',
+  path: '/domains',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 
@@ -58,7 +94,13 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/account': typeof AuthenticatedAccountRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/domains': typeof AuthenticatedDomainsRoute
+  '/emails': typeof AuthenticatedEmailsRoute
+  '/hosting': typeof AuthenticatedHostingRoute
+  '/invoices': typeof AuthenticatedInvoicesRoute
+  '/support': typeof AuthenticatedSupportRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -66,7 +108,13 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/account': typeof AuthenticatedAccountRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/domains': typeof AuthenticatedDomainsRoute
+  '/emails': typeof AuthenticatedEmailsRoute
+  '/hosting': typeof AuthenticatedHostingRoute
+  '/invoices': typeof AuthenticatedInvoicesRoute
+  '/support': typeof AuthenticatedSupportRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -76,7 +124,13 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/domains': typeof AuthenticatedDomainsRoute
+  '/_authenticated/emails': typeof AuthenticatedEmailsRoute
+  '/_authenticated/hosting': typeof AuthenticatedHostingRoute
+  '/_authenticated/invoices': typeof AuthenticatedInvoicesRoute
+  '/_authenticated/support': typeof AuthenticatedSupportRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -86,7 +140,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/account'
     | '/dashboard'
+    | '/domains'
+    | '/emails'
+    | '/hosting'
+    | '/invoices'
+    | '/support'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -94,7 +154,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/account'
     | '/dashboard'
+    | '/domains'
+    | '/emails'
+    | '/hosting'
+    | '/invoices'
+    | '/support'
   id:
     | '__root__'
     | '/'
@@ -103,7 +169,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/_authenticated/account'
     | '/_authenticated/dashboard'
+    | '/_authenticated/domains'
+    | '/_authenticated/emails'
+    | '/_authenticated/hosting'
+    | '/_authenticated/invoices'
+    | '/_authenticated/support'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -159,6 +231,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/support': {
+      id: '/_authenticated/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof AuthenticatedSupportRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/invoices': {
+      id: '/_authenticated/invoices'
+      path: '/invoices'
+      fullPath: '/invoices'
+      preLoaderRoute: typeof AuthenticatedInvoicesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/hosting': {
+      id: '/_authenticated/hosting'
+      path: '/hosting'
+      fullPath: '/hosting'
+      preLoaderRoute: typeof AuthenticatedHostingRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/emails': {
+      id: '/_authenticated/emails'
+      path: '/emails'
+      fullPath: '/emails'
+      preLoaderRoute: typeof AuthenticatedEmailsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/domains': {
+      id: '/_authenticated/domains'
+      path: '/domains'
+      fullPath: '/domains'
+      preLoaderRoute: typeof AuthenticatedDomainsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -166,15 +273,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/account': {
+      id: '/_authenticated/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AuthenticatedAccountRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDomainsRoute: typeof AuthenticatedDomainsRoute
+  AuthenticatedEmailsRoute: typeof AuthenticatedEmailsRoute
+  AuthenticatedHostingRoute: typeof AuthenticatedHostingRoute
+  AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRoute
+  AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAccountRoute: AuthenticatedAccountRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDomainsRoute: AuthenticatedDomainsRoute,
+  AuthenticatedEmailsRoute: AuthenticatedEmailsRoute,
+  AuthenticatedHostingRoute: AuthenticatedHostingRoute,
+  AuthenticatedInvoicesRoute: AuthenticatedInvoicesRoute,
+  AuthenticatedSupportRoute: AuthenticatedSupportRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
