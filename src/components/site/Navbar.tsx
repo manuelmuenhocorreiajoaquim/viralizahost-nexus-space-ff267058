@@ -64,23 +64,25 @@ export default function Navbar() {
 
   return (
     <header
-      className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 text-white ${
-        scrolled
-          ? "bg-[oklch(0.15_0.02_255/0.7)] backdrop-blur-xl border-b border-white/10"
-          : "bg-gradient-to-b from-black/40 to-transparent"
-      }`}
+      className="fixed top-0 inset-x-0 z-50 text-white border-b border-white/8"
+      style={{
+        backgroundColor: "rgba(5, 12, 24, 0.72)",
+        backdropFilter: "blur(18px)",
+        WebkitBackdropFilter: "blur(18px)",
+        borderBottomColor: "rgba(255,255,255,0.08)",
+      }}
     >
-      <div className="mx-auto max-w-7xl px-4 lg:px-8">
-        <div className="flex h-20 items-center justify-between gap-4">
-          <a href="#" className="flex items-center gap-2 group shrink-0">
+      <div className="mx-auto max-w-[1440px] px-6 lg:px-16">
+        <div className="flex h-[82px] items-center justify-between gap-6">
+          <a href="#" className="flex items-center shrink-0">
             <img
               src={logo}
               alt="ViralizaHost"
-              className="relative h-12 lg:h-14 w-auto drop-shadow-[0_4px_20px_rgba(0,123,255,0.4)]"
+              className="h-[46px] lg:h-[50px] w-auto object-contain"
             />
           </a>
 
-          <nav className="hidden lg:flex items-center gap-1" onMouseLeave={() => setOpen(null)}>
+          <nav className="hidden lg:flex items-center gap-0.5 mx-auto" onMouseLeave={() => setOpen(null)}>
             {menu.map((m) => (
               <div key={m.label} className="relative" onMouseEnter={() => setOpen(m.items ? m.label : null)}>
                 <button className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/90 hover:text-[#3BA9FF] transition-colors rounded-md whitespace-nowrap">
