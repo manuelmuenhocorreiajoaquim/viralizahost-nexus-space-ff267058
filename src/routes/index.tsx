@@ -6,6 +6,7 @@ import EmailPlans from "@/components/site/EmailPlans";
 import HostingPlans from "@/components/site/HostingPlans";
 import TeamSection from "@/components/site/TeamSection";
 import AIPlans from "@/components/site/AIPlans";
+import PromoSliders from "@/components/site/PromoSliders";
 import TrafficPlans from "@/components/site/TrafficPlans";
 import DesignPlans from "@/components/site/DesignPlans";
 import AudiovisualPlans from "@/components/site/AudiovisualPlans";
@@ -35,6 +36,7 @@ function Index() {
       <HostingPlans />
       <TeamSection />
       <AIPlans />
+      <PromoSliders />
       <TrafficPlans />
       <DesignPlans />
       <AudiovisualPlans />
