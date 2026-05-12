@@ -520,13 +520,65 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
 
 /* ====================== STEP 7 — DONE ====================== */
 function DoneStep({ orderId }: { orderId?: string }) {
+  const [status, setStatus] = useState<"provisioning" | "ready" | "error" | "idle">(
+    orderId ? "provisioning" : "idle",
+  );
+  const [errors, setErrors] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!orderId) return;
+    let cancelled = false;
+    let tries = 0;
+    const poll = async () => {
+      const { data } = await supabase
+        .from("orders")
+        .select("provisioned, provisioning_error")
+        .eq("id", orderId)
+        .single();
+      if (cancelled) return;
+      if (data?.provisioned) {
+        setStatus("ready");
+      } else if (data?.provisioning_error && tries > 1) {
+        setStatus("error");
+        setErrors(data.provisioning_error.split("\n").filter(Boolean));
+      } else if (tries++ < 20) {
+        setTimeout(poll, 2000);
+      } else {
+        setStatus("idle");
+      }
+    };
+    poll();
+    return () => { cancelled = true; };
+  }, [orderId]);
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-xl mx-auto text-center py-12">
       <div className="h-20 w-20 mx-auto rounded-full bg-gradient-primary grid place-items-center shadow-glow mb-6">
         <PartyPopper className="h-10 w-10 text-primary-foreground" />
       </div>
-      <h1 className="text-3xl font-bold mb-2 text-slate-900">Pedido confirmado!</h1>
-      <p className="text-slate-600 mb-2">Recebemos seu pedido e a equipa irá ativar os serviços.</p>
+      <h1 className="text-3xl font-bold mb-2 text-slate-900">Pagamento aprovado!</h1>
+      {status === "provisioning" && (
+        <p className="text-slate-600 mb-2 inline-flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" /> A provisionar a sua hospedagem cPanel…
+        </p>
+      )}
+      {status === "ready" && (
+        <p className="text-emerald-600 font-semibold mb-2">
+          ✓ Hospedagem activa e pronta a usar
+        </p>
+      )}
+      {status === "error" && (
+        <div className="text-left bg-amber-50 border border-amber-200 rounded-xl p-4 my-4 text-sm text-amber-800">
+          <div className="font-semibold mb-1">Provisionamento incompleto</div>
+          <ul className="list-disc pl-4 space-y-0.5">
+            {errors.map((e, i) => <li key={i}>{e}</li>)}
+          </ul>
+          <p className="mt-2">A nossa equipa foi notificada e activará a sua conta manualmente.</p>
+        </div>
+      )}
+      {status === "idle" && (
+        <p className="text-slate-600 mb-2">Recebemos seu pedido e a equipa irá ativar os serviços.</p>
+      )}
       {orderId && <p className="text-xs text-slate-400 mb-8">Nº do pedido: <span className="font-mono">{orderId.slice(0, 8)}</span></p>}
       <div className="flex flex-wrap items-center justify-center gap-3">
         <Link to="/dashboard" className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-primary text-primary-foreground font-semibold shadow-glow">
