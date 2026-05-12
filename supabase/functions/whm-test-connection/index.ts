@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     if (!role) return json({ error: "Forbidden" }, 403);
 
     const body = await req.json().catch(() => ({}));
-    let server: WhmServerRow | null = null;
+    let server: (WhmServerRow & { token: string }) | null = null;
 
     if (body.server_id) {
       const { data, error } = await admin
