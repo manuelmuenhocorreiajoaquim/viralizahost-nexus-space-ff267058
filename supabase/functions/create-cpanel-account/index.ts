@@ -11,6 +11,7 @@ import {
   whmCall,
   type WhmServerRow,
 } from "../_shared/whm.ts";
+import { encryptSecret } from "../_shared/crypto.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
