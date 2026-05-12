@@ -592,7 +592,7 @@ export type Database = {
           nameservers: Json
           notes: string | null
           server_ip: string | null
-          token: string
+          token: string | null
           token_encrypted: string | null
           updated_at: string
           username: string
@@ -611,7 +611,7 @@ export type Database = {
           nameservers?: Json
           notes?: string | null
           server_ip?: string | null
-          token: string
+          token?: string | null
           token_encrypted?: string | null
           updated_at?: string
           username: string
@@ -630,7 +630,7 @@ export type Database = {
           nameservers?: Json
           notes?: string | null
           server_ip?: string | null
-          token?: string
+          token?: string | null
           token_encrypted?: string | null
           updated_at?: string
           username?: string
