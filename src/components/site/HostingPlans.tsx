@@ -1,26 +1,27 @@
 import { motion } from "framer-motion";
 import { Check, Zap, Crown, Cloud, Server, ArrowRight } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Section, SectionHeader } from "./Section";
 import { usePrice } from "@/lib/currency";
 
 const plans = [
   {
-    icon: Server, name: "Starter Host", price: "19", popular: false,
+    icon: Server, name: "Starter Host", price: "19", popular: false, productId: "host-start",
     tag: "Para começar",
     features: ["1 Site", "10 GB SSD NVMe", "SSL grátis", "Email profissional", "Cloudflare CDN", "Suporte 24/7"],
   },
   {
-    icon: Zap, name: "Business Cloud", price: "79", popular: true,
+    icon: Zap, name: "Business Cloud", price: "79", popular: true, productId: "host-business",
     tag: "Mais popular",
     features: ["Sites ilimitados", "LiteSpeed Web Server", "IA integrada", "Backup diário", "100 GB NVMe", "Email ilimitado"],
   },
   {
-    icon: Cloud, name: "Cloud Pro", price: "159", popular: false,
+    icon: Cloud, name: "Cloud Pro", price: "159", popular: false, productId: "host-pro",
     tag: "Performance máxima",
     features: ["Sites ilimitados", "Recursos dedicados", "Auto-scaling", "WAF + DDoS", "200 GB NVMe", "Migração grátis"],
   },
   {
-    icon: Crown, name: "Revenda WHM", price: "249", popular: false,
+    icon: Crown, name: "Revenda WHM", price: "249", popular: false, productId: "host-revenda",
     tag: "Negócio próprio",
     features: ["Contas ilimitadas", "WHM + cPanel", "Marca branca", "DNS próprios", "500 GB NVMe", "Suporte premium"],
   },
