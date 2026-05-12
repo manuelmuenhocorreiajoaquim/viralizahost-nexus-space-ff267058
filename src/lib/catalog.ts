@@ -60,6 +60,25 @@ export function findProduct(id: string): Product | undefined {
   return CATALOG.find((p) => p.id === id);
 }
 
+/**
+ * Register a domain as a purchasable product (mock pricing).
+ * `priceBRLAnnual` is the yearly registration price in BRL.
+ * Stored as a `basePriceBRL` of priceAnnual/12 so 12-month cycle ≈ annual cost.
+ */
+export function registerDomainProduct(domain: string, priceBRLAnnual: number): Product {
+  const id = `domain:${domain.toLowerCase()}`;
+  const existing = CATALOG.find((p) => p.id === id);
+  if (existing) return existing;
+  const product: Product = {
+    id,
+    type: "domain",
+    name: domain.toLowerCase(),
+    basePriceBRL: Math.round((priceBRLAnnual / 12) * 100) / 100,
+  };
+  CATALOG.push(product);
+  return product;
+}
+
 export type CycleId = "monthly" | "semestral" | "annual" | "biennial" | "triennial";
 
 export type Cycle = {
