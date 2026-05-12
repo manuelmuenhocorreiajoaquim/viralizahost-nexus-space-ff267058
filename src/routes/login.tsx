@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import logo from "@/assets/viralizahost-logo.png";
+import supportImg from "@/assets/login-support.jpg";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
