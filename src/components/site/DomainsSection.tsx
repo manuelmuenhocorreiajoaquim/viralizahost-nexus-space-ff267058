@@ -39,7 +39,7 @@ export default function DomainsSection() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
-        onSubmit={(e) => e.preventDefault()}
+        onSubmit={submit}
         className="max-w-3xl mx-auto mb-14"
       >
         <div className="flex flex-col sm:flex-row gap-3 p-2 rounded-2xl bg-card shadow-elegant border border-border">
@@ -47,15 +47,19 @@ export default function DomainsSection() {
             <Globe className="h-5 w-5 text-primary shrink-0" />
             <input
               type="text"
-              placeholder="pesquiseoseudominio.com"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="pesquiseoseudominio"
               className="flex-1 bg-transparent py-3 text-base outline-none placeholder:text-muted-foreground"
             />
           </div>
-          <button className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-gradient-primary text-primary-foreground font-semibold shadow-glow hover:scale-[1.02] transition">
+          <button type="submit" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-gradient-primary text-primary-foreground font-semibold shadow-glow hover:scale-[1.02] transition">
             <Search className="h-4 w-4" /> Pesquisar Domínio
           </button>
         </div>
       </motion.form>
+
+      <DomainSearchDialog open={open} onOpenChange={setOpen} query={query} />
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {domains.map((d, i) => (
