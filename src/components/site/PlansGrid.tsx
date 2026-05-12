@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Check, ArrowRight, type LucideIcon } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Section, SectionHeader } from "./Section";
 import { usePrice } from "@/lib/currency";
 
@@ -12,6 +13,7 @@ export type Plan = {
   features: string[];
   popular?: boolean;
   cta?: string;
+  productId?: string;
 };
 
 export default function PlansGrid({
