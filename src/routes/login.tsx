@@ -35,7 +35,9 @@ function LoginPage() {
           backgroundImage: `url(${supportImg})`,
           backgroundAttachment: "fixed",
           backgroundPosition: "center right",
-          backgroundSize: "cover",
+          backgroundSize: "contain",
+          backgroundRepeat: "no-repeat",
+          backgroundColor: "#0B2A55",
         }}
       >
         {/* Gradient overlays for premium depth */}
