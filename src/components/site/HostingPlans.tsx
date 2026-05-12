@@ -79,11 +79,14 @@ function PlanCard({ p, idx }: { p: typeof plans[number]; idx: number }) {
                 </li>
               ))}
             </ul>
-            <a href="#" className={`group flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl font-semibold transition ${
+            <Link
+              to="/checkout"
+              search={{ step: "cycle" as const, product: p.productId }}
+              className={`group flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl font-semibold transition ${
               p.popular ? "bg-gradient-primary text-primary-foreground shadow-glow hover:scale-[1.02]" : "glass hover:bg-primary/10"
             }`}>
               Contratar <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition" />
-            </a>
+            </Link>
           </motion.div>
   );
 }
