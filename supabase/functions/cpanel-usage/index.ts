@@ -3,7 +3,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "../_shared/cors.ts";
-import { whmCall, type WhmServerRow } from "../_shared/whm.ts";
+import { whmCall, withDecryptedWhmToken, type WhmServerRow } from "../_shared/whm.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -41,7 +41,8 @@ Deno.serve(async (req) => {
       .single();
     if (!server) return json({ error: "Server not found" }, 404);
 
-    const resp = await whmCall(server as WhmServerRow, "listaccts", {
+    const whmServer = await withDecryptedWhmToken(server as WhmServerRow);
+    const resp = await whmCall(whmServer, "listaccts", {
       search: acct.username,
       searchtype: "user",
     });
