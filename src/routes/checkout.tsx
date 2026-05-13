@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Check, ChevronRight, ShoppingCart, Globe, Mail, User, CreditCard, PartyPopper,
   Trash2, Plus, Minus, ArrowRight, ArrowLeft, Lock, Sparkles, Loader2,
+  QrCode, FileText, ShieldCheck, BadgeCheck, Zap,
 } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
