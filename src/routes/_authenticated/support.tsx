@@ -4,8 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { toast } from "sonner";
-import { HelpCircle, MessageCircle, BookOpen, Loader2 } from "lucide-react";
-import { Card, PageHeader, StatusPill } from "@/components/dashboard/ui";
+import { HelpCircle, MessageCircle, BookOpen, Loader2, Headphones } from "lucide-react";
+import { Card, StatusPill } from "@/components/dashboard/ui";
+import { CategoryBanner } from "@/components/dashboard/CategoryBanner";
 
 export const Route = createFileRoute("/_authenticated/support")({ component: Page });
 
@@ -40,13 +41,16 @@ function Page() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <PageHeader
+      <CategoryBanner
+        variant="support"
+        icon={Headphones}
+        eyebrow="Atendimento"
         title="Suporte"
-        subtitle="Estamos aqui para ajudar."
+        description="Estamos aqui para ajudar. Abre um ticket ou fala connosco no WhatsApp."
         actions={
           <button
             onClick={() => setOpen(!open)}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700"
+            className="px-4 py-2 rounded-lg bg-white text-blue-700 text-sm font-semibold hover:bg-white/90 btn-press"
           >
             Abrir ticket
           </button>
