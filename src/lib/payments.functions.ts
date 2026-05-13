@@ -26,10 +26,17 @@ export const createPixPayment = createServerFn({ method: "POST" })
       .eq("id", data.orderId)
       .maybeSingle();
 
-    if (orderErr) throw new Error(orderErr.message);
+    if (orderErr) {
+      console.error("[pix] order lookup error", orderErr);
+      throw new Error(orderErr.message);
+    }
     if (!order) throw new Error("Pedido não encontrado");
     if (order.user_id !== userId) throw new Error("Pedido não pertence a este usuário");
-    if (Number(order.total) <= 0) throw new Error("Valor do pedido inválido");
+    const amount = Number(Number(order.total).toFixed(2));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error("Valor do pedido inválido");
+    }
+    console.log("[pix] creating payment", { orderId: order.id, amount, userId });
 
     // If a pending PIX already exists for this order, reuse it (avoids
     // duplicate charges if the user retries).
@@ -44,14 +51,22 @@ export const createPixPayment = createServerFn({ method: "POST" })
       .limit(1)
       .maybeSingle();
 
-    if (existing && existing.qr_code && existing.expires_at && new Date(existing.expires_at) > new Date()) {
+    if (
+      existing &&
+      existing.user_id === userId &&
+      existing.qr_code &&
+      existing.expires_at &&
+      new Date(existing.expires_at) > new Date()
+    ) {
+      console.log("[pix] reusing existing pending payment", existing.id);
       return {
         paymentId: existing.id,
         providerPaymentId: existing.provider_payment_id,
-        amount: Number(order.total),
+        amount,
         qrCode: existing.qr_code,
-        qrCodeBase64: existing.qr_code_base64,
-        pixCopyPaste: existing.pix_copy_paste,
+        qrCodeBase64: existing.qr_code_base64 ?? "",
+        pixCopyPaste: existing.pix_copy_paste ?? existing.qr_code,
+        ticketUrl: (existing.raw_response as any)?.point_of_interaction?.transaction_data?.ticket_url ?? null,
         expiresAt: existing.expires_at,
         status: existing.status,
       };
@@ -62,21 +77,37 @@ export const createPixPayment = createServerFn({ method: "POST" })
     const payerEmail = userRes?.user?.email ?? "no-reply@viralizahost.com";
 
     const provider = getProvider();
-    const pix = await provider.createPixPayment({
-      orderId: order.id,
-      amount: Number(order.total),
-      currency: "BRL",
-      payerEmail,
-      description: `Pedido ViralizaHost ${order.id.slice(0, 8)}`,
-      expiresInMinutes: 30,
+    let pix;
+    try {
+      pix = await provider.createPixPayment({
+        orderId: order.id,
+        amount,
+        currency: "BRL",
+        payerEmail,
+        description: `Pedido ViralizaHost ${order.id.slice(0, 8)}`,
+        expiresInMinutes: 30,
+      });
+    } catch (err: any) {
+      console.error("[pix] provider error", { message: err?.message, status: err?.status, data: err?.data });
+      throw new Error(err?.message ?? "Falha ao gerar PIX no provedor");
+    }
+    console.log("[pix] provider response", {
+      providerPaymentId: pix?.providerPaymentId,
+      status: pix?.status,
+      hasQr: !!pix?.qrCode,
+      hasQrBase64: !!pix?.qrCodeBase64,
     });
+
+    if (!pix || !pix.providerPaymentId) {
+      throw new Error("Resposta inválida do provedor de pagamento");
+    }
 
     const { data: payment, error: payErr } = await supabaseAdmin
       .from("payments")
       .insert({
         user_id: userId,
         order_id: order.id,
-        amount: Number(order.total),
+        amount,
         currency: "BRL",
         method: "pix",
         provider: "mercadopago",
@@ -91,7 +122,13 @@ export const createPixPayment = createServerFn({ method: "POST" })
       .select()
       .single();
 
-    if (payErr) throw new Error(payErr.message);
+    if (payErr) {
+      console.error("[pix] payment insert error", payErr);
+      throw new Error(payErr.message);
+    }
+    if (!payment?.id) {
+      throw new Error("Não foi possível registrar o pagamento");
+    }
 
     await supabaseAdmin
       .from("orders")
@@ -101,10 +138,11 @@ export const createPixPayment = createServerFn({ method: "POST" })
     return {
       paymentId: payment.id,
       providerPaymentId: pix.providerPaymentId,
-      amount: Number(order.total),
-      qrCode: pix.qrCode,
-      qrCodeBase64: pix.qrCodeBase64,
-      pixCopyPaste: pix.pixCopyPaste,
+      amount,
+      qrCode: pix.qrCode ?? "",
+      qrCodeBase64: pix.qrCodeBase64 ?? "",
+      pixCopyPaste: pix.pixCopyPaste ?? "",
+      ticketUrl: (pix.raw as any)?.point_of_interaction?.transaction_data?.ticket_url ?? null,
       expiresAt: pix.expiresAt,
       status: pix.status,
     };
