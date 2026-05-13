@@ -42,20 +42,28 @@ export default function DomainsSection() {
         onSubmit={submit}
         className="max-w-3xl mx-auto mb-14"
       >
-        <div className="flex flex-col sm:flex-row gap-3 p-2 rounded-2xl bg-card shadow-elegant border border-border">
-          <div className="flex items-center gap-3 flex-1 px-4">
-            <Globe className="h-5 w-5 text-primary shrink-0" />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="pesquiseoseudominio"
-              className="flex-1 bg-transparent py-3 text-base outline-none placeholder:text-muted-foreground"
-            />
+        <div className="group relative">
+          <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-blue-500/40 via-indigo-500/40 to-purple-500/40 opacity-0 group-focus-within:opacity-100 blur transition" />
+          <div className="relative flex flex-col sm:flex-row gap-3 p-2 rounded-2xl bg-card shadow-elegant border border-border">
+            <div className="flex items-center gap-3 flex-1 px-4">
+              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 grid place-items-center shadow-md shrink-0">
+                <Globe className="h-4 w-4 text-white" />
+              </div>
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="pesquiseoseudominio"
+                className="flex-1 bg-transparent py-3 text-base outline-none placeholder:text-muted-foreground"
+              />
+            </div>
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 hover:scale-[1.02] transition-all"
+            >
+              <Search className="h-4 w-4" /> Pesquisar Domínio
+            </button>
           </div>
-          <button type="submit" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-gradient-primary text-primary-foreground font-semibold shadow-glow hover:scale-[1.02] transition">
-            <Search className="h-4 w-4" /> Pesquisar Domínio
-          </button>
         </div>
       </motion.form>
 
