@@ -4,10 +4,99 @@
 // imports — no plain helper exports — to keep client bundles clean.
 
 import { createServerFn } from "@tanstack/react-start";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getProvider } from "@/integrations/payments/mercadopago/client.server";
+
+const OrderItemSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  type: z.string().min(1),
+  price: z.number().finite().nonnegative(),
+  quantity: z.number().int().positive(),
+  domain: z.string().optional().nullable(),
+  total: z.number().finite().nonnegative().optional(),
+});
+
+const CreateCheckoutOrderSchema = z.object({
+  cycle: z.string().min(1),
+  currency: z.literal("BRL"),
+  subtotal: z.number().finite().nonnegative(),
+  discount: z.number().finite().nonnegative(),
+  total: z.number().finite().positive(),
+  paymentMethod: z.literal("pix"),
+  paymentProvider: z.literal("mercadopago"),
+  customerEmail: z.string().email().optional(),
+  customerName: z.string().max(160).optional(),
+  items: z.array(OrderItemSchema).min(1),
+});
+
+export const createCheckoutOrder = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => CreateCheckoutOrderSchema.parse(input))
+  .handler(async ({ data }) => {
+    const authHeader = getRequestHeader("authorization");
+    let userId: string | null = null;
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userRes, error } = await supabaseAdmin.auth.getUser(token);
+      if (!error && userRes?.user?.id) userId = userRes.user.id;
+    }
+
+    console.log("[checkout] creating order", {
+      userId,
+      customerEmail: data.customerEmail ?? null,
+      total: data.total,
+      items: data.items.length,
+    });
+
+    const { data: order, error: orderErr } = await supabaseAdmin
+      .from("orders")
+      .insert({
+        user_id: userId,
+        status: "pending",
+        cycle: data.cycle,
+        currency: data.currency,
+        subtotal: Number(data.subtotal.toFixed(2)),
+        discount: Number(data.discount.toFixed(2)),
+        total: Number(data.total.toFixed(2)),
+        payment_method: data.paymentMethod,
+        payment_provider: data.paymentProvider,
+        notes: data.customerEmail
+          ? `Cliente: ${data.customerName ?? ""} <${data.customerEmail}>`.trim()
+          : null,
+      })
+      .select("id")
+      .single();
+
+    if (orderErr) {
+      console.error("[checkout] order insert error", orderErr);
+      throw new Error(orderErr.message);
+    }
+    if (!order?.id) throw new Error("Não foi possível criar o pedido.");
+
+    const items = data.items.map((item) => ({
+      order_id: order.id,
+      product_id: item.id,
+      product_type: item.type,
+      product_name: item.name,
+      cycle: data.cycle,
+      unit_price: Number(item.price.toFixed(2)),
+      quantity: item.quantity,
+      total: Number((item.total ?? item.price * item.quantity).toFixed(2)),
+      domain: item.domain ?? null,
+      metadata: {},
+    }));
+
+    const { error: itemsErr } = await supabaseAdmin.from("order_items").insert(items);
+    if (itemsErr) {
+      console.error("[checkout] order_items insert error", itemsErr);
+      throw new Error(itemsErr.message);
+    }
+
+    console.log("[checkout] order created", { orderId: order.id });
+    return { success: true, orderId: order.id };
+  });
 
 const CreatePixSchema = z.object({
   orderId: z.string().uuid(),
