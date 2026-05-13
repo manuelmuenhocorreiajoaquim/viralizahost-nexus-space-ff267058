@@ -437,38 +437,59 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
       toast.info("Cartão e boleto serão liberados em breve. Use PIX por enquanto.");
       return;
     }
+    const total = Number(Number(cart.totals.total).toFixed(2));
+    if (!Number.isFinite(total) || total <= 0) {
+      toast.error("Total do pedido inválido. Revise seu carrinho.");
+      return;
+    }
+
     setLoading(true);
     try {
+      // 1) Create order with pending status
       const { data: order, error } = await supabase.from("orders").insert({
         user_id: user.id,
         status: "pending",
         cycle: cart.cycle,
         currency: "BRL",
-        subtotal: cart.totals.subtotal,
-        discount: cart.totals.discount,
-        total: cart.totals.total,
+        subtotal: Number(Number(cart.totals.subtotal).toFixed(2)),
+        discount: Number(Number(cart.totals.discount).toFixed(2)),
+        total,
         payment_method: method,
         payment_provider: "mercadopago",
       }).select("id").single();
-      if (error) throw error;
 
+      if (error) {
+        console.error("[checkout] order insert error", error);
+        throw new Error(error.message);
+      }
+      if (!order || !order.id) {
+        throw new Error("Não foi possível criar o pedido. Tente novamente.");
+      }
+      console.log("[checkout] order created", order.id);
+
+      // 2) Insert items
       const items = cart.items.map((it) => {
         const p = findProduct(it.productId)!;
         const monthly = lineMonthly(it.productId, cart.cycle);
-        const total = monthly * findCycle(cart.cycle).months * it.qty;
+        const lineTotal = Number((monthly * findCycle(cart.cycle).months * it.qty).toFixed(2));
         return {
           order_id: order.id, product_id: p.id, product_type: p.type, product_name: p.name,
-          cycle: cart.cycle, unit_price: monthly, quantity: it.qty, total,
+          cycle: cart.cycle, unit_price: monthly, quantity: it.qty, total: lineTotal,
           domain: it.domain ?? null, metadata: {},
         };
       });
       const { error: e2 } = await supabase.from("order_items").insert(items);
-      if (e2) throw e2;
+      if (e2) {
+        console.error("[checkout] order_items insert error", e2);
+        throw new Error(e2.message);
+      }
 
+      // 3) Open PIX modal — it will call createPixPayment server fn
       setPixOrderId(order.id);
       setPixOpen(true);
     } catch (e: any) {
-      toast.error(e.message ?? "Erro ao criar pedido");
+      console.error("[checkout] submit error", e);
+      toast.error(e?.message ?? "Não foi possível gerar o PIX. Tente novamente.");
     } finally {
       setLoading(false);
     }
