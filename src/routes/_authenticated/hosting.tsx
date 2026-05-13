@@ -127,6 +127,9 @@ function CpanelCard({ account }: { account: any }) {
       {account.server_ip && (
         <div className="text-xs text-slate-500">IP: {account.server_ip}</div>
       )}
+      {account.disk_used_mb != null && !usage && (
+        <div className="text-xs text-slate-500">Disco usado: {account.disk_used_mb} MB</div>
+      )}
       {usage && (
         <div className="mt-3 text-xs text-slate-600 space-y-1">
           <div>Disco: {usage.disk_used_mb} MB{usage.disk_quota_mb ? ` / ${usage.disk_quota_mb} MB` : ""}</div>
