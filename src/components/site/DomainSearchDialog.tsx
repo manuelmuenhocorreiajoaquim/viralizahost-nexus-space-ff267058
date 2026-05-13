@@ -176,7 +176,7 @@ export default function DomainSearchDialog({
 
             {!loading && (
               <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
-                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-emerald-700">
+                <div className="rounded-xl border border-success/20 bg-success/10 px-3 py-2 text-success">
                   <strong className="block text-base">{availableCount}</strong> disponíveis
                 </div>
                 <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-destructive">
@@ -228,7 +228,7 @@ export default function DomainSearchDialog({
                     className="space-y-4"
                   >
                     {warning && (
-                      <div className="flex items-start gap-2 rounded-2xl bg-amber-500/10 border border-amber-500/25 p-4 text-sm text-amber-700">
+                      <div className="flex items-start gap-2 rounded-2xl bg-warning/10 border border-warning/25 p-4 text-sm text-warning-foreground">
                         <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
                         <span>{warning}</span>
                       </div>
@@ -268,18 +268,18 @@ export default function DomainSearchDialog({
                             whileHover={{ y: -3 }}
                             className={`group relative overflow-hidden rounded-2xl bg-card border p-4 transition-all ${
                               r.available
-                                ? "border-emerald-500/35 shadow-[0_18px_55px_-30px_rgba(16,185,129,.85)] hover:shadow-[0_22px_60px_-28px_rgba(16,185,129,.95)]"
+                                ? "border-success/35 shadow-glow-success hover:shadow-glow-success"
                                 : isSuggestion
                                   ? "border-primary/20 hover:border-primary/40 hover:shadow-glow-soft"
                                   : "border-destructive/20 hover:border-destructive/35"
                             }`}
                           >
-                            {r.available && <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                            {r.available && <div className="absolute inset-0 bg-success/5 opacity-0 group-hover:opacity-100 transition-opacity" />}
                             <div className="relative flex h-full flex-col gap-4">
                               <div className="flex items-start gap-3">
                                 <div className={`h-10 w-10 rounded-xl grid place-items-center shrink-0 ${
                                   r.available
-                                    ? "bg-emerald-500/10 text-emerald-700"
+                                    ? "bg-success/10 text-success"
                                     : isSuggestion
                                       ? "bg-primary/10 text-primary"
                                       : "bg-destructive/10 text-destructive"
@@ -290,7 +290,7 @@ export default function DomainSearchDialog({
                                   <div className="font-semibold text-foreground break-words">{r.domain}</div>
                                   <div className="mt-1 flex flex-wrap items-center gap-2">
                                     {r.available ? (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 text-[10px] font-bold border border-emerald-500/20">
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success/10 text-success text-[10px] font-bold border border-success/20">
                                         <Check className="h-3 w-3" /> Disponível
                                       </span>
                                     ) : isSuggestion ? (
