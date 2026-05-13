@@ -145,12 +145,16 @@ Deno.serve(async (req) => {
           } else {
             await admin.from("cpanel_accounts").insert(payload);
             accountsCreated++;
-            // mirror domain & service
-            await admin.from("domains").upsert({
-              user_id: userId,
-              domain,
-              status: "active",
-            }, { onConflict: "user_id,domain" } as any).then(() => {}).catch(() => {});
+            // mirror domain & service (best effort, ignore duplicates)
+            const { data: existingDom } = await admin
+              .from("domains")
+              .select("id")
+              .eq("user_id", userId)
+              .eq("domain", domain)
+              .maybeSingle();
+            if (!existingDom) {
+              await admin.from("domains").insert({ user_id: userId, domain, status: "active" });
+            }
             await admin.from("services").insert({
               user_id: userId,
               name: a.plan ?? domain,
