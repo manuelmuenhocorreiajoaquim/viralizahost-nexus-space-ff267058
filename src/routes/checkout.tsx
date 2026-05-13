@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Check, ChevronRight, ShoppingCart, Globe, Mail, User, CreditCard, PartyPopper,
   Trash2, Plus, Minus, ArrowRight, ArrowLeft, Lock, Sparkles, Loader2,
+  QrCode, FileText, ShieldCheck, BadgeCheck, Zap,
 } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -60,16 +61,19 @@ function CheckoutPage() {
 
   return (
     <div
-      className="min-h-screen text-foreground"
-      style={{ background: "linear-gradient(180deg, #F8FAFC 0%, #EEF2F7 100%)" }}
+      className="min-h-screen text-foreground relative"
+      style={{
+        background:
+          "radial-gradient(1100px 600px at 85% -10%, rgba(99,102,241,0.10), transparent 60%), radial-gradient(900px 500px at -10% 10%, rgba(59,130,246,0.10), transparent 55%), linear-gradient(180deg, #F8FAFC 0%, #EEF2F7 100%)",
+      }}
     >
-      <header className="border-b border-slate-200/70 bg-white/70 backdrop-blur-xl sticky top-0 z-30">
+      <header className="border-b border-slate-200/70 bg-white/75 backdrop-blur-xl sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-4 lg:px-8 h-[72px] flex items-center justify-between">
-          <Link to="/" className="flex items-center">
-            <img src={logo} alt="ViralizaHost" className="h-[44px] w-auto object-contain" />
+          <Link to="/" className="flex items-center group">
+            <img src={logo} alt="ViralizaHost" className="h-[44px] w-auto object-contain transition-transform group-hover:scale-105" />
           </Link>
-          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-            <Lock className="h-3.5 w-3.5 text-emerald-600" /> Compra 100% segura
+          <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50/80 px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm">
+            <ShieldCheck className="h-4 w-4" /> Compra 100% segura
           </div>
         </div>
       </header>
@@ -77,13 +81,23 @@ function CheckoutPage() {
       <Stepper current={step} />
 
       <main className="max-w-6xl mx-auto px-4 lg:px-8 py-10">
-        {step === "cycle" && <CycleStep onNext={() => goto("cart")} />}
-        {step === "cart" && <CartStep onBack={() => goto("cycle")} onNext={() => goto("domain")} />}
-        {step === "domain" && <DomainStep onBack={() => goto("cart")} onNext={() => goto("email")} />}
-        {step === "email" && <EmailStep onBack={() => goto("domain")} onNext={() => goto("auth")} />}
-        {step === "auth" && <AuthStep onBack={() => goto("email")} onNext={() => goto("payment")} />}
-        {step === "payment" && <PaymentStep onBack={() => goto("auth")} onDone={(orderId) => navigate({ to: "/checkout", search: { step: "done", order: orderId } })} />}
-        {step === "done" && <DoneStep orderId={search.order} />}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.28, ease: "easeOut" }}
+          >
+            {step === "cycle" && <CycleStep onNext={() => goto("cart")} />}
+            {step === "cart" && <CartStep onBack={() => goto("cycle")} onNext={() => goto("domain")} />}
+            {step === "domain" && <DomainStep onBack={() => goto("cart")} onNext={() => goto("email")} />}
+            {step === "email" && <EmailStep onBack={() => goto("domain")} onNext={() => goto("auth")} />}
+            {step === "auth" && <AuthStep onBack={() => goto("email")} onNext={() => goto("payment")} />}
+            {step === "payment" && <PaymentStep onBack={() => goto("auth")} onDone={(orderId) => navigate({ to: "/checkout", search: { step: "done", order: orderId } })} />}
+            {step === "done" && <DoneStep orderId={search.order} />}
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );
@@ -91,18 +105,28 @@ function CheckoutPage() {
 
 function Stepper({ current }: { current: StepId }) {
   const idx = STEPS.findIndex((s) => s.id === current);
+  const progress = (idx / (STEPS.length - 1)) * 100;
   return (
-    <div className="border-b border-slate-200/70 bg-white/40 backdrop-blur-md">
-      <div className="max-w-6xl mx-auto px-4 lg:px-8 py-4 overflow-x-auto">
-        <ol className="flex items-center gap-2 min-w-max">
+    <div className="border-b border-slate-200/70 bg-white/50 backdrop-blur-md">
+      <div className="max-w-6xl mx-auto px-4 lg:px-8 py-5">
+        {/* progress bar */}
+        <div className="relative h-1.5 rounded-full bg-slate-200/70 mb-4 overflow-hidden">
+          <motion.div
+            className="absolute inset-y-0 left-0 rounded-full bg-gradient-primary shadow-glow-soft"
+            initial={false}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          />
+        </div>
+        <ol className="flex items-center gap-2 min-w-max overflow-x-auto">
           {STEPS.map((s, i) => {
             const done = i < idx;
             const active = i === idx;
             const Icon = s.icon;
             return (
               <li key={s.id} className="flex items-center gap-2">
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-semibold transition ${
-                  active ? "bg-gradient-primary text-primary-foreground shadow-glow-soft" :
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-semibold transition-all ${
+                  active ? "bg-gradient-primary text-primary-foreground shadow-glow-soft scale-[1.03]" :
                   done ? "bg-white text-slate-700 border border-slate-200" : "bg-white/60 text-slate-400 border border-slate-200/60"
                 }`}>
                   <span className={`grid place-items-center h-5 w-5 rounded-full ${done ? "bg-emerald-500 text-white" : active ? "bg-white/25 text-white" : "bg-slate-100 text-slate-400"}`}>
@@ -507,37 +531,79 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
 
   return (
     <div>
-      <Header title="Pagamento" subtitle="Escolha como quer pagar." />
+      <Header title="Pagamento" subtitle="Escolha como quer pagar — rápido, seguro e processado pelo Mercado Pago." />
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">
           {[
-            { id: "pix" as const, label: "Pix", desc: "Aprovação imediata · Mercado Pago" },
-            { id: "card" as const, label: "Cartão de crédito", desc: "Em breve" },
-            { id: "boleto" as const, label: "Boleto bancário", desc: "Em breve" },
-          ].map((m) => (
-            <button key={m.id} onClick={() => setMethod(m.id)}
-              className={`w-full text-left p-5 rounded-2xl border transition bg-white ${
-                method === m.id ? "border-primary ring-1 ring-primary/20 shadow-glow-soft" : "border-slate-200 shadow-card hover:border-slate-300"
-              } ${m.id !== "pix" ? "opacity-60" : ""}`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-slate-900">{m.label}</div>
-                  <div className="text-xs text-slate-500">{m.desc}</div>
+            { id: "pix" as const, label: "Pix", desc: "Aprovação imediata · Mercado Pago", Icon: QrCode, tint: "from-emerald-500 to-teal-500", available: true },
+            { id: "card" as const, label: "Cartão de crédito", desc: "Em breve · Visa, Mastercard, Elo", Icon: CreditCard, tint: "from-indigo-500 to-blue-500", available: false },
+            { id: "boleto" as const, label: "Boleto bancário", desc: "Em breve · 1–2 dias úteis", Icon: FileText, tint: "from-slate-500 to-slate-700", available: false },
+          ].map((m) => {
+            const selected = method === m.id;
+            return (
+              <motion.button
+                key={m.id}
+                whileHover={{ y: -2 }}
+                onClick={() => setMethod(m.id)}
+                className={`w-full text-left p-5 rounded-2xl border transition-all bg-white relative overflow-hidden ${
+                  selected ? "border-primary ring-2 ring-primary/20 shadow-glow-soft" : "border-slate-200 shadow-card hover:border-slate-300"
+                } ${!m.available ? "opacity-70" : ""}`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${m.tint} grid place-items-center text-white shadow-md shrink-0`}>
+                    <m.Icon className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <div className="font-semibold text-slate-900">{m.label}</div>
+                      {m.id === "pix" && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 text-[10px] font-bold">
+                          <Zap className="h-3 w-3" /> Recomendado
+                        </span>
+                      )}
+                      {!m.available && (
+                        <span className="rounded-full bg-slate-100 text-slate-500 px-2 py-0.5 text-[10px] font-semibold">Em breve</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-0.5">{m.desc}</div>
+                  </div>
+                  <div className={`h-5 w-5 rounded-full border-2 transition ${selected ? "border-primary bg-primary ring-4 ring-primary/15" : "border-slate-300"}`} />
                 </div>
-                <div className={`h-5 w-5 rounded-full border-2 ${method === m.id ? "border-primary bg-primary" : "border-slate-300"}`} />
+              </motion.button>
+            );
+          })}
+
+          <div className="grid sm:grid-cols-2 gap-3 pt-2">
+            <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4 text-xs text-emerald-800 flex items-start gap-3">
+              <ShieldCheck className="h-5 w-5 shrink-0 mt-0.5" />
+              <div>
+                <div className="font-bold text-emerald-900 text-[13px]">Compra 100% segura</div>
+                Criptografia SSL 256-bit · Dados nunca tocam o nosso servidor
               </div>
-            </button>
-          ))}
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-800 flex items-center gap-2">
-            <Lock className="h-3 w-3" /> Pagamento processado por <strong>Mercado Pago</strong> · SSL 256-bit
+            </div>
+            <div className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-4 text-xs text-sky-900 flex items-start gap-3">
+              <BadgeCheck className="h-5 w-5 shrink-0 mt-0.5 text-sky-600" />
+              <div>
+                <div className="font-bold text-[13px]">Processado por Mercado Pago</div>
+                Mais de 100 milhões de transações por mês na América Latina
+              </div>
+            </div>
           </div>
         </div>
         <Summary>
-          <button onClick={submit} disabled={loading || method !== "pix"}
-            className="w-full mt-4 py-3 rounded-xl bg-gradient-primary text-primary-foreground font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-50 shadow-glow">
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            Gerar PIX <ArrowRight className="h-4 w-4" />
-          </button>
+          <motion.button
+            whileHover={{ scale: loading || method !== "pix" ? 1 : 1.02 }}
+            whileTap={{ scale: loading || method !== "pix" ? 1 : 0.98 }}
+            onClick={submit}
+            disabled={loading || method !== "pix"}
+            className="w-full mt-4 py-3.5 rounded-xl bg-gradient-primary text-primary-foreground font-bold inline-flex items-center justify-center gap-2 disabled:opacity-50 shadow-glow text-[15px] tracking-tight"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
+            {loading ? "A gerar PIX…" : "Gerar PIX"} {!loading && <ArrowRight className="h-4 w-4" />}
+          </motion.button>
+          <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
+            <Lock className="h-3 w-3" /> Pagamento criptografado
+          </div>
         </Summary>
       </div>
       <Footer onBack={onBack} />
