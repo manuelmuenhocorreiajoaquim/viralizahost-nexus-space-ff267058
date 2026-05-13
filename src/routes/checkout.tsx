@@ -531,37 +531,79 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
 
   return (
     <div>
-      <Header title="Pagamento" subtitle="Escolha como quer pagar." />
+      <Header title="Pagamento" subtitle="Escolha como quer pagar — rápido, seguro e processado pelo Mercado Pago." />
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">
           {[
-            { id: "pix" as const, label: "Pix", desc: "Aprovação imediata · Mercado Pago" },
-            { id: "card" as const, label: "Cartão de crédito", desc: "Em breve" },
-            { id: "boleto" as const, label: "Boleto bancário", desc: "Em breve" },
-          ].map((m) => (
-            <button key={m.id} onClick={() => setMethod(m.id)}
-              className={`w-full text-left p-5 rounded-2xl border transition bg-white ${
-                method === m.id ? "border-primary ring-1 ring-primary/20 shadow-glow-soft" : "border-slate-200 shadow-card hover:border-slate-300"
-              } ${m.id !== "pix" ? "opacity-60" : ""}`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-slate-900">{m.label}</div>
-                  <div className="text-xs text-slate-500">{m.desc}</div>
+            { id: "pix" as const, label: "Pix", desc: "Aprovação imediata · Mercado Pago", Icon: QrCode, tint: "from-emerald-500 to-teal-500", available: true },
+            { id: "card" as const, label: "Cartão de crédito", desc: "Em breve · Visa, Mastercard, Elo", Icon: CreditCard, tint: "from-indigo-500 to-blue-500", available: false },
+            { id: "boleto" as const, label: "Boleto bancário", desc: "Em breve · 1–2 dias úteis", Icon: FileText, tint: "from-slate-500 to-slate-700", available: false },
+          ].map((m) => {
+            const selected = method === m.id;
+            return (
+              <motion.button
+                key={m.id}
+                whileHover={{ y: -2 }}
+                onClick={() => setMethod(m.id)}
+                className={`w-full text-left p-5 rounded-2xl border transition-all bg-white relative overflow-hidden ${
+                  selected ? "border-primary ring-2 ring-primary/20 shadow-glow-soft" : "border-slate-200 shadow-card hover:border-slate-300"
+                } ${!m.available ? "opacity-70" : ""}`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${m.tint} grid place-items-center text-white shadow-md shrink-0`}>
+                    <m.Icon className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <div className="font-semibold text-slate-900">{m.label}</div>
+                      {m.id === "pix" && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 text-[10px] font-bold">
+                          <Zap className="h-3 w-3" /> Recomendado
+                        </span>
+                      )}
+                      {!m.available && (
+                        <span className="rounded-full bg-slate-100 text-slate-500 px-2 py-0.5 text-[10px] font-semibold">Em breve</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-0.5">{m.desc}</div>
+                  </div>
+                  <div className={`h-5 w-5 rounded-full border-2 transition ${selected ? "border-primary bg-primary ring-4 ring-primary/15" : "border-slate-300"}`} />
                 </div>
-                <div className={`h-5 w-5 rounded-full border-2 ${method === m.id ? "border-primary bg-primary" : "border-slate-300"}`} />
+              </motion.button>
+            );
+          })}
+
+          <div className="grid sm:grid-cols-2 gap-3 pt-2">
+            <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4 text-xs text-emerald-800 flex items-start gap-3">
+              <ShieldCheck className="h-5 w-5 shrink-0 mt-0.5" />
+              <div>
+                <div className="font-bold text-emerald-900 text-[13px]">Compra 100% segura</div>
+                Criptografia SSL 256-bit · Dados nunca tocam o nosso servidor
               </div>
-            </button>
-          ))}
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-800 flex items-center gap-2">
-            <Lock className="h-3 w-3" /> Pagamento processado por <strong>Mercado Pago</strong> · SSL 256-bit
+            </div>
+            <div className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-4 text-xs text-sky-900 flex items-start gap-3">
+              <BadgeCheck className="h-5 w-5 shrink-0 mt-0.5 text-sky-600" />
+              <div>
+                <div className="font-bold text-[13px]">Processado por Mercado Pago</div>
+                Mais de 100 milhões de transações por mês na América Latina
+              </div>
+            </div>
           </div>
         </div>
         <Summary>
-          <button onClick={submit} disabled={loading || method !== "pix"}
-            className="w-full mt-4 py-3 rounded-xl bg-gradient-primary text-primary-foreground font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-50 shadow-glow">
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            Gerar PIX <ArrowRight className="h-4 w-4" />
-          </button>
+          <motion.button
+            whileHover={{ scale: loading || method !== "pix" ? 1 : 1.02 }}
+            whileTap={{ scale: loading || method !== "pix" ? 1 : 0.98 }}
+            onClick={submit}
+            disabled={loading || method !== "pix"}
+            className="w-full mt-4 py-3.5 rounded-xl bg-gradient-primary text-primary-foreground font-bold inline-flex items-center justify-center gap-2 disabled:opacity-50 shadow-glow text-[15px] tracking-tight"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
+            {loading ? "A gerar PIX…" : "Gerar PIX"} {!loading && <ArrowRight className="h-4 w-4" />}
+          </motion.button>
+          <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
+            <Lock className="h-3 w-3" /> Pagamento criptografado
+          </div>
         </Summary>
       </div>
       <Footer onBack={onBack} />
