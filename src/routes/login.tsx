@@ -60,7 +60,17 @@ function LoginPage() {
         />
 
         <div className="relative z-10">
-          <img src={logo} alt="ViralizaHost" className="h-12 w-auto object-contain drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)]" />
+          <Link
+            to="/"
+            aria-label="Ir para a página inicial da ViralizaHost"
+            className="inline-block group cursor-pointer transition-transform duration-300 ease-out hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 rounded-md"
+          >
+            <img
+              src={logo}
+              alt="ViralizaHost"
+              className="h-12 w-auto object-contain drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)] transition-all duration-300 group-hover:drop-shadow-[0_6px_28px_rgba(125,211,252,0.65)] group-hover:brightness-110"
+            />
+          </Link>
         </div>
 
         <div className="relative z-10 space-y-6">
