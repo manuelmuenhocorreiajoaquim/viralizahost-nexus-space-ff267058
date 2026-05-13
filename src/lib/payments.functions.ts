@@ -51,14 +51,22 @@ export const createPixPayment = createServerFn({ method: "POST" })
       .limit(1)
       .maybeSingle();
 
-    if (existing && existing.qr_code && existing.expires_at && new Date(existing.expires_at) > new Date()) {
+    if (
+      existing &&
+      existing.user_id === userId &&
+      existing.qr_code &&
+      existing.expires_at &&
+      new Date(existing.expires_at) > new Date()
+    ) {
+      console.log("[pix] reusing existing pending payment", existing.id);
       return {
         paymentId: existing.id,
         providerPaymentId: existing.provider_payment_id,
-        amount: Number(order.total),
+        amount,
         qrCode: existing.qr_code,
-        qrCodeBase64: existing.qr_code_base64,
-        pixCopyPaste: existing.pix_copy_paste,
+        qrCodeBase64: existing.qr_code_base64 ?? "",
+        pixCopyPaste: existing.pix_copy_paste ?? existing.qr_code,
+        ticketUrl: (existing.raw_response as any)?.point_of_interaction?.transaction_data?.ticket_url ?? null,
         expiresAt: existing.expires_at,
         status: existing.status,
       };
