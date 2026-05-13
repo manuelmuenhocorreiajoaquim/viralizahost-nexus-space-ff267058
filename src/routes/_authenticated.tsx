@@ -35,22 +35,22 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 const navItems = [
-  { to: "/dashboard", label: "Início", icon: LayoutDashboard },
-  { to: "/sites", label: "Sites", icon: Globe },
-  { to: "/emails", label: "E-mails", icon: Mail },
-  { to: "/domains", label: "Domínios", icon: Globe },
-  { to: "/hosting", label: "Hospedagens", icon: Server },
-  { to: "/security", label: "Segurança & Backup", icon: Shield },
-  { to: "/marketing", label: "Marketing", icon: Megaphone },
-  { to: "/design", label: "Design Gráfico", icon: Palette },
-  { to: "/audiovisual", label: "Audiovisual", icon: Video },
-  { to: "/ai", label: "IA & Automação", icon: Bot },
-  { to: "/linkbio", label: "Link na Bio", icon: Link2 },
-  { to: "/referral", label: "Indique e Ganhe", icon: Gift },
-  { to: "/courses", label: "Cursos", icon: GraduationCap },
-  { to: "/support", label: "Suporte", icon: HelpCircle },
-  { to: "/invoices", label: "Faturas", icon: Receipt },
-  { to: "/account", label: "Minha Conta", icon: UserCircle },
+  { to: "/dashboard", label: "Início", icon: LayoutDashboard, color: "text-blue-600", bg: "bg-blue-500/10" },
+  { to: "/sites", label: "Sites", icon: Globe, color: "text-cyan-600", bg: "bg-cyan-500/10" },
+  { to: "/emails", label: "E-mails", icon: Mail, color: "text-sky-600", bg: "bg-sky-500/10" },
+  { to: "/domains", label: "Domínios", icon: Globe, color: "text-indigo-600", bg: "bg-indigo-500/10" },
+  { to: "/hosting", label: "Hospedagens", icon: Server, color: "text-blue-700", bg: "bg-blue-500/10" },
+  { to: "/security", label: "Segurança & Backup", icon: Shield, color: "text-emerald-600", bg: "bg-emerald-500/10" },
+  { to: "/marketing", label: "Marketing", icon: Megaphone, color: "text-rose-600", bg: "bg-rose-500/10" },
+  { to: "/design", label: "Design Gráfico", icon: Palette, color: "text-fuchsia-600", bg: "bg-fuchsia-500/10" },
+  { to: "/audiovisual", label: "Audiovisual", icon: Video, color: "text-amber-600", bg: "bg-amber-500/10" },
+  { to: "/ai", label: "IA & Automação", icon: Bot, color: "text-violet-600", bg: "bg-violet-500/10" },
+  { to: "/linkbio", label: "Link na Bio", icon: Link2, color: "text-pink-600", bg: "bg-pink-500/10" },
+  { to: "/referral", label: "Indique e Ganhe", icon: Gift, color: "text-lime-600", bg: "bg-lime-500/10" },
+  { to: "/courses", label: "Cursos", icon: GraduationCap, color: "text-purple-600", bg: "bg-purple-500/10" },
+  { to: "/support", label: "Suporte", icon: HelpCircle, color: "text-cyan-700", bg: "bg-cyan-500/10" },
+  { to: "/invoices", label: "Faturas", icon: Receipt, color: "text-emerald-700", bg: "bg-emerald-500/10" },
+  { to: "/account", label: "Minha Conta", icon: UserCircle, color: "text-slate-600", bg: "bg-slate-500/10" },
 ] as const;
 
 function AuthLayout() {
@@ -123,6 +123,8 @@ function AuthLayout() {
                 to="/admin/servers"
                 label="Servidores WHM"
                 icon={ShieldCheck}
+                color="text-amber-600"
+                bg="bg-amber-500/10"
                 onClick={() => setMobileOpen(false)}
               />
             </>
@@ -173,7 +175,7 @@ function AuthLayout() {
             </div>
           </div>
         </header>
-        <main className="flex-1 p-4 lg:p-8">
+        <main key={pathname} className="flex-1 p-4 lg:p-8 animate-page-in">
           <Outlet />
         </main>
       </div>
@@ -189,11 +191,15 @@ function SideLink({
   to,
   label,
   icon: Icon,
+  color,
+  bg,
   onClick,
 }: {
   to: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  color: string;
+  bg: string;
   onClick?: () => void;
 }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -202,12 +208,23 @@ function SideLink({
     <Link
       to={to}
       onClick={onClick}
-      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${
-        active ? "bg-blue-50 text-blue-700 font-medium" : "text-slate-700 hover:bg-slate-100"
+      className={`group relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+        active
+          ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 font-semibold shadow-sm"
+          : "text-slate-700 hover:bg-slate-100 hover:translate-x-0.5"
       }`}
     >
-      <Icon className={`h-4 w-4 ${active ? "text-blue-600" : "text-slate-500"}`} />
-      {label}
+      {active && (
+        <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-gradient-to-b from-blue-500 to-indigo-600" />
+      )}
+      <span
+        className={`h-7 w-7 rounded-md flex items-center justify-center transition-all duration-200 ${bg} ${
+          active ? "ring-1 ring-blue-500/20" : "group-hover:scale-110"
+        }`}
+      >
+        <Icon className={`h-4 w-4 ${color}`} />
+      </span>
+      <span className="truncate">{label}</span>
     </Link>
   );
 }
