@@ -11,14 +11,13 @@ import { getProvider } from "@/integrations/payments/mercadopago/client.server";
 
 const CreatePixSchema = z.object({
   orderId: z.string().uuid(),
+  customerEmail: z.string().email().optional(),
+  description: z.string().min(1).max(255).optional(),
 });
 
 export const createPixPayment = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => CreatePixSchema.parse(input))
-  .handler(async ({ data, context }) => {
-    const { userId } = context;
-
+  .handler(async ({ data }) => {
     // Reload order from DB and revalidate ownership + amount.
     const { data: order, error: orderErr } = await supabaseAdmin
       .from("orders")
@@ -31,12 +30,11 @@ export const createPixPayment = createServerFn({ method: "POST" })
       throw new Error(orderErr.message);
     }
     if (!order) throw new Error("Pedido não encontrado");
-    if (order.user_id !== userId) throw new Error("Pedido não pertence a este usuário");
     const amount = Number(Number(order.total).toFixed(2));
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new Error("Valor do pedido inválido");
     }
-    console.log("[pix] creating payment", { orderId: order.id, amount, userId });
+    console.log("[pix] creating payment", { orderId: order.id, amount, userId: order.user_id ?? null });
 
     // If a pending PIX already exists for this order, reuse it (avoids
     // duplicate charges if the user retries).
@@ -53,18 +51,19 @@ export const createPixPayment = createServerFn({ method: "POST" })
 
     if (
       existing &&
-      existing.user_id === userId &&
       existing.qr_code &&
       existing.expires_at &&
       new Date(existing.expires_at) > new Date()
     ) {
       console.log("[pix] reusing existing pending payment", existing.id);
       return {
+        success: true,
         paymentId: existing.id,
         providerPaymentId: existing.provider_payment_id,
         amount,
         qrCode: existing.qr_code,
         qrCodeBase64: existing.qr_code_base64 ?? "",
+        copyPasteCode: existing.pix_copy_paste ?? existing.qr_code,
         pixCopyPaste: existing.pix_copy_paste ?? existing.qr_code,
         ticketUrl: (existing.raw_response as any)?.point_of_interaction?.transaction_data?.ticket_url ?? null,
         expiresAt: existing.expires_at,
@@ -73,8 +72,12 @@ export const createPixPayment = createServerFn({ method: "POST" })
     }
 
     // Lookup user email for payer.
-    const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(userId);
-    const payerEmail = userRes?.user?.email ?? "no-reply@viralizahost.com";
+    let accountEmail: string | undefined;
+    if (order.user_id) {
+      const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(order.user_id);
+      accountEmail = userRes?.user?.email ?? undefined;
+    }
+    const payerEmail = data.customerEmail ?? accountEmail ?? "cliente@viralizahost.com";
 
     const provider = getProvider();
     let pix;
@@ -84,7 +87,7 @@ export const createPixPayment = createServerFn({ method: "POST" })
         amount,
         currency: "BRL",
         payerEmail,
-        description: `Pedido ViralizaHost ${order.id.slice(0, 8)}`,
+        description: data.description ?? `Pedido ViralizaHost ${order.id.slice(0, 8)}`,
         expiresInMinutes: 30,
       });
     } catch (err: any) {
