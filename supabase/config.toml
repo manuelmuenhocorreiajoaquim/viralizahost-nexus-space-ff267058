@@ -1,1 +1,7 @@
 project_id = "zidtrphcafmzqzfbgbrx"
+
+[functions.domain-search]
+verify_jwt = false
+
+[functions.domain-order-create]
+verify_jwt = false
