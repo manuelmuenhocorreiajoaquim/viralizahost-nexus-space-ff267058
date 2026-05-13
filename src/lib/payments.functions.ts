@@ -197,7 +197,7 @@ export const createPixPayment = createServerFn({ method: "POST" })
     const { data: payment, error: payErr } = await supabaseAdmin
       .from("payments")
       .insert({
-        user_id: userId,
+        user_id: order.user_id ?? null,
         order_id: order.id,
         amount,
         currency: "BRL",
@@ -228,11 +228,13 @@ export const createPixPayment = createServerFn({ method: "POST" })
       .eq("id", order.id);
 
     return {
+      success: true,
       paymentId: payment.id,
       providerPaymentId: pix.providerPaymentId,
       amount,
       qrCode: pix.qrCode ?? "",
       qrCodeBase64: pix.qrCodeBase64 ?? "",
+      copyPasteCode: pix.pixCopyPaste ?? "",
       pixCopyPaste: pix.pixCopyPaste ?? "",
       ticketUrl: (pix.raw as any)?.point_of_interaction?.transaction_data?.ticket_url ?? null,
       expiresAt: pix.expiresAt,
@@ -243,10 +245,8 @@ export const createPixPayment = createServerFn({ method: "POST" })
 const GetPaymentSchema = z.object({ paymentId: z.string().uuid() });
 
 export const getPaymentStatus = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => GetPaymentSchema.parse(input))
-  .handler(async ({ data, context }) => {
-    const { userId } = context;
+  .handler(async ({ data }) => {
     const { data: payment, error } = await supabaseAdmin
       .from("payments")
       .select("*")
@@ -254,7 +254,11 @@ export const getPaymentStatus = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!payment) throw new Error("Pagamento não encontrado");
-    if (payment.user_id !== userId) throw new Error("Acesso negado");
+    const authHeader = getRequestHeader("authorization");
+    if (payment.user_id && authHeader?.startsWith("Bearer ")) {
+      const { data: userRes } = await supabaseAdmin.auth.getUser(authHeader.replace("Bearer ", ""));
+      if (userRes?.user?.id && payment.user_id !== userRes.user.id) throw new Error("Acesso negado");
+    }
 
     // If still pending, ask MP for the latest snapshot to short-circuit
     // webhook latency (the webhook is still authoritative).
