@@ -13,6 +13,7 @@ import { CYCLES, findCycle, findProduct, cyclePeriodTotal, cycleSavings, type Cy
 import { useCurrency, formatPrice } from "@/lib/currency";
 import { useAuth } from "@/lib/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import PixPaymentDialog from "@/components/checkout/PixPaymentDialog";
 
 const STEPS = [
   { id: "cycle", label: "Ciclo", icon: Sparkles },
