@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { GraduationCap, BookOpen, Award, PlayCircle } from "lucide-react";
 import { CategoryBanner, FeatureCard } from "@/components/dashboard/CategoryBanner";
+import { CourseShowcase } from "@/components/dashboard/CourseShowcase";
 export const Route = createFileRoute("/_authenticated/courses")({
   component: () => (
     <div className="max-w-6xl mx-auto">
@@ -16,6 +17,8 @@ export const Route = createFileRoute("/_authenticated/courses")({
         <FeatureCard icon={PlayCircle} tone="rose" title="Aulas em vídeo" description="Conteúdo HD com exemplos práticos." />
         <FeatureCard icon={Award} tone="amber" title="Certificados" description="Recebe certificado após concluir cada curso." />
       </div>
+
+      <CourseShowcase />
     </div>
   ),
 });
