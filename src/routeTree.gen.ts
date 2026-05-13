@@ -29,6 +29,7 @@ import { Route as AuthenticatedDomainsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedDesignRouteImport } from './routes/_authenticated/design'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCoursesRouteImport } from './routes/_authenticated/courses'
+import { Route as AuthenticatedChangePasswordRouteImport } from './routes/_authenticated/change-password'
 import { Route as AuthenticatedAudiovisualRouteImport } from './routes/_authenticated/audiovisual'
 import { Route as AuthenticatedAiRouteImport } from './routes/_authenticated/ai'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
@@ -133,6 +134,12 @@ const AuthenticatedCoursesRoute = AuthenticatedCoursesRouteImport.update({
   path: '/courses',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedChangePasswordRoute =
+  AuthenticatedChangePasswordRouteImport.update({
+    id: '/change-password',
+    path: '/change-password',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAudiovisualRoute =
   AuthenticatedAudiovisualRouteImport.update({
     id: '/audiovisual',
@@ -166,6 +173,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof AuthenticatedAccountRoute
   '/ai': typeof AuthenticatedAiRoute
   '/audiovisual': typeof AuthenticatedAudiovisualRoute
+  '/change-password': typeof AuthenticatedChangePasswordRoute
   '/courses': typeof AuthenticatedCoursesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/design': typeof AuthenticatedDesignRoute
@@ -191,6 +199,7 @@ export interface FileRoutesByTo {
   '/account': typeof AuthenticatedAccountRoute
   '/ai': typeof AuthenticatedAiRoute
   '/audiovisual': typeof AuthenticatedAudiovisualRoute
+  '/change-password': typeof AuthenticatedChangePasswordRoute
   '/courses': typeof AuthenticatedCoursesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/design': typeof AuthenticatedDesignRoute
@@ -218,6 +227,7 @@ export interface FileRoutesById {
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/ai': typeof AuthenticatedAiRoute
   '/_authenticated/audiovisual': typeof AuthenticatedAudiovisualRoute
+  '/_authenticated/change-password': typeof AuthenticatedChangePasswordRoute
   '/_authenticated/courses': typeof AuthenticatedCoursesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/design': typeof AuthenticatedDesignRoute
@@ -245,6 +255,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/ai'
     | '/audiovisual'
+    | '/change-password'
     | '/courses'
     | '/dashboard'
     | '/design'
@@ -270,6 +281,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/ai'
     | '/audiovisual'
+    | '/change-password'
     | '/courses'
     | '/dashboard'
     | '/design'
@@ -296,6 +308,7 @@ export interface FileRouteTypes {
     | '/_authenticated/account'
     | '/_authenticated/ai'
     | '/_authenticated/audiovisual'
+    | '/_authenticated/change-password'
     | '/_authenticated/courses'
     | '/_authenticated/dashboard'
     | '/_authenticated/design'
@@ -464,6 +477,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCoursesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/change-password': {
+      id: '/_authenticated/change-password'
+      path: '/change-password'
+      fullPath: '/change-password'
+      preLoaderRoute: typeof AuthenticatedChangePasswordRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/audiovisual': {
       id: '/_authenticated/audiovisual'
       path: '/audiovisual'
@@ -499,6 +519,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
   AuthenticatedAiRoute: typeof AuthenticatedAiRoute
   AuthenticatedAudiovisualRoute: typeof AuthenticatedAudiovisualRoute
+  AuthenticatedChangePasswordRoute: typeof AuthenticatedChangePasswordRoute
   AuthenticatedCoursesRoute: typeof AuthenticatedCoursesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDesignRoute: typeof AuthenticatedDesignRoute
@@ -519,6 +540,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
   AuthenticatedAiRoute: AuthenticatedAiRoute,
   AuthenticatedAudiovisualRoute: AuthenticatedAudiovisualRoute,
+  AuthenticatedChangePasswordRoute: AuthenticatedChangePasswordRoute,
   AuthenticatedCoursesRoute: AuthenticatedCoursesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDesignRoute: AuthenticatedDesignRoute,
@@ -551,3 +573,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
