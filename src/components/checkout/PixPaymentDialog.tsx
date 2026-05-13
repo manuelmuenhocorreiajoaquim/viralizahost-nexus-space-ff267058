@@ -50,13 +50,22 @@ export default function PixPaymentDialog({ open, onOpenChange, orderId, onApprov
     setLoading(true);
     createFn({ data: { orderId } })
       .then((res: any) => {
+        console.log("[pix] createPixPayment response", res);
+        if (!res || !res.paymentId) {
+          setError("Não foi possível gerar o PIX. Tente novamente.");
+          return;
+        }
+        if (!res.qrCode && !res.qrCodeBase64 && !res.pixCopyPaste) {
+          setError("PIX gerado mas sem QR Code. Tente novamente em instantes.");
+          return;
+        }
         setPix({
           paymentId: res.paymentId,
-          qrCode: res.qrCode,
-          qrCodeBase64: res.qrCodeBase64,
-          pixCopyPaste: res.pixCopyPaste,
+          qrCode: res.qrCode ?? "",
+          qrCodeBase64: res.qrCodeBase64 ?? "",
+          pixCopyPaste: res.pixCopyPaste ?? res.qrCode ?? "",
           expiresAt: res.expiresAt,
-          amount: res.amount,
+          amount: Number(res.amount) || 0,
         });
         if (res.status === "approved") {
           setStatus("approved");
@@ -64,8 +73,8 @@ export default function PixPaymentDialog({ open, onOpenChange, orderId, onApprov
         }
       })
       .catch((e: any) => {
-        console.error(e);
-        setError(e?.message ?? "Não foi possível gerar o PIX");
+        console.error("[pix] createPixPayment error", e);
+        setError(e?.message ?? "Não foi possível gerar o PIX. Tente novamente.");
       })
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
