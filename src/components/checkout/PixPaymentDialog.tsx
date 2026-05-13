@@ -10,6 +10,7 @@ type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   orderId: string | null;
+  customerEmail?: string;
   onApproved: () => void;
 };
 
@@ -22,7 +23,7 @@ type PixData = {
   amount: number;
 };
 
-export default function PixPaymentDialog({ open, onOpenChange, orderId, onApproved }: Props) {
+export default function PixPaymentDialog({ open, onOpenChange, orderId, customerEmail, onApproved }: Props) {
   const createFn = useServerFn(createPixPayment);
   const statusFn = useServerFn(getPaymentStatus);
 
@@ -48,11 +49,11 @@ export default function PixPaymentDialog({ open, onOpenChange, orderId, onApprov
     setPix(null);
     setStatus("pending");
     setLoading(true);
-    createFn({ data: { orderId } })
+    createFn({ data: { orderId, customerEmail, description: `Pedido ViralizaHost ${orderId.slice(0, 8)}` } })
       .then((res: any) => {
-        console.log("[pix] createPixPayment response", res);
-        if (!res || !res.paymentId) {
-          setError("Não foi possível gerar o PIX. Tente novamente.");
+        console.log("payment response", res);
+        if (!res?.success || !res?.paymentId) {
+          setError("Não foi possível gerar o PIX. Verifique os dados e tente novamente.");
           return;
         }
         if (!res.qrCode && !res.qrCodeBase64 && !res.pixCopyPaste) {
@@ -63,7 +64,7 @@ export default function PixPaymentDialog({ open, onOpenChange, orderId, onApprov
           paymentId: res.paymentId,
           qrCode: res.qrCode ?? "",
           qrCodeBase64: res.qrCodeBase64 ?? "",
-          pixCopyPaste: res.pixCopyPaste ?? res.qrCode ?? "",
+          pixCopyPaste: res.copyPasteCode ?? res.pixCopyPaste ?? res.qrCode ?? "",
           expiresAt: res.expiresAt,
           amount: Number(res.amount) || 0,
         });
@@ -74,11 +75,11 @@ export default function PixPaymentDialog({ open, onOpenChange, orderId, onApprov
       })
       .catch((e: any) => {
         console.error("[pix] createPixPayment error", e);
-        setError(e?.message ?? "Não foi possível gerar o PIX. Tente novamente.");
+        setError("Não foi possível gerar o PIX. Verifique os dados e tente novamente.");
       })
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, orderId]);
+  }, [open, orderId, customerEmail]);
 
   // Poll status
   useEffect(() => {
