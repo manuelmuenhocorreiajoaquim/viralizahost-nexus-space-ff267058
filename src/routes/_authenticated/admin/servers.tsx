@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, EmptyState, PageHeader, StatusPill } from "@/components/dashboard/ui";
-import { Server, Plus, Loader2, CheckCircle2, XCircle, Pencil, Trash2, KeyRound } from "lucide-react";
+import { Server, Plus, Loader2, CheckCircle2, XCircle, Pencil, Trash2, KeyRound, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/servers")({
@@ -60,6 +60,27 @@ function Page() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<ServerForm | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+
+  const syncClients = async (server_id?: string) => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("whm-sync-clients", {
+        body: server_id ? { server_id } : {},
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const s = data.summary;
+      toast.success(
+        `Sincronizado: ${s.found} encontradas · ${s.usersCreated} utilizadores · ${s.accountsCreated} novas · ${s.accountsUpdated} atualizadas${s.errors ? ` · ${s.errors} erros` : ""}`,
+      );
+      qc.invalidateQueries({ queryKey: ["whm_servers"] });
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useEffect(() => {
     console.info("[auth] admin servers guard", {
@@ -179,12 +200,22 @@ function Page() {
         title="Servidores WHM"
         subtitle="Gerencia os servidores cPanel/WHM usados para provisionamento. Tokens são protegidos no backend."
         actions={
-          <button
-            onClick={() => setEditing({ ...empty })}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700"
-          >
-            <Plus className="h-4 w-4" /> Adicionar servidor
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => syncClients()}
+              disabled={syncing}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-60"
+            >
+              {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Sincronizar Clientes WHM
+            </button>
+            <button
+              onClick={() => setEditing({ ...empty })}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4" /> Adicionar servidor
+            </button>
+          </div>
         }
       />
 

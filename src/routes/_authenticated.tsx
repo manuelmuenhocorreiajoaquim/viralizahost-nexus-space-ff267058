@@ -79,6 +79,13 @@ function AuthLayout() {
     },
   });
 
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  useEffect(() => {
+    if (profile?.must_change_password && pathname !== "/change-password") {
+      navigate({ to: "/change-password" });
+    }
+  }, [profile?.must_change_password, pathname, navigate]);
+
   if (loading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">

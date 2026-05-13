@@ -20,6 +20,7 @@ export type Database = {
           cpanel_url: string | null
           created_at: string
           disk_quota_mb: number | null
+          disk_used_mb: number | null
           domain: string
           expiry_date: string | null
           id: string
@@ -43,6 +44,7 @@ export type Database = {
           cpanel_url?: string | null
           created_at?: string
           disk_quota_mb?: number | null
+          disk_used_mb?: number | null
           domain: string
           expiry_date?: string | null
           id?: string
@@ -66,6 +68,7 @@ export type Database = {
           cpanel_url?: string | null
           created_at?: string
           disk_quota_mb?: number | null
+          disk_used_mb?: number | null
           domain?: string
           expiry_date?: string | null
           id?: string
@@ -424,6 +427,7 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          must_change_password: boolean
           phone: string | null
           updated_at: string
         }
@@ -432,6 +436,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          must_change_password?: boolean
           phone?: string | null
           updated_at?: string
         }
@@ -440,6 +445,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          must_change_password?: boolean
           phone?: string | null
           updated_at?: string
         }
