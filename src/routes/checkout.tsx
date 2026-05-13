@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,6 +16,7 @@ import { useCurrency, formatPrice } from "@/lib/currency";
 import { useAuth } from "@/lib/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import PixPaymentDialog from "@/components/checkout/PixPaymentDialog";
+import { createCheckoutOrder } from "@/lib/payments.functions";
 
 const STEPS = [
   { id: "cycle", label: "Ciclo", icon: Sparkles },
@@ -41,6 +43,20 @@ export const Route = createFileRoute("/checkout")({
 
 function brl(n: number, currency: "BRL" | "AKZ") {
   return formatPrice(`R$ ${Math.round(n)}`, currency);
+}
+
+const CHECKOUT_CUSTOMER_KEY = "vh.checkout.customer.v1";
+
+function readCheckoutCustomer(): { name?: string; email?: string } {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(CHECKOUT_CUSTOMER_KEY) ?? "{}");
+    return {
+      name: typeof parsed.name === "string" ? parsed.name : undefined,
+      email: typeof parsed.email === "string" ? parsed.email : undefined,
+    };
+  } catch {
+    return {};
+  }
 }
 
 function CheckoutPage() {
