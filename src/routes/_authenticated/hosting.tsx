@@ -135,16 +135,24 @@ function CpanelCard({ account }: { account: any }) {
         </div>
       )}
       <div className="flex items-center gap-2 mt-4">
-        {account.cpanel_url && (
-          <a
-            href={account.cpanel_url}
-            target="_blank"
-            rel="noreferrer"
-            className="flex-1 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 inline-flex items-center justify-center gap-1.5"
-          >
-            <ExternalLink className="h-3.5 w-3.5" /> Login cPanel
-          </a>
-        )}
+        <button
+          onClick={async () => {
+            try {
+              const { data, error } = await supabase.functions.invoke("whm-cpanel-sso", {
+                body: { account_id: account.id },
+              });
+              if (error) throw error;
+              if (data?.error) throw new Error(data.error);
+              if (data?.url) window.open(data.url, "_blank", "noopener");
+              else toast.error("Não foi possível abrir o cPanel");
+            } catch (e: any) {
+              toast.error(e.message);
+            }
+          }}
+          className="flex-1 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 inline-flex items-center justify-center gap-1.5"
+        >
+          <ExternalLink className="h-3.5 w-3.5" /> Acessar cPanel
+        </button>
         <button
           onClick={loadUsage}
           disabled={loading}
