@@ -3,7 +3,8 @@ import { useAuth } from "@/lib/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Receipt, Download } from "lucide-react";
-import { Card, EmptyState, PageHeader, StatusPill } from "@/components/dashboard/ui";
+import { Card, EmptyState, StatusPill } from "@/components/dashboard/ui";
+import { CategoryBanner } from "@/components/dashboard/CategoryBanner";
 
 export const Route = createFileRoute("/_authenticated/invoices")({ component: Page });
 
@@ -21,7 +22,13 @@ function Page() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <PageHeader title="Faturas" subtitle="Histórico financeiro e pagamentos." />
+      <CategoryBanner
+        variant="invoices"
+        icon={Receipt}
+        eyebrow="Financeiro"
+        title="Faturas"
+        description="Histórico financeiro, pagamentos e recibos das tuas contratações."
+      />
       {!isLoading && data?.length === 0 ? (
         <EmptyState icon={Receipt} title="Sem faturas" description="As tuas faturas aparecerão aqui." />
       ) : (
@@ -29,15 +36,11 @@ function Page() {
           <h3 className="font-semibold mb-3">Pendentes ({pending.length})</h3>
           <div className="space-y-2 mb-8">
             {pending.length === 0 && <Card className="text-sm text-slate-500">Sem faturas pendentes 🎉</Card>}
-            {pending.map((i) => (
-              <InvoiceRow key={i.id} inv={i} pay />
-            ))}
+            {pending.map((i, idx) => <InvoiceRow key={i.id} inv={i} pay idx={idx} />)}
           </div>
           <h3 className="font-semibold mb-3">Pagas ({paid.length})</h3>
           <div className="space-y-2">
-            {paid.map((i) => (
-              <InvoiceRow key={i.id} inv={i} />
-            ))}
+            {paid.map((i, idx) => <InvoiceRow key={i.id} inv={i} idx={idx} />)}
           </div>
         </>
       )}
@@ -45,9 +48,9 @@ function Page() {
   );
 }
 
-function InvoiceRow({ inv, pay }: { inv: any; pay?: boolean }) {
+function InvoiceRow({ inv, pay, idx }: { inv: any; pay?: boolean; idx: number }) {
   return (
-    <Card className="flex items-center justify-between">
+    <Card className={`flex items-center justify-between card-hover animate-card-rise stagger-${Math.min(idx + 1, 6)}`}>
       <div>
         <div className="font-medium">{inv.description}</div>
         <div className="text-xs text-slate-500">
@@ -59,11 +62,11 @@ function InvoiceRow({ inv, pay }: { inv: any; pay?: boolean }) {
         <span className="font-semibold">
           {inv.currency === "BRL" ? "R$" : inv.currency} {Number(inv.amount).toLocaleString("pt-BR")}
         </span>
-        <button className="p-2 rounded-lg hover:bg-slate-100" title="Baixar PDF">
+        <button className="p-2 rounded-lg hover:bg-slate-100 btn-press" title="Baixar PDF">
           <Download className="h-4 w-4 text-slate-600" />
         </button>
         {pay && (
-          <button className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700">
+          <button className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-green-600 text-white text-sm hover:shadow-glow-soft btn-press">
             Pagar agora
           </button>
         )}

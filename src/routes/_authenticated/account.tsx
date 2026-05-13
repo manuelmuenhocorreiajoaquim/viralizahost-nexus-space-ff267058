@@ -4,8 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import { Card, PageHeader } from "@/components/dashboard/ui";
+import { Loader2, UserCircle } from "lucide-react";
+import { Card } from "@/components/dashboard/ui";
+import { CategoryBanner } from "@/components/dashboard/CategoryBanner";
 
 export const Route = createFileRoute("/_authenticated/account")({ component: Page });
 
@@ -37,8 +38,14 @@ function Page() {
   });
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <PageHeader title="Minha Conta" subtitle="Os teus dados pessoais." />
+    <div className="max-w-3xl mx-auto">
+      <CategoryBanner
+        variant="account"
+        icon={UserCircle}
+        eyebrow="Perfil"
+        title="Minha Conta"
+        description="Os teus dados pessoais e preferências."
+      />
       <Card>
         <div className="space-y-4">
           <Field label="Nome completo">
@@ -67,7 +74,7 @@ function Page() {
           <button
             onClick={() => save.mutate()}
             disabled={save.isPending}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-60 inline-flex items-center gap-2"
+            className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm hover:shadow-glow-soft btn-press disabled:opacity-60 inline-flex items-center gap-2"
           >
             {save.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Guardar
           </button>

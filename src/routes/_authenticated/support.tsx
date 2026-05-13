@@ -4,8 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { toast } from "sonner";
-import { HelpCircle, MessageCircle, BookOpen, Loader2 } from "lucide-react";
-import { Card, PageHeader, StatusPill } from "@/components/dashboard/ui";
+import { HelpCircle, MessageCircle, BookOpen, Loader2, Headphones } from "lucide-react";
+import { Card, StatusPill } from "@/components/dashboard/ui";
+import { CategoryBanner } from "@/components/dashboard/CategoryBanner";
 
 export const Route = createFileRoute("/_authenticated/support")({ component: Page });
 
@@ -40,13 +41,16 @@ function Page() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <PageHeader
+      <CategoryBanner
+        variant="support"
+        icon={Headphones}
+        eyebrow="Atendimento"
         title="Suporte"
-        subtitle="Estamos aqui para ajudar."
+        description="Estamos aqui para ajudar. Abre um ticket ou fala connosco no WhatsApp."
         actions={
           <button
             onClick={() => setOpen(!open)}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700"
+            className="px-4 py-2 rounded-lg bg-white text-blue-700 text-sm font-semibold hover:bg-white/90 btn-press"
           >
             Abrir ticket
           </button>
@@ -54,25 +58,27 @@ function Page() {
       />
 
       <div className="grid sm:grid-cols-3 gap-4 mb-6">
-        <Card>
-          <MessageCircle className="h-6 w-6 text-blue-600" />
+        <Card className="card-hover animate-card-rise stagger-1">
+          <div className="h-10 w-10 rounded-xl bg-emerald-500/10 ring-1 ring-emerald-500/20 flex items-center justify-center">
+            <MessageCircle className="h-5 w-5 text-emerald-600" />
+          </div>
           <h3 className="font-semibold mt-3">WhatsApp Suporte</h3>
           <p className="text-sm text-slate-500 mt-1">Atendimento rápido.</p>
-          <a
-            href="https://wa.me/244000000000"
-            target="_blank"
-            className="mt-3 inline-block text-sm text-blue-600 hover:underline"
-          >
+          <a href="https://wa.me/244000000000" target="_blank" className="mt-3 inline-block text-sm text-emerald-600 hover:underline">
             Conversar →
           </a>
         </Card>
-        <Card>
-          <BookOpen className="h-6 w-6 text-blue-600" />
+        <Card className="card-hover animate-card-rise stagger-2">
+          <div className="h-10 w-10 rounded-xl bg-blue-500/10 ring-1 ring-blue-500/20 flex items-center justify-center">
+            <BookOpen className="h-5 w-5 text-blue-600" />
+          </div>
           <h3 className="font-semibold mt-3">Base de conhecimento</h3>
           <p className="text-sm text-slate-500 mt-1">Tutoriais e guias.</p>
         </Card>
-        <Card>
-          <HelpCircle className="h-6 w-6 text-blue-600" />
+        <Card className="card-hover animate-card-rise stagger-3">
+          <div className="h-10 w-10 rounded-xl bg-violet-500/10 ring-1 ring-violet-500/20 flex items-center justify-center">
+            <HelpCircle className="h-5 w-5 text-violet-600" />
+          </div>
           <h3 className="font-semibold mt-3">Perguntas frequentes</h3>
           <p className="text-sm text-slate-500 mt-1">Respostas rápidas.</p>
         </Card>

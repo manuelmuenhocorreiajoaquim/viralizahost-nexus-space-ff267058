@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useAuth } from "@/lib/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Server, ExternalLink, Activity } from "lucide-react";
-import { Card, EmptyState, PageHeader, StatusPill } from "@/components/dashboard/ui";
+import { Server, ExternalLink, Activity, BarChart3, HardDrive, Globe2, Network } from "lucide-react";
+import { Card, EmptyState, StatusPill } from "@/components/dashboard/ui";
+import { CategoryBanner } from "@/components/dashboard/CategoryBanner";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -40,35 +41,42 @@ function Page() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <PageHeader title="Hospedagens e Servidores" subtitle="Gerencia todos os teus serviços contratados." />
+      <CategoryBanner
+        variant="hosting"
+        icon={Server}
+        eyebrow="Infraestrutura"
+        title="Hospedagens & Servidores"
+        description="Gerencia todas as tuas contas cPanel, VPS e serviços contratados num só painel."
+      />
+
       {empty ? (
         <EmptyState
           icon={Server}
           title="Ainda não tens serviços activos"
-          description="Quando contratares uma hospedagem, VPS ou servidor dedicado, aparecerá aqui."
+          description="Quando contratares uma hospedagem, VPS ou servidor dedicado, aparecerá aqui automaticamente."
         />
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {(accounts?.length ?? 0) > 0 && (
             <div>
-              <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wider mb-3">
+              <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wider mb-4">
                 Contas cPanel
               </h2>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {accounts!.map((a) => (
-                  <CpanelCard key={a.id} account={a} />
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {accounts!.map((a, i) => (
+                  <CpanelCard key={a.id} account={a} index={i} />
                 ))}
               </div>
             </div>
           )}
           {(services?.length ?? 0) > 0 && (
             <div>
-              <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wider mb-3">
+              <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wider mb-4">
                 Outros serviços
               </h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {services!.map((s) => (
-                  <Card key={s.id}>
+                {services!.map((s, i) => (
+                  <Card key={s.id} className={`animate-card-rise stagger-${Math.min(i + 1, 6)} card-hover`}>
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="font-semibold">{s.name}</div>
@@ -87,9 +95,10 @@ function Page() {
   );
 }
 
-function CpanelCard({ account }: { account: any }) {
+function CpanelCard({ account, index }: { account: any; index: number }) {
   const [usage, setUsage] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [openingSso, setOpeningSso] = useState(false);
   const ns = Array.isArray(account.nameservers) ? account.nameservers : [];
 
   const loadUsage = async () => {
@@ -109,61 +118,136 @@ function CpanelCard({ account }: { account: any }) {
   };
 
   return (
-    <Card>
-      <div className="flex items-start justify-between">
-        <div className="min-w-0">
-          <div className="font-semibold truncate">{account.domain}</div>
-          <div className="text-xs text-slate-500 mt-0.5">
-            {account.plan_name ?? account.package} · {account.username}
+    <div
+      className={`group relative overflow-hidden rounded-2xl border border-slate-200 bg-white card-hover animate-card-rise stagger-${Math.min(index + 1, 6)}`}
+    >
+      {/* Server / cloud header with gradient overlay */}
+      <div className="relative h-28 cat-hosting cat-overlay cat-grid">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40" />
+        <div className="absolute inset-0 flex items-center justify-between px-5">
+          <div className="flex items-center gap-3 text-white relative z-10">
+            <div className="h-12 w-12 rounded-xl bg-white/15 ring-1 ring-white/30 backdrop-blur-md flex items-center justify-center">
+              <Server className="h-6 w-6" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
+                cPanel
+              </div>
+              <div className="font-semibold truncate text-white drop-shadow">{account.domain}</div>
+            </div>
+          </div>
+          <div className="relative z-10">
+            <StatusPill status={account.status} />
           </div>
         </div>
-        <StatusPill status={account.status} />
+        {/* shimmer accent */}
+        <div className="absolute inset-0 shimmer-bg opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
-      {ns.length > 0 && (
-        <div className="text-xs text-slate-500 mt-3">
-          NS: {ns.join(" · ")}
+
+      <div className="p-5">
+        <div className="flex items-center justify-between text-xs text-slate-500">
+          <span className="font-medium text-slate-700">{account.plan_name ?? account.package}</span>
+          <span className="font-mono">{account.username}</span>
         </div>
-      )}
-      {account.server_ip && (
-        <div className="text-xs text-slate-500">IP: {account.server_ip}</div>
-      )}
-      {account.disk_used_mb != null && !usage && (
-        <div className="text-xs text-slate-500">Disco usado: {account.disk_used_mb} MB</div>
-      )}
-      {usage && (
-        <div className="mt-3 text-xs text-slate-600 space-y-1">
-          <div>Disco: {usage.disk_used_mb} MB{usage.disk_quota_mb ? ` / ${usage.disk_quota_mb} MB` : ""}</div>
-          <div>Banda: {usage.bandwidth_used_mb} MB{usage.bandwidth_quota_mb ? ` / ${usage.bandwidth_quota_mb} MB` : ""}</div>
-          <div>Emails: {usage.email_count}</div>
+
+        <dl className="grid grid-cols-2 gap-3 mt-4 text-xs">
+          {account.server_ip && (
+            <div className="flex items-center gap-2 text-slate-600">
+              <Network className="h-3.5 w-3.5 text-blue-500" />
+              <span className="font-mono truncate">{account.server_ip}</span>
+            </div>
+          )}
+          {account.disk_used_mb != null && !usage && (
+            <div className="flex items-center gap-2 text-slate-600">
+              <HardDrive className="h-3.5 w-3.5 text-emerald-500" />
+              <span>{account.disk_used_mb} MB</span>
+            </div>
+          )}
+        </dl>
+
+        {ns.length > 0 && (
+          <div className="mt-3 text-xs text-slate-500 flex items-start gap-2">
+            <Globe2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-indigo-500" />
+            <span className="truncate">NS: {ns.join(" · ")}</span>
+          </div>
+        )}
+
+        {usage && (
+          <div className="mt-4 space-y-2 text-xs text-slate-600 bg-slate-50 rounded-xl p-3">
+            <UsageBar label="Disco" used={usage.disk_used_mb} quota={usage.disk_quota_mb} unit="MB" tone="bg-blue-500" />
+            <UsageBar label="Banda" used={usage.bandwidth_used_mb} quota={usage.bandwidth_quota_mb} unit="MB" tone="bg-emerald-500" />
+            <div className="flex justify-between pt-1">
+              <span>E-mails</span>
+              <span className="font-semibold">{usage.email_count}</span>
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 mt-5">
+          <button
+            disabled={openingSso}
+            onClick={async () => {
+              setOpeningSso(true);
+              try {
+                const { data, error } = await supabase.functions.invoke("whm-cpanel-sso", {
+                  body: { account_id: account.id },
+                });
+                if (error) throw error;
+                if (data?.error) throw new Error(data.error);
+                if (data?.url) window.open(data.url, "_blank", "noopener");
+                else toast.error("Não foi possível abrir o cPanel");
+              } catch (e: any) {
+                toast.error(e.message);
+              } finally {
+                setOpeningSso(false);
+              }
+            }}
+            className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm hover:shadow-glow-soft btn-press inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
+          >
+            <CpanelIcon className="h-4 w-4" />
+            {openingSso ? "Abrindo..." : "Acessar cPanel"}
+            <ExternalLink className="h-3 w-3 opacity-80" />
+          </button>
+          <button
+            onClick={loadUsage}
+            disabled={loading}
+            className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 btn-press inline-flex items-center gap-1.5"
+            title="Ver uso"
+          >
+            {loading ? <Activity className="h-3.5 w-3.5 animate-pulse" /> : <BarChart3 className="h-3.5 w-3.5 text-emerald-600" />}
+            <span className="hidden sm:inline">Uso</span>
+          </button>
         </div>
-      )}
-      <div className="flex items-center gap-2 mt-4">
-        <button
-          onClick={async () => {
-            try {
-              const { data, error } = await supabase.functions.invoke("whm-cpanel-sso", {
-                body: { account_id: account.id },
-              });
-              if (error) throw error;
-              if (data?.error) throw new Error(data.error);
-              if (data?.url) window.open(data.url, "_blank", "noopener");
-              else toast.error("Não foi possível abrir o cPanel");
-            } catch (e: any) {
-              toast.error(e.message);
-            }
-          }}
-          className="flex-1 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 inline-flex items-center justify-center gap-1.5"
-        >
-          <ExternalLink className="h-3.5 w-3.5" /> Acessar cPanel
-        </button>
-        <button
-          onClick={loadUsage}
-          disabled={loading}
-          className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 inline-flex items-center gap-1.5"
-        >
-          <Activity className="h-3.5 w-3.5" /> {loading ? "..." : "Uso"}
-        </button>
       </div>
-    </Card>
+    </div>
+  );
+}
+
+function UsageBar({ label, used, quota, unit, tone }: { label: string; used: number; quota?: number; unit: string; tone: string }) {
+  const pct = quota ? Math.min(100, Math.round((used / quota) * 100)) : 0;
+  return (
+    <div>
+      <div className="flex justify-between mb-1">
+        <span>{label}</span>
+        <span className="font-medium text-slate-700">
+          {used} {unit}{quota ? ` / ${quota} ${unit}` : ""}
+        </span>
+      </div>
+      {quota ? (
+        <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden">
+          <div className={`h-full ${tone} transition-all duration-500`} style={{ width: `${pct}%` }} />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// Minimal cPanel-inspired icon mark (orange dot cluster) — representative, not official.
+function CpanelIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <circle cx="12" cy="12" r="10" fill="#FF6C2C" />
+      <circle cx="12" cy="12" r="3.2" fill="#fff" />
+    </svg>
   );
 }
