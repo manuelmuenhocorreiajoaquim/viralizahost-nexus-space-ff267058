@@ -104,6 +104,75 @@ export type Database = {
           },
         ]
       }
+      domain_orders: {
+        Row: {
+          created_at: string
+          currency: string
+          customer_email: string | null
+          domain_name: string
+          extension: string
+          id: string
+          metadata: Json
+          price: number
+          provider: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          domain_name: string
+          extension: string
+          id?: string
+          metadata?: Json
+          price?: number
+          provider?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          domain_name?: string
+          extension?: string
+          id?: string
+          metadata?: Json
+          price?: number
+          provider?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      domain_search_logs: {
+        Row: {
+          created_at: string
+          id: string
+          results: Json
+          searched_domain: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          results?: Json
+          searched_domain: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          results?: Json
+          searched_domain?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       domains: {
         Row: {
           created_at: string
