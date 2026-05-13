@@ -32,7 +32,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const data = JSON.parse(raw);
-        if (Array.isArray(data.items)) setItems(data.items);
+        if (Array.isArray(data.items)) {
+          const normalized = data.items
+            .map((item: any) => ({
+              productId: String(item.productId ?? item.id ?? ""),
+              qty: Number(item.qty ?? item.quantity ?? 1),
+              domain: typeof item.domain === "string" ? item.domain : undefined,
+            }))
+            .filter((item: CartItem) => item.productId && Number.isFinite(item.qty) && item.qty > 0);
+          setItems(normalized);
+        }
         if (data.cycle) setCycleState(data.cycle);
       }
     } catch {}

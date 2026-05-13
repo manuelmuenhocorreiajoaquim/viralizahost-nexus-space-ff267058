@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,6 +16,7 @@ import { useCurrency, formatPrice } from "@/lib/currency";
 import { useAuth } from "@/lib/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import PixPaymentDialog from "@/components/checkout/PixPaymentDialog";
+import { createCheckoutOrder } from "@/lib/payments.functions";
 
 const STEPS = [
   { id: "cycle", label: "Ciclo", icon: Sparkles },
@@ -41,6 +43,20 @@ export const Route = createFileRoute("/checkout")({
 
 function brl(n: number, currency: "BRL" | "AKZ") {
   return formatPrice(`R$ ${Math.round(n)}`, currency);
+}
+
+const CHECKOUT_CUSTOMER_KEY = "vh.checkout.customer.v1";
+
+function readCheckoutCustomer(): { name?: string; email?: string } {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(CHECKOUT_CUSTOMER_KEY) ?? "{}");
+    return {
+      name: typeof parsed.name === "string" ? parsed.name : undefined,
+      email: typeof parsed.email === "string" ? parsed.email : undefined,
+    };
+  } catch {
+    return {};
+  }
 }
 
 function CheckoutPage() {
@@ -392,6 +408,7 @@ function AuthStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
   const submit = async () => {
     setLoading(true);
     try {
+      localStorage.setItem(CHECKOUT_CUSTOMER_KEY, JSON.stringify({ name, email }));
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
           email, password,
@@ -404,6 +421,7 @@ function AuthStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
         if (error) throw error;
         toast.success("Login realizado!");
       }
+      onNext();
     } catch (e: any) {
       toast.error(e.message ?? "Erro");
     } finally {
@@ -449,13 +467,16 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
   const cart = useCart();
   const { user } = useAuth();
   const { currency } = useCurrency();
+  const createOrderFn = useServerFn(createCheckoutOrder);
   const [method, setMethod] = useState<"pix" | "card" | "boleto">("pix");
   const [loading, setLoading] = useState(false);
   const [pixOrderId, setPixOrderId] = useState<string | null>(null);
+  const [pixCustomerEmail, setPixCustomerEmail] = useState<string | undefined>();
   const [pixOpen, setPixOpen] = useState(false);
 
   const submit = async () => {
-    if (!user) { toast.error("Você precisa estar logado."); return; }
+    console.log("cart", cart);
+    console.log("user", user);
     if (cart.items.length === 0) { toast.error("Carrinho vazio."); return; }
     if (method !== "pix") {
       toast.info("Cartão e boleto serão liberados em breve. Use PIX por enquanto.");
@@ -469,51 +490,53 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
 
     setLoading(true);
     try {
-      // 1) Create order with pending status
-      const { data: order, error } = await supabase.from("orders").insert({
-        user_id: user.id,
-        status: "pending",
+      const customer = readCheckoutCustomer();
+      if (!user?.id && !customer.email) {
+        throw new Error("Informe um email válido na etapa Identificação.");
+      }
+      const c = findCycle(cart.cycle);
+      const items = cart.items.map((it) => {
+        const p = findProduct(it.productId);
+        if (!p?.id || !p.name || !p.type) throw new Error("Item inválido no carrinho.");
+        const quantity = Number(it.qty);
+        const price = Number(lineMonthly(it.productId, cart.cycle).toFixed(2));
+        if (!Number.isFinite(price) || price < 0 || !Number.isFinite(quantity) || quantity <= 0) {
+          throw new Error("Item inválido no carrinho.");
+        }
+        return {
+          id: p.id,
+          name: p.name,
+          type: p.type,
+          price,
+          quantity,
+          domain: it.domain ?? null,
+          total: Number((price * c.months * quantity).toFixed(2)),
+        };
+      });
+
+      const order = await createOrderFn({ data: {
         cycle: cart.cycle,
         currency: "BRL",
         subtotal: Number(Number(cart.totals.subtotal).toFixed(2)),
         discount: Number(Number(cart.totals.discount).toFixed(2)),
         total,
-        payment_method: method,
-        payment_provider: "mercadopago",
-      }).select("id").single();
-
-      if (error) {
-        console.error("[checkout] order insert error", error);
-        throw new Error(error.message);
-      }
-      if (!order || !order.id) {
+        paymentMethod: "pix",
+        paymentProvider: "mercadopago",
+        customerEmail: user?.email ?? customer.email,
+        customerName: customer.name,
+        items,
+      } });
+      console.log("order", order);
+      if (!order?.orderId) {
         throw new Error("Não foi possível criar o pedido. Tente novamente.");
       }
-      console.log("[checkout] order created", order.id);
 
-      // 2) Insert items
-      const items = cart.items.map((it) => {
-        const p = findProduct(it.productId)!;
-        const monthly = lineMonthly(it.productId, cart.cycle);
-        const lineTotal = Number((monthly * findCycle(cart.cycle).months * it.qty).toFixed(2));
-        return {
-          order_id: order.id, product_id: p.id, product_type: p.type, product_name: p.name,
-          cycle: cart.cycle, unit_price: monthly, quantity: it.qty, total: lineTotal,
-          domain: it.domain ?? null, metadata: {},
-        };
-      });
-      const { error: e2 } = await supabase.from("order_items").insert(items);
-      if (e2) {
-        console.error("[checkout] order_items insert error", e2);
-        throw new Error(e2.message);
-      }
-
-      // 3) Open PIX modal — it will call createPixPayment server fn
-      setPixOrderId(order.id);
+      setPixOrderId(order.orderId);
+      setPixCustomerEmail(user?.email ?? customer.email);
       setPixOpen(true);
     } catch (e: any) {
       console.error("[checkout] submit error", e);
-      toast.error(e?.message ?? "Não foi possível gerar o PIX. Tente novamente.");
+      toast.error("Não foi possível gerar o PIX. Verifique os dados e tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -612,6 +635,7 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
         open={pixOpen}
         onOpenChange={setPixOpen}
         orderId={pixOrderId}
+        customerEmail={pixCustomerEmail}
         onApproved={onApproved}
       />
     </div>

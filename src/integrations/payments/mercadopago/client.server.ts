@@ -100,6 +100,17 @@ export const mercadopago: PaymentProvider = {
       headers: { "X-Idempotency-Key": idemKey },
       body: JSON.stringify(body),
     });
+    console.log("[mercadopago] create pix raw response", {
+      id: data?.id ?? null,
+      status: data?.status ?? null,
+      hasPointOfInteraction: !!data?.point_of_interaction,
+      hasTransactionData: !!data?.point_of_interaction?.transaction_data,
+    });
+
+    if (!data?.id) {
+      console.error("[mercadopago] create pix invalid response", data);
+      throw new Error("Mercado Pago não retornou o ID do pagamento.");
+    }
 
     const tx = data?.point_of_interaction?.transaction_data ?? {};
     return {
@@ -117,6 +128,10 @@ export const mercadopago: PaymentProvider = {
     const data = await mpFetch(
       `/v1/payments/${encodeURIComponent(providerPaymentId)}`,
     );
+    if (!data?.id) {
+      console.error("[mercadopago] status invalid response", data);
+      throw new Error("Mercado Pago não retornou o ID do pagamento.");
+    }
     return {
       providerPaymentId: String(data.id),
       status: mapStatus(data.status),

@@ -4,21 +4,109 @@
 // imports — no plain helper exports — to keep client bundles clean.
 
 import { createServerFn } from "@tanstack/react-start";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getProvider } from "@/integrations/payments/mercadopago/client.server";
 
+const OrderItemSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  type: z.string().min(1),
+  price: z.number().finite().nonnegative(),
+  quantity: z.number().int().positive(),
+  domain: z.string().optional().nullable(),
+  total: z.number().finite().nonnegative().optional(),
+});
+
+const CreateCheckoutOrderSchema = z.object({
+  cycle: z.string().min(1),
+  currency: z.literal("BRL"),
+  subtotal: z.number().finite().nonnegative(),
+  discount: z.number().finite().nonnegative(),
+  total: z.number().finite().positive(),
+  paymentMethod: z.literal("pix"),
+  paymentProvider: z.literal("mercadopago"),
+  customerEmail: z.string().email().optional(),
+  customerName: z.string().max(160).optional(),
+  items: z.array(OrderItemSchema).min(1),
+});
+
+export const createCheckoutOrder = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => CreateCheckoutOrderSchema.parse(input))
+  .handler(async ({ data }) => {
+    const authHeader = getRequestHeader("authorization");
+    let userId: string | null = null;
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userRes, error } = await supabaseAdmin.auth.getUser(token);
+      if (!error && userRes?.user?.id) userId = userRes.user.id;
+    }
+
+    console.log("[checkout] creating order", {
+      userId,
+      customerEmail: data.customerEmail ?? null,
+      total: data.total,
+      items: data.items.length,
+    });
+
+    const { data: order, error: orderErr } = await supabaseAdmin
+      .from("orders")
+      .insert({
+        user_id: userId,
+        status: "pending",
+        cycle: data.cycle,
+        currency: data.currency,
+        subtotal: Number(data.subtotal.toFixed(2)),
+        discount: Number(data.discount.toFixed(2)),
+        total: Number(data.total.toFixed(2)),
+        payment_method: data.paymentMethod,
+        payment_provider: data.paymentProvider,
+        notes: data.customerEmail
+          ? `Cliente: ${data.customerName ?? ""} <${data.customerEmail}>`.trim()
+          : null,
+      })
+      .select("id")
+      .single();
+
+    if (orderErr) {
+      console.error("[checkout] order insert error", orderErr);
+      throw new Error(orderErr.message);
+    }
+    if (!order?.id) throw new Error("Não foi possível criar o pedido.");
+
+    const items = data.items.map((item) => ({
+      order_id: order.id,
+      product_id: item.id,
+      product_type: item.type,
+      product_name: item.name,
+      cycle: data.cycle,
+      unit_price: Number(item.price.toFixed(2)),
+      quantity: item.quantity,
+      total: Number((item.total ?? item.price * item.quantity).toFixed(2)),
+      domain: item.domain ?? null,
+      metadata: {},
+    }));
+
+    const { error: itemsErr } = await supabaseAdmin.from("order_items").insert(items);
+    if (itemsErr) {
+      console.error("[checkout] order_items insert error", itemsErr);
+      throw new Error(itemsErr.message);
+    }
+
+    console.log("[checkout] order created", { orderId: order.id });
+    return { success: true, orderId: order.id };
+  });
+
 const CreatePixSchema = z.object({
   orderId: z.string().uuid(),
+  customerEmail: z.string().email().optional(),
+  description: z.string().min(1).max(255).optional(),
 });
 
 export const createPixPayment = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => CreatePixSchema.parse(input))
-  .handler(async ({ data, context }) => {
-    const { userId } = context;
-
+  .handler(async ({ data }) => {
     // Reload order from DB and revalidate ownership + amount.
     const { data: order, error: orderErr } = await supabaseAdmin
       .from("orders")
@@ -31,12 +119,11 @@ export const createPixPayment = createServerFn({ method: "POST" })
       throw new Error(orderErr.message);
     }
     if (!order) throw new Error("Pedido não encontrado");
-    if (order.user_id !== userId) throw new Error("Pedido não pertence a este usuário");
     const amount = Number(Number(order.total).toFixed(2));
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new Error("Valor do pedido inválido");
     }
-    console.log("[pix] creating payment", { orderId: order.id, amount, userId });
+    console.log("[pix] creating payment", { orderId: order.id, amount, userId: order.user_id ?? null });
 
     // If a pending PIX already exists for this order, reuse it (avoids
     // duplicate charges if the user retries).
@@ -53,18 +140,19 @@ export const createPixPayment = createServerFn({ method: "POST" })
 
     if (
       existing &&
-      existing.user_id === userId &&
       existing.qr_code &&
       existing.expires_at &&
       new Date(existing.expires_at) > new Date()
     ) {
       console.log("[pix] reusing existing pending payment", existing.id);
       return {
+        success: true,
         paymentId: existing.id,
         providerPaymentId: existing.provider_payment_id,
         amount,
         qrCode: existing.qr_code,
         qrCodeBase64: existing.qr_code_base64 ?? "",
+        copyPasteCode: existing.pix_copy_paste ?? existing.qr_code,
         pixCopyPaste: existing.pix_copy_paste ?? existing.qr_code,
         ticketUrl: (existing.raw_response as any)?.point_of_interaction?.transaction_data?.ticket_url ?? null,
         expiresAt: existing.expires_at,
@@ -73,8 +161,12 @@ export const createPixPayment = createServerFn({ method: "POST" })
     }
 
     // Lookup user email for payer.
-    const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(userId);
-    const payerEmail = userRes?.user?.email ?? "no-reply@viralizahost.com";
+    let accountEmail: string | undefined;
+    if (order.user_id) {
+      const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(order.user_id);
+      accountEmail = userRes?.user?.email ?? undefined;
+    }
+    const payerEmail = data.customerEmail ?? accountEmail ?? "cliente@viralizahost.com";
 
     const provider = getProvider();
     let pix;
@@ -84,7 +176,7 @@ export const createPixPayment = createServerFn({ method: "POST" })
         amount,
         currency: "BRL",
         payerEmail,
-        description: `Pedido ViralizaHost ${order.id.slice(0, 8)}`,
+        description: data.description ?? `Pedido ViralizaHost ${order.id.slice(0, 8)}`,
         expiresInMinutes: 30,
       });
     } catch (err: any) {
@@ -105,7 +197,7 @@ export const createPixPayment = createServerFn({ method: "POST" })
     const { data: payment, error: payErr } = await supabaseAdmin
       .from("payments")
       .insert({
-        user_id: userId,
+        user_id: order.user_id ?? null,
         order_id: order.id,
         amount,
         currency: "BRL",
@@ -136,11 +228,13 @@ export const createPixPayment = createServerFn({ method: "POST" })
       .eq("id", order.id);
 
     return {
+      success: true,
       paymentId: payment.id,
       providerPaymentId: pix.providerPaymentId,
       amount,
       qrCode: pix.qrCode ?? "",
       qrCodeBase64: pix.qrCodeBase64 ?? "",
+      copyPasteCode: pix.pixCopyPaste ?? "",
       pixCopyPaste: pix.pixCopyPaste ?? "",
       ticketUrl: (pix.raw as any)?.point_of_interaction?.transaction_data?.ticket_url ?? null,
       expiresAt: pix.expiresAt,
@@ -151,10 +245,8 @@ export const createPixPayment = createServerFn({ method: "POST" })
 const GetPaymentSchema = z.object({ paymentId: z.string().uuid() });
 
 export const getPaymentStatus = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => GetPaymentSchema.parse(input))
-  .handler(async ({ data, context }) => {
-    const { userId } = context;
+  .handler(async ({ data }) => {
     const { data: payment, error } = await supabaseAdmin
       .from("payments")
       .select("*")
@@ -162,7 +254,11 @@ export const getPaymentStatus = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!payment) throw new Error("Pagamento não encontrado");
-    if (payment.user_id !== userId) throw new Error("Acesso negado");
+    const authHeader = getRequestHeader("authorization");
+    if (payment.user_id && authHeader?.startsWith("Bearer ")) {
+      const { data: userRes } = await supabaseAdmin.auth.getUser(authHeader.replace("Bearer ", ""));
+      if (userRes?.user?.id && payment.user_id !== userRes.user.id) throw new Error("Acesso negado");
+    }
 
     // If still pending, ask MP for the latest snapshot to short-circuit
     // webhook latency (the webhook is still authoritative).
