@@ -25,6 +25,10 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -63,6 +67,10 @@
   --muted-foreground: oklch(0.5 0.02 255);
   --accent: oklch(0.62 0.22 255);
   --accent-foreground: oklch(1 0 0);
+  --success: oklch(0.63 0.18 150);
+  --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.72 0.17 75);
+  --warning-foreground: oklch(0.25 0.04 75);
   --destructive: oklch(0.6 0.24 25);
   --destructive-foreground: oklch(1 0 0);
 
@@ -79,6 +87,7 @@
   /* Shadows / glows */
   --shadow-glow: 0 10px 40px -10px oklch(0.62 0.22 255 / 0.45);
   --shadow-glow-soft: 0 8px 30px oklch(0.62 0.22 255 / 0.18);
+  --shadow-success-glow: 0 18px 55px -30px oklch(0.63 0.18 150 / 0.85);
   --shadow-elegant: 0 20px 60px -15px oklch(0.2 0.05 260 / 0.18);
   --shadow-card: 0 4px 20px oklch(0.2 0.05 260 / 0.08);
 }
@@ -138,6 +147,7 @@
   .bg-gradient-hero { background-image: var(--gradient-hero); }
   .shadow-glow { box-shadow: var(--shadow-glow); }
   .shadow-glow-soft { box-shadow: var(--shadow-glow-soft); }
+  .shadow-glow-success { box-shadow: var(--shadow-success-glow); }
   .shadow-elegant { box-shadow: var(--shadow-elegant); }
   .shadow-card { box-shadow: var(--shadow-card); }
 

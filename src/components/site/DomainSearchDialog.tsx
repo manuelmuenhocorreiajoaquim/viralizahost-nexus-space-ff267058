@@ -10,6 +10,7 @@ import {
   Sparkles,
   AlertTriangle,
   Search as SearchIcon,
+  RefreshCw,
 } from "lucide-react";
 import {
   Dialog,
@@ -19,6 +20,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrency, formatPrice } from "@/lib/currency";
 import DomainCheckoutDialog, { type DomainCheckoutInfo } from "./DomainCheckoutDialog";
@@ -28,7 +30,9 @@ export type DomainResult = {
   ext: string;
   priceBRL: number;
   available: boolean;
+  status?: "available" | "taken" | "suggestion";
   source?: string;
+  suggested?: boolean;
 };
 
 function sanitize(input: string): string {
@@ -39,6 +43,47 @@ function sanitize(input: string): string {
     .replace(/^www\./, "")
     .replace(/\..*$/, "")
     .replace(/[^a-z0-9-]/g, "");
+}
+
+function fallbackSuggestions(query: string): DomainResult[] {
+  const base = sanitize(query);
+  if (!base) return [];
+  const variants = [
+    base,
+    `${base}angola`,
+    `${base}brasil`,
+    `${base}host`,
+    `get${base}`,
+    `use${base}`,
+  ];
+  const prices: Record<string, number> = {
+    ".com": 59,
+    ".net": 69,
+    ".org": 69,
+    ".com.br": 49,
+    ".ao": 250,
+    ".co.ao": 350,
+    ".tech": 99,
+    ".cloud": 129,
+    ".store": 99,
+  };
+  const tlds = [".com", ".net", ".org", ".com.br", ".ao", ".co.ao", ".tech", ".cloud", ".store"];
+
+  return Array.from(new Set(variants.flatMap((variant, index) => {
+    const scope = index === 0 ? tlds : [".com", ".net", ".com.br", ".cloud"];
+    return scope.map((ext) => `${variant}${ext}`);
+  }))).slice(0, 24).map((domain) => {
+    const ext = domain.endsWith(".com.br") ? ".com.br" : domain.endsWith(".co.ao") ? ".co.ao" : domain.match(/\.[^.]+$/)?.[0] ?? ".com";
+    return {
+      domain,
+      ext,
+      priceBRL: prices[ext] ?? 79,
+      available: false,
+      status: "suggestion" as const,
+      source: "fallback",
+      suggested: true,
+    };
+  });
 }
 
 export default function DomainSearchDialog({
@@ -70,16 +115,22 @@ export default function DomainSearchDialog({
 
     (async () => {
       try {
+        console.log("[domain-search] start", { query: cleanQuery });
         const { data, error } = await supabase.functions.invoke("domain-search", {
           body: { query: cleanQuery },
         });
         if (cancelled) return;
         if (error) throw error;
-        setResults(data?.results ?? []);
-        setWarning(data?.warning ?? null);
+
+        console.log("[domain-search] response", data);
+        const nextResults = Array.isArray(data?.results) ? data.results : [];
+        setResults(nextResults.length > 0 ? nextResults : fallbackSuggestions(cleanQuery));
+        setWarning(data?.warning ?? (nextResults.length ? null : "Não foi possível consultar o domínio."));
       } catch (e: any) {
         if (cancelled) return;
-        setWarning(e?.message ?? "Erro ao consultar disponibilidade.");
+        console.error("[domain-search] failed", e);
+        setResults(fallbackSuggestions(cleanQuery));
+        setWarning("Não foi possível consultar o domínio. Mostrando sugestões alternativas automáticas.");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -95,143 +146,214 @@ export default function DomainSearchDialog({
     setCheckoutOpen(true);
   };
 
+  const availableCount = results.filter((r) => r.available).length;
+  const takenCount = results.filter((r) => !r.available && r.status !== "suggestion").length;
+  const suggestionCount = results.filter((r) => r.suggested || r.status === "suggestion").length;
   const visibleResults = showAlternatives
-    ? results.filter((r) => r.available)
+    ? results.filter((r) => r.available || r.suggested || r.status === "suggestion")
     : results;
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl bg-white border-slate-200 shadow-2xl p-0 overflow-hidden">
-          <div className="px-6 pt-6 pb-5 border-b border-slate-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        <DialogContent className="max-w-4xl bg-card border-border shadow-2xl p-0 overflow-hidden">
+          <div className="px-5 sm:px-7 pt-6 pb-5 border-b border-border bg-gradient-to-br from-primary/10 via-card to-accent/10">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-slate-900">
-                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 grid place-items-center shadow-md">
-                  <Globe className="h-5 w-5 text-white" />
+              <DialogTitle className="flex items-center gap-3 text-foreground">
+                <div className="h-10 w-10 rounded-xl bg-gradient-primary grid place-items-center shadow-glow-soft">
+                  <Globe className="h-5 w-5 text-primary-foreground" />
                 </div>
                 Resultados da pesquisa
               </DialogTitle>
-              <DialogDescription className="text-slate-500">
+              <DialogDescription className="text-muted-foreground">
                 {cleanQuery ? (
-                  <>Mostrando opções para <span className="font-bold text-slate-800">{cleanQuery}</span></>
+                  <>Disponibilidade, extensões e sugestões para <span className="font-bold text-foreground">{cleanQuery}</span></>
                 ) : (
                   "Digite um nome para pesquisar."
                 )}
               </DialogDescription>
             </DialogHeader>
+
+            {!loading && (
+              <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
+                <div className="rounded-xl border border-success/20 bg-success/10 px-3 py-2 text-success">
+                  <strong className="block text-base">{availableCount}</strong> disponíveis
+                </div>
+                <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-destructive">
+                  <strong className="block text-base">{takenCount}</strong> ocupados
+                </div>
+                <div className="rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-primary">
+                  <strong className="block text-base">{suggestionCount}</strong> sugestões
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="px-6 py-6 max-h-[60vh] overflow-y-auto bg-gradient-to-b from-white to-slate-50">
-            <AnimatePresence mode="wait">
-              {loading ? (
-                <motion.div
-                  key="loading"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="space-y-3"
-                >
-                  <div className="flex items-center justify-center py-4 gap-2 text-sm text-slate-500">
-                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                    A verificar disponibilidade...
-                  </div>
-                  {[0, 1, 2, 3].map((i) => (
-                    <div key={i} className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-white">
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-40" />
-                        <Skeleton className="h-3 w-24" />
-                      </div>
-                      <Skeleton className="h-10 w-32 rounded-xl" />
+          <ScrollArea className="h-[min(66vh,620px)] bg-gradient-to-b from-card to-muted/30">
+            <div className="px-5 sm:px-7 py-6">
+              <AnimatePresence mode="wait">
+                {loading ? (
+                  <motion.div
+                    key="loading"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="space-y-4"
+                  >
+                    <div className="flex items-center justify-center py-4 gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      A verificar disponibilidade em tempo real...
                     </div>
-                  ))}
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="results"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="space-y-2"
-                >
-                  {warning && (
-                    <div className="mb-3 flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
-                      <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-                      <span>{warning}</span>
-                    </div>
-                  )}
-
-                  {showAlternatives && (
-                    <div className="mb-3 flex items-center gap-2 text-xs text-slate-500">
-                      <Sparkles className="h-3.5 w-3.5 text-blue-600" />
-                      Mostrando apenas extensões disponíveis.
-                      <button
-                        onClick={() => setShowAlternatives(false)}
-                        className="text-blue-600 font-semibold hover:underline"
-                      >
-                        Ver todas
-                      </button>
-                    </div>
-                  )}
-
-                  {visibleResults.map((r, i) => (
-                    <motion.div
-                      key={r.domain}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.04 }}
-                      whileHover={{ y: -2 }}
-                      className="group flex items-center gap-3 p-4 rounded-2xl bg-white border border-slate-200 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-500/5 transition-all"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-slate-900 truncate flex items-center gap-2">
-                          {r.domain}
-                          {r.available && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
-                              <Check className="h-3 w-3" /> Disponível
-                            </span>
-                          )}
-                          {!r.available && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-[10px] font-bold border border-red-200">
-                              <X className="h-3 w-3" /> Ocupado
-                            </span>
-                          )}
-                        </div>
-                        {r.available && (
-                          <div className="mt-1 text-xs text-slate-500">
-                            <span className="text-base font-bold text-slate-900">
-                              {formatPrice(`R$ ${r.priceBRL}`, currency)}
-                            </span>
-                            <span className="text-slate-400">/ano</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {[0, 1, 2, 3, 4, 5].map((i) => (
+                        <div key={i} className="p-4 rounded-2xl border border-border bg-card shadow-sm">
+                          <div className="flex items-start gap-3">
+                            <Skeleton className="h-10 w-10 rounded-xl" />
+                            <div className="flex-1 space-y-3">
+                              <Skeleton className="h-4 w-44" />
+                              <Skeleton className="h-3 w-28" />
+                              <Skeleton className="h-9 w-full rounded-xl" />
+                            </div>
                           </div>
-                        )}
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="results"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="space-y-4"
+                  >
+                    {warning && (
+                      <div className="flex items-start gap-2 rounded-2xl bg-warning/10 border border-warning/25 p-4 text-sm text-warning-foreground">
+                        <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                        <span>{warning}</span>
                       </div>
-                      {r.available ? (
+                    )}
+
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Sparkles className="h-3.5 w-3.5 text-primary" />
+                        Resultados com extensões populares e alternativas automáticas.
+                      </div>
+                      {showAlternatives ? (
                         <button
-                          onClick={() => buy(r)}
-                          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-semibold shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 hover:scale-[1.03] transition-all"
+                          onClick={() => setShowAlternatives(false)}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
                         >
-                          <ShoppingCart className="h-4 w-4" /> Comprar domínio
+                          <RefreshCw className="h-3.5 w-3.5" /> Ver todos
                         </button>
                       ) : (
                         <button
                           onClick={() => setShowAlternatives(true)}
-                          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-semibold hover:bg-slate-200 transition"
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
                         >
-                          Ver alternativas <ArrowRight className="h-3.5 w-3.5" />
+                          <SearchIcon className="h-3.5 w-3.5" /> Ver alternativas
                         </button>
                       )}
-                    </motion.div>
-                  ))}
-
-                  {visibleResults.length === 0 && !warning && (
-                    <div className="py-10 text-center text-sm text-slate-500">
-                      Nenhum resultado para mostrar.
                     </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {visibleResults.map((r, i) => {
+                        const isSuggestion = !r.available && (r.status === "suggestion" || r.suggested);
+                        return (
+                          <motion.div
+                            key={`${r.domain}-${i}`}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.025 }}
+                            whileHover={{ y: -3 }}
+                            className={`group relative overflow-hidden rounded-2xl bg-card border p-4 transition-all ${
+                              r.available
+                                ? "border-success/35 shadow-glow-success hover:shadow-glow-success"
+                                : isSuggestion
+                                  ? "border-primary/20 hover:border-primary/40 hover:shadow-glow-soft"
+                                  : "border-destructive/20 hover:border-destructive/35"
+                            }`}
+                          >
+                            {r.available && <div className="absolute inset-0 bg-success/5 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                            <div className="relative flex h-full flex-col gap-4">
+                              <div className="flex items-start gap-3">
+                                <div className={`h-10 w-10 rounded-xl grid place-items-center shrink-0 ${
+                                  r.available
+                                    ? "bg-success/10 text-success"
+                                    : isSuggestion
+                                      ? "bg-primary/10 text-primary"
+                                      : "bg-destructive/10 text-destructive"
+                                }`}>
+                                  {r.available ? <Check className="h-5 w-5" /> : isSuggestion ? <Sparkles className="h-5 w-5" /> : <X className="h-5 w-5" />}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-semibold text-foreground break-words">{r.domain}</div>
+                                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                                    {r.available ? (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success/10 text-success text-[10px] font-bold border border-success/20">
+                                        <Check className="h-3 w-3" /> Disponível
+                                      </span>
+                                    ) : isSuggestion ? (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold border border-primary/20">
+                                        <Sparkles className="h-3 w-3" /> Sugestão
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 text-destructive text-[10px] font-bold border border-destructive/20">
+                                        <X className="h-3 w-3" /> Ocupado
+                                      </span>
+                                    )}
+                                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-normal">{r.ext}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="relative mt-auto flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+                                <div>
+                                  <div className="text-xs text-muted-foreground">Preço anual</div>
+                                  <div className="text-lg font-bold text-foreground">
+                                    {formatPrice(`R$ ${r.priceBRL}`, currency)}<span className="text-xs font-medium text-muted-foreground">/ano</span>
+                                  </div>
+                                </div>
+
+                                {r.available ? (
+                                  <button
+                                    onClick={() => buy(r)}
+                                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-primary text-primary-foreground text-sm font-semibold shadow-glow-soft hover:scale-[1.02] transition-all"
+                                  >
+                                    <ShoppingCart className="h-4 w-4" /> Comprar domínio
+                                  </button>
+                                ) : isSuggestion ? (
+                                  <button
+                                    onClick={() => setShowAlternatives(true)}
+                                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary/10 text-primary text-sm font-semibold hover:bg-primary/15 transition"
+                                  >
+                                    Ver alternativa <ArrowRight className="h-3.5 w-3.5" />
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => setShowAlternatives(true)}
+                                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-muted text-foreground text-sm font-semibold hover:bg-muted/80 transition"
+                                  >
+                                    Ver alternativas <ArrowRight className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+
+                    {visibleResults.length === 0 && (
+                      <div className="py-10 text-center text-sm text-muted-foreground">
+                        Não foi possível consultar o domínio. Tente pesquisar novamente.
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
 
