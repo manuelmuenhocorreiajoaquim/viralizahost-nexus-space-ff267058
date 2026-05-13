@@ -26,10 +26,17 @@ export const createPixPayment = createServerFn({ method: "POST" })
       .eq("id", data.orderId)
       .maybeSingle();
 
-    if (orderErr) throw new Error(orderErr.message);
+    if (orderErr) {
+      console.error("[pix] order lookup error", orderErr);
+      throw new Error(orderErr.message);
+    }
     if (!order) throw new Error("Pedido não encontrado");
     if (order.user_id !== userId) throw new Error("Pedido não pertence a este usuário");
-    if (Number(order.total) <= 0) throw new Error("Valor do pedido inválido");
+    const amount = Number(Number(order.total).toFixed(2));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error("Valor do pedido inválido");
+    }
+    console.log("[pix] creating payment", { orderId: order.id, amount, userId });
 
     // If a pending PIX already exists for this order, reuse it (avoids
     // duplicate charges if the user retries).
