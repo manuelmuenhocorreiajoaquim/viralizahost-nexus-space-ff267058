@@ -378,6 +378,7 @@ export type Database = {
           payment_method: string | null
           payment_provider: string | null
           payment_ref: string | null
+          payment_status: string
           provisioned: boolean
           provisioning_error: string | null
           status: string
@@ -396,6 +397,7 @@ export type Database = {
           payment_method?: string | null
           payment_provider?: string | null
           payment_ref?: string | null
+          payment_status?: string
           provisioned?: boolean
           provisioning_error?: string | null
           status?: string
@@ -414,6 +416,7 @@ export type Database = {
           payment_method?: string | null
           payment_provider?: string | null
           payment_ref?: string | null
+          payment_status?: string
           provisioned?: boolean
           provisioning_error?: string | null
           status?: string
@@ -429,14 +432,20 @@ export type Database = {
           amount: number
           created_at: string
           currency: string
+          expires_at: string | null
           id: string
           invoice_id: string | null
           metadata: Json
           method: string | null
           order_id: string | null
           paid_at: string | null
+          pix_copy_paste: string | null
           provider: string | null
+          provider_payment_id: string | null
           provider_ref: string | null
+          qr_code: string | null
+          qr_code_base64: string | null
+          raw_response: Json
           status: string
           updated_at: string
           user_id: string
@@ -445,14 +454,20 @@ export type Database = {
           amount?: number
           created_at?: string
           currency?: string
+          expires_at?: string | null
           id?: string
           invoice_id?: string | null
           metadata?: Json
           method?: string | null
           order_id?: string | null
           paid_at?: string | null
+          pix_copy_paste?: string | null
           provider?: string | null
+          provider_payment_id?: string | null
           provider_ref?: string | null
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          raw_response?: Json
           status?: string
           updated_at?: string
           user_id: string
@@ -461,14 +476,20 @@ export type Database = {
           amount?: number
           created_at?: string
           currency?: string
+          expires_at?: string | null
           id?: string
           invoice_id?: string | null
           metadata?: Json
           method?: string | null
           order_id?: string | null
           paid_at?: string | null
+          pix_copy_paste?: string | null
           provider?: string | null
+          provider_payment_id?: string | null
           provider_ref?: string | null
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          raw_response?: Json
           status?: string
           updated_at?: string
           user_id?: string

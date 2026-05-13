@@ -13,6 +13,7 @@ import { CYCLES, findCycle, findProduct, cyclePeriodTotal, cycleSavings, type Cy
 import { useCurrency, formatPrice } from "@/lib/currency";
 import { useAuth } from "@/lib/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import PixPaymentDialog from "@/components/checkout/PixPaymentDialog";
 
 const STEPS = [
   { id: "cycle", label: "Ciclo", icon: Sparkles },
@@ -426,16 +427,28 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
   const { currency } = useCurrency();
   const [method, setMethod] = useState<"pix" | "card" | "boleto">("pix");
   const [loading, setLoading] = useState(false);
+  const [pixOrderId, setPixOrderId] = useState<string | null>(null);
+  const [pixOpen, setPixOpen] = useState(false);
 
   const submit = async () => {
     if (!user) { toast.error("Você precisa estar logado."); return; }
     if (cart.items.length === 0) { toast.error("Carrinho vazio."); return; }
+    if (method !== "pix") {
+      toast.info("Cartão e boleto serão liberados em breve. Use PIX por enquanto.");
+      return;
+    }
     setLoading(true);
     try {
       const { data: order, error } = await supabase.from("orders").insert({
-        user_id: user.id, status: "paid", cycle: cart.cycle, currency,
-        subtotal: cart.totals.subtotal, discount: cart.totals.discount, total: cart.totals.total,
-        payment_method: method, payment_provider: "mock",
+        user_id: user.id,
+        status: "pending",
+        cycle: cart.cycle,
+        currency: "BRL",
+        subtotal: cart.totals.subtotal,
+        discount: cart.totals.discount,
+        total: cart.totals.total,
+        payment_method: method,
+        payment_provider: "mercadopago",
       }).select("id").single();
       if (error) throw error;
 
@@ -452,25 +465,8 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
       const { error: e2 } = await supabase.from("order_items").insert(items);
       if (e2) throw e2;
 
-      // Register a payment row
-      await supabase.from("payments").insert({
-        user_id: user.id,
-        order_id: order.id,
-        amount: cart.totals.total,
-        currency,
-        method,
-        provider: "mock",
-        status: "succeeded",
-        paid_at: new Date().toISOString(),
-      });
-
-      // Trigger automatic cPanel provisioning (fire and forget; result shown on /done)
-      supabase.functions
-        .invoke("create-cpanel-account", { body: { order_id: order.id } })
-        .catch((err) => console.error("provision error", err));
-
-      cart.clear();
-      onDone(order.id);
+      setPixOrderId(order.id);
+      setPixOpen(true);
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao criar pedido");
     } finally {
@@ -478,20 +474,30 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
     }
   };
 
+  const onApproved = () => {
+    if (!pixOrderId) return;
+    cart.clear();
+    // Small delay so user sees the "approved" state.
+    setTimeout(() => {
+      setPixOpen(false);
+      onDone(pixOrderId);
+    }, 1200);
+  };
+
   return (
     <div>
-      <Header title="Pagamento" subtitle="Escolha como quer pagar. (Pagamento real será ativado em breve.)" />
+      <Header title="Pagamento" subtitle="Escolha como quer pagar." />
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">
           {[
-            { id: "pix" as const, label: "Pix", desc: "Aprovação imediata · 5% off" },
-            { id: "card" as const, label: "Cartão de crédito", desc: "Em até 12x sem juros" },
-            { id: "boleto" as const, label: "Boleto bancário", desc: "Vence em 3 dias" },
+            { id: "pix" as const, label: "Pix", desc: "Aprovação imediata · Mercado Pago" },
+            { id: "card" as const, label: "Cartão de crédito", desc: "Em breve" },
+            { id: "boleto" as const, label: "Boleto bancário", desc: "Em breve" },
           ].map((m) => (
             <button key={m.id} onClick={() => setMethod(m.id)}
               className={`w-full text-left p-5 rounded-2xl border transition bg-white ${
                 method === m.id ? "border-primary ring-1 ring-primary/20 shadow-glow-soft" : "border-slate-200 shadow-card hover:border-slate-300"
-              }`}>
+              } ${m.id !== "pix" ? "opacity-60" : ""}`}>
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-semibold text-slate-900">{m.label}</div>
@@ -501,19 +507,26 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
               </div>
             </button>
           ))}
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
-            <Lock className="h-3 w-3 inline mr-1" /> Modo simulação. Seu pedido será registado como <strong>pendente</strong>.
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-800 flex items-center gap-2">
+            <Lock className="h-3 w-3" /> Pagamento processado por <strong>Mercado Pago</strong> · SSL 256-bit
           </div>
         </div>
         <Summary>
-          <button onClick={submit} disabled={loading}
+          <button onClick={submit} disabled={loading || method !== "pix"}
             className="w-full mt-4 py-3 rounded-xl bg-gradient-primary text-primary-foreground font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-50 shadow-glow">
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            Finalizar pedido <ArrowRight className="h-4 w-4" />
+            Gerar PIX <ArrowRight className="h-4 w-4" />
           </button>
         </Summary>
       </div>
       <Footer onBack={onBack} />
+
+      <PixPaymentDialog
+        open={pixOpen}
+        onOpenChange={setPixOpen}
+        orderId={pixOrderId}
+        onApproved={onApproved}
+      />
     </div>
   );
 }
