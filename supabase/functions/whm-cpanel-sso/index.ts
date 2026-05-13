@@ -44,7 +44,6 @@ Deno.serve(async (req) => {
     const whmServer = await withDecryptedWhmToken(server as WhmServerRow);
 
     const resp = await whmCall(whmServer, "create_user_session", {
-      "api.version": 1,
       user: acct.username,
       service: "cpaneld",
     });
