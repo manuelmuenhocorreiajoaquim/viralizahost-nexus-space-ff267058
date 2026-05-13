@@ -61,16 +61,19 @@ function CheckoutPage() {
 
   return (
     <div
-      className="min-h-screen text-foreground"
-      style={{ background: "linear-gradient(180deg, #F8FAFC 0%, #EEF2F7 100%)" }}
+      className="min-h-screen text-foreground relative"
+      style={{
+        background:
+          "radial-gradient(1100px 600px at 85% -10%, rgba(99,102,241,0.10), transparent 60%), radial-gradient(900px 500px at -10% 10%, rgba(59,130,246,0.10), transparent 55%), linear-gradient(180deg, #F8FAFC 0%, #EEF2F7 100%)",
+      }}
     >
-      <header className="border-b border-slate-200/70 bg-white/70 backdrop-blur-xl sticky top-0 z-30">
+      <header className="border-b border-slate-200/70 bg-white/75 backdrop-blur-xl sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-4 lg:px-8 h-[72px] flex items-center justify-between">
-          <Link to="/" className="flex items-center">
-            <img src={logo} alt="ViralizaHost" className="h-[44px] w-auto object-contain" />
+          <Link to="/" className="flex items-center group">
+            <img src={logo} alt="ViralizaHost" className="h-[44px] w-auto object-contain transition-transform group-hover:scale-105" />
           </Link>
-          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-            <Lock className="h-3.5 w-3.5 text-emerald-600" /> Compra 100% segura
+          <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50/80 px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm">
+            <ShieldCheck className="h-4 w-4" /> Compra 100% segura
           </div>
         </div>
       </header>
@@ -78,13 +81,23 @@ function CheckoutPage() {
       <Stepper current={step} />
 
       <main className="max-w-6xl mx-auto px-4 lg:px-8 py-10">
-        {step === "cycle" && <CycleStep onNext={() => goto("cart")} />}
-        {step === "cart" && <CartStep onBack={() => goto("cycle")} onNext={() => goto("domain")} />}
-        {step === "domain" && <DomainStep onBack={() => goto("cart")} onNext={() => goto("email")} />}
-        {step === "email" && <EmailStep onBack={() => goto("domain")} onNext={() => goto("auth")} />}
-        {step === "auth" && <AuthStep onBack={() => goto("email")} onNext={() => goto("payment")} />}
-        {step === "payment" && <PaymentStep onBack={() => goto("auth")} onDone={(orderId) => navigate({ to: "/checkout", search: { step: "done", order: orderId } })} />}
-        {step === "done" && <DoneStep orderId={search.order} />}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.28, ease: "easeOut" }}
+          >
+            {step === "cycle" && <CycleStep onNext={() => goto("cart")} />}
+            {step === "cart" && <CartStep onBack={() => goto("cycle")} onNext={() => goto("domain")} />}
+            {step === "domain" && <DomainStep onBack={() => goto("cart")} onNext={() => goto("email")} />}
+            {step === "email" && <EmailStep onBack={() => goto("domain")} onNext={() => goto("auth")} />}
+            {step === "auth" && <AuthStep onBack={() => goto("email")} onNext={() => goto("payment")} />}
+            {step === "payment" && <PaymentStep onBack={() => goto("auth")} onDone={(orderId) => navigate({ to: "/checkout", search: { step: "done", order: orderId } })} />}
+            {step === "done" && <DoneStep orderId={search.order} />}
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );
@@ -92,18 +105,28 @@ function CheckoutPage() {
 
 function Stepper({ current }: { current: StepId }) {
   const idx = STEPS.findIndex((s) => s.id === current);
+  const progress = (idx / (STEPS.length - 1)) * 100;
   return (
-    <div className="border-b border-slate-200/70 bg-white/40 backdrop-blur-md">
-      <div className="max-w-6xl mx-auto px-4 lg:px-8 py-4 overflow-x-auto">
-        <ol className="flex items-center gap-2 min-w-max">
+    <div className="border-b border-slate-200/70 bg-white/50 backdrop-blur-md">
+      <div className="max-w-6xl mx-auto px-4 lg:px-8 py-5">
+        {/* progress bar */}
+        <div className="relative h-1.5 rounded-full bg-slate-200/70 mb-4 overflow-hidden">
+          <motion.div
+            className="absolute inset-y-0 left-0 rounded-full bg-gradient-primary shadow-glow-soft"
+            initial={false}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          />
+        </div>
+        <ol className="flex items-center gap-2 min-w-max overflow-x-auto">
           {STEPS.map((s, i) => {
             const done = i < idx;
             const active = i === idx;
             const Icon = s.icon;
             return (
               <li key={s.id} className="flex items-center gap-2">
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-semibold transition ${
-                  active ? "bg-gradient-primary text-primary-foreground shadow-glow-soft" :
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-semibold transition-all ${
+                  active ? "bg-gradient-primary text-primary-foreground shadow-glow-soft scale-[1.03]" :
                   done ? "bg-white text-slate-700 border border-slate-200" : "bg-white/60 text-slate-400 border border-slate-200/60"
                 }`}>
                   <span className={`grid place-items-center h-5 w-5 rounded-full ${done ? "bg-emerald-500 text-white" : active ? "bg-white/25 text-white" : "bg-slate-100 text-slate-400"}`}>
