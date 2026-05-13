@@ -23,7 +23,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrency, formatPrice } from "@/lib/currency";
-import DomainCheckoutDialog, { type DomainCheckoutInfo } from "./DomainCheckoutDialog";
+import { useNavigate } from "@tanstack/react-router";
+import { useCart } from "@/lib/cart";
+import { registerDomainProduct } from "@/lib/catalog";
+import { toast } from "sonner";
 
 export type DomainResult = {
   domain: string;
@@ -100,8 +103,8 @@ export default function DomainSearchDialog({
   const [results, setResults] = useState<DomainResult[]>([]);
   const [warning, setWarning] = useState<string | null>(null);
   const [showAlternatives, setShowAlternatives] = useState(false);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [checkoutInfo, setCheckoutInfo] = useState<DomainCheckoutInfo | null>(null);
+  const navigate = useNavigate();
+  const { add, setDomain, setCycle } = useCart();
 
   const cleanQuery = useMemo(() => sanitize(query), [query]);
 
@@ -142,8 +145,13 @@ export default function DomainSearchDialog({
   }, [open, cleanQuery]);
 
   const buy = (r: DomainResult) => {
-    setCheckoutInfo({ domain: r.domain, ext: r.ext, priceBRL: r.priceBRL });
-    setCheckoutOpen(true);
+    const product = registerDomainProduct(r.domain, r.priceBRL);
+    add(product.id);
+    setDomain(product.id, r.domain);
+    setCycle("annual");
+    toast.success(`${r.domain} adicionado ao carrinho`);
+    onOpenChange(false);
+    navigate({ to: "/checkout" });
   };
 
   const availableCount = results.filter((r) => r.available).length;
@@ -356,12 +364,6 @@ export default function DomainSearchDialog({
           </ScrollArea>
         </DialogContent>
       </Dialog>
-
-      <DomainCheckoutDialog
-        open={checkoutOpen}
-        onOpenChange={setCheckoutOpen}
-        info={checkoutInfo}
-      />
     </>
   );
 }
