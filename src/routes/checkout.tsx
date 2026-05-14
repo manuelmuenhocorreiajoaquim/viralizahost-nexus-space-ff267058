@@ -650,14 +650,16 @@ function DomainPicker({
   onChange,
   hasDomainInCart,
   domainInCart,
+  required = true,
 }: {
   name: string;
   value: string;
   onChange: (v: string) => void;
   hasDomainInCart?: boolean;
   domainInCart?: string;
+  required?: boolean;
 }) {
-  type Mode = "new" | "existing" | "use-cart";
+  type Mode = "new" | "existing" | "use-cart" | "skip";
   const initialMode: Mode =
     hasDomainInCart && !value ? "use-cart" : value ? "existing" : "new";
   const [mode, setMode] = useState<Mode>(initialMode);
