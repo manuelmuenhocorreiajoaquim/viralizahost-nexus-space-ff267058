@@ -139,17 +139,42 @@ function CheckoutPage() {
   const search = useSearch({ from: "/checkout" });
   const navigate = useNavigate();
   const cart = useCart();
-  const step: StepId = search.step ?? "cycle";
+
+  const activeSteps = useMemo(() => computeActiveSteps(cart.items), [cart.items]);
+  const initialStep: StepId = activeSteps[0] ?? "cart";
+  const requestedStep: StepId = search.step ?? initialStep;
+  // If user lands on a step that no longer applies (e.g. domain skipped), fall back.
+  const step: StepId =
+    requestedStep === "done"
+      ? "done"
+      : activeSteps.includes(requestedStep)
+        ? requestedStep
+        : initialStep;
 
   useEffect(() => {
     if (search.product && !cart.items.some((i) => i.productId === search.product)) {
       cart.add(search.product);
-      navigate({ to: "/checkout", search: { step: "cycle" }, replace: true });
+      navigate({ to: "/checkout", search: { step: undefined }, replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const goto = (s: StepId) => navigate({ to: "/checkout", search: { step: s } });
+  // Keep URL in sync if the step is no longer valid for the current cart.
+  useEffect(() => {
+    if (search.step && search.step !== "done" && !activeSteps.includes(search.step)) {
+      navigate({ to: "/checkout", search: { step: initialStep }, replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSteps.join("|")]);
+
+  const goto = (s: StepId) =>
+    navigate({ to: "/checkout", search: { step: s, order: search.order } });
+
+  const idx = activeSteps.indexOf(step);
+  const next = (): StepId => activeSteps[Math.min(idx + 1, activeSteps.length - 1)] ?? step;
+  const prev = (): StepId => activeSteps[Math.max(idx - 1, 0)] ?? step;
+  const goNext = () => goto(next());
+  const goBack = () => goto(prev());
 
   return (
     <div
@@ -174,7 +199,7 @@ function CheckoutPage() {
         </div>
       </header>
 
-      <Stepper current={step} />
+      <Stepper current={step} activeSteps={activeSteps} />
 
       <main className="max-w-6xl mx-auto px-4 lg:px-8 py-10">
         <AnimatePresence mode="wait">
@@ -185,22 +210,14 @@ function CheckoutPage() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.28, ease: "easeOut" }}
           >
-            {step === "cycle" && <CycleStep onNext={() => goto("cart")} />}
-            {step === "cart" && (
-              <CartStep onBack={() => goto("cycle")} onNext={() => goto("domain")} />
-            )}
-            {step === "domain" && (
-              <DomainStep onBack={() => goto("cart")} onNext={() => goto("email")} />
-            )}
-            {step === "email" && (
-              <EmailStep onBack={() => goto("domain")} onNext={() => goto("auth")} />
-            )}
-            {step === "auth" && (
-              <AuthStep onBack={() => goto("email")} onNext={() => goto("payment")} />
-            )}
+            {step === "cycle" && <CycleStep onNext={goNext} />}
+            {step === "cart" && <CartStep onBack={goBack} onNext={goNext} />}
+            {step === "domain" && <DomainStep onBack={goBack} onNext={goNext} />}
+            {step === "email" && <EmailStep onBack={goBack} onNext={goNext} />}
+            {step === "auth" && <AuthStep onBack={goBack} onNext={goNext} />}
             {step === "payment" && (
               <PaymentStep
-                onBack={() => goto("auth")}
+                onBack={goBack}
                 onDone={(orderId) =>
                   navigate({ to: "/checkout", search: { step: "done", order: orderId } })
                 }
@@ -214,9 +231,10 @@ function CheckoutPage() {
   );
 }
 
-function Stepper({ current }: { current: StepId }) {
-  const idx = STEPS.findIndex((s) => s.id === current);
-  const progress = (idx / (STEPS.length - 1)) * 100;
+function Stepper({ current, activeSteps }: { current: StepId; activeSteps: StepId[] }) {
+  const steps = STEPS.filter((s) => activeSteps.includes(s.id));
+  const idx = steps.findIndex((s) => s.id === current);
+  const progress = steps.length > 1 ? (idx / (steps.length - 1)) * 100 : 0;
   return (
     <div className="border-b border-slate-200/70 bg-white/50 backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-4 lg:px-8 py-5">
