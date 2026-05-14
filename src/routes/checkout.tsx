@@ -458,11 +458,17 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
 function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
   const cart = useCart();
   const { currency } = useCurrency();
-  const hostingItems = cart.items.filter((i) => findProduct(i.productId)?.needsDomain);
-
+  const itemsNeedingDomain = cart.items.filter((i) => findProduct(i.productId)?.needsDomain);
   const domainItemsOnly = cart.items.filter((i) => findProduct(i.productId)?.type === "domain");
+  const hasDomainInCart = domainItemsOnly.length > 0;
 
-  if (hostingItems.length === 0 && domainItemsOnly.length === 0) {
+  // An item is "satisfied" if it has its own domain OR there's a domain product in the cart.
+  const allSatisfied = itemsNeedingDomain.every(
+    (i) => Boolean(i.domain && i.domain.trim().length > 2) || hasDomainInCart,
+  );
+  const nextDisabled = itemsNeedingDomain.length > 0 && !allSatisfied;
+
+  if (itemsNeedingDomain.length === 0 && domainItemsOnly.length === 0) {
     return (
       <div className="text-center py-12">
         <Globe className="h-10 w-10 mx-auto text-slate-300 mb-3" />
@@ -478,60 +484,56 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
     <div>
       <Header
         title="Configure seu domínio"
-        subtitle="Para cada hospedagem escolha registar um novo domínio ou usar um existente."
+        subtitle="Todo serviço de hospedagem ou e-mail precisa de um domínio. Registre um novo ou utilize um que já tenha."
       />
 
       {/* Domínios já adicionados ao carrinho */}
-      {(() => {
-        const domainItems = cart.items.filter((i) => findProduct(i.productId)?.type === "domain");
-        if (domainItems.length === 0) return null;
-        return (
-          <div className="mb-6 max-w-3xl space-y-3">
-            <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">
-              Domínios no pedido
-            </div>
-            {domainItems.map((it) => {
-              const p = findProduct(it.productId)!;
-              const total = lineTotal(it.productId, cart.cycle, it.qty);
-              return (
-                <motion.div
-                  key={it.productId}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-blue-50 shadow-card p-4 flex items-center gap-4"
-                >
-                  <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 grid place-items-center text-white shadow-md shrink-0">
-                    <Globe className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-slate-900 truncate">{p.name}</div>
-                    <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
-                      <span className="inline-flex items-center gap-1">
-                        <ShieldCheck className="h-3 w-3 text-emerald-600" /> Proteção WHOIS
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <Zap className="h-3 w-3 text-amber-500" /> Registro instantâneo
-                      </span>
-                      <span>· Registro anual</span>
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-[11px] text-slate-500">Preço</div>
-                    <div className="font-bold text-slate-900">
-                      {brl(total, currency)}
-                      <span className="text-[11px] font-medium text-slate-500">/ano</span>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
+      {domainItemsOnly.length > 0 && (
+        <div className="mb-6 max-w-3xl space-y-3">
+          <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">
+            Domínios no pedido
           </div>
-        );
-      })()}
+          {domainItemsOnly.map((it) => {
+            const p = findProduct(it.productId)!;
+            const total = lineTotal(it.productId, cart.cycle, it.qty);
+            return (
+              <motion.div
+                key={it.productId}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-blue-50 shadow-card p-4 flex items-center gap-4"
+              >
+                <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 grid place-items-center text-white shadow-md shrink-0">
+                  <Globe className="h-5 w-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-slate-900 truncate">{p.name}</div>
+                  <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+                    <span className="inline-flex items-center gap-1">
+                      <ShieldCheck className="h-3 w-3 text-emerald-600" /> Proteção WHOIS
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <Zap className="h-3 w-3 text-amber-500" /> Registro instantâneo
+                    </span>
+                    <span>· Registro anual</span>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-[11px] text-slate-500">Preço</div>
+                  <div className="font-bold text-slate-900">
+                    {brl(total, currency)}
+                    <span className="text-[11px] font-medium text-slate-500">/ano</span>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
 
-      {hostingItems.length > 0 && (
+      {itemsNeedingDomain.length > 0 && (
         <div className="space-y-4 max-w-3xl">
-          {hostingItems.map((it) => {
+          {itemsNeedingDomain.map((it) => {
             const p = findProduct(it.productId)!;
             return (
               <DomainPicker
@@ -539,12 +541,19 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
                 name={p.name}
                 value={it.domain ?? ""}
                 onChange={(v) => cart.setDomain(it.productId, v)}
+                hasDomainInCart={hasDomainInCart}
+                domainInCart={domainItemsOnly[0]?.domain ?? domainItemsOnly[0]?.name}
               />
             );
           })}
         </div>
       )}
-      <Footer onBack={onBack} onNext={onNext} />
+      <Footer
+        onBack={onBack}
+        onNext={onNext}
+        nextDisabled={nextDisabled}
+        nextHint="Adicione ou informe um domínio para todos os serviços."
+      />
     </div>
   );
 }
@@ -553,37 +562,71 @@ function DomainPicker({
   name,
   value,
   onChange,
+  hasDomainInCart,
+  domainInCart,
 }: {
   name: string;
   value: string;
   onChange: (v: string) => void;
+  hasDomainInCart?: boolean;
+  domainInCart?: string;
 }) {
-  const [mode, setMode] = useState<"new" | "existing" | "later">(value ? "existing" : "new");
+  const initialMode: "new" | "existing" | "use-cart" =
+    hasDomainInCart && !value ? "use-cart" : value ? "existing" : "new";
+  const [mode, setMode] = useState<"new" | "existing" | "use-cart">(initialMode);
   const [domain, setDomain] = useState(value);
+
   useEffect(() => {
-    onChange(domain);
-  }, [domain]); // eslint-disable-line
+    if (mode === "use-cart" && domainInCart) {
+      onChange(domainInCart);
+    } else {
+      onChange(domain);
+    }
+  }, [domain, mode, domainInCart]); // eslint-disable-line
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-card p-5">
       <div className="text-xs text-slate-500 uppercase tracking-wider mb-1 font-semibold">Para</div>
       <div className="font-semibold mb-4 text-slate-900">{name}</div>
       <div className="grid sm:grid-cols-3 gap-2 mb-4">
-        {(["new", "existing", "later"] as const).map((m) => (
+        {hasDomainInCart && (
           <button
-            key={m}
-            onClick={() => setMode(m)}
+            onClick={() => setMode("use-cart")}
             className={`p-3 rounded-xl border text-sm font-medium transition ${
-              mode === m
+              mode === "use-cart"
                 ? "border-primary bg-primary/5 text-primary shadow-glow-soft"
                 : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
             }`}
           >
-            {m === "new" ? "Registar novo" : m === "existing" ? "Já tenho" : "Decidir depois"}
+            Usar do carrinho
           </button>
-        ))}
+        )}
+        <button
+          onClick={() => setMode("new")}
+          className={`p-3 rounded-xl border text-sm font-medium transition ${
+            mode === "new"
+              ? "border-primary bg-primary/5 text-primary shadow-glow-soft"
+              : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+          }`}
+        >
+          Registar novo
+        </button>
+        <button
+          onClick={() => setMode("existing")}
+          className={`p-3 rounded-xl border text-sm font-medium transition ${
+            mode === "existing"
+              ? "border-primary bg-primary/5 text-primary shadow-glow-soft"
+              : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+          }`}
+        >
+          Já tenho
+        </button>
       </div>
-      {mode !== "later" && (
+      {mode === "use-cart" && domainInCart ? (
+        <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800 font-medium">
+          <Check className="h-4 w-4 inline mr-1" /> Vinculado a <strong>{domainInCart}</strong>
+        </div>
+      ) : (
         <input
           value={domain}
           onChange={(e) => setDomain(e.target.value)}
