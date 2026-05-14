@@ -16,12 +16,19 @@ export type Product = {
   id: string;
   type: ProductType;
   name: string;
-  basePriceBRL: number; // monthly
+  /** For monthly products: monthly base price. For annual products (domains): yearly fixed price. */
+  basePriceBRL: number;
+  /** "monthly" applies cycle discount/multiplier; "annual" is a fixed yearly price (no cycle). */
+  billing?: "monthly" | "annual";
   /** True if hosting-class product (eligible for domain step). */
   needsDomain?: boolean;
   /** True if it makes sense to upsell email plan after this product. */
   emailUpsell?: boolean;
 };
+
+export function isAnnualProduct(p: Product): boolean {
+  return p.billing === "annual" || p.type === "domain";
+}
 
 export const CATALOG: Product[] = [
   // Hospedagem
