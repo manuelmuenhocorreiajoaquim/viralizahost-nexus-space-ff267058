@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
               email,
               password: DEFAULT_PASSWORD,
               email_confirm: true,
-              user_metadata: { full_name: a.owner ?? username, source: "whm_sync" },
+              user_metadata: { full_name: username, cpanel_username: username, source: "whm_sync" },
             });
             if (cErr || !created.user) throw cErr ?? new Error("Failed to create user");
             userId = created.user.id;
