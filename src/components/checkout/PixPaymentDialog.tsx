@@ -38,6 +38,14 @@ type PixData = {
   amount: number;
 };
 
+type PixCreateResponse = Partial<PixData> & {
+  success?: boolean;
+  copyPasteCode?: string;
+  status?: string;
+};
+
+type PaymentStatusResponse = { status?: string };
+
 function PixBrandIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
@@ -86,7 +94,7 @@ export default function PixPaymentDialog({
     createFn({
       data: { orderId, customerEmail, description: `Pedido ViralizaHost ${orderId.slice(0, 8)}` },
     })
-      .then((res: any) => {
+      .then((res: PixCreateResponse) => {
         console.log("payment response", res);
         if (!res?.success || !res?.paymentId) {
           setError("Não foi possível gerar o PIX. Verifique os dados e tente novamente.");
@@ -109,10 +117,10 @@ export default function PixPaymentDialog({
           onApproved();
         }
       })
-      .catch((e: any) => {
+      .catch((e: unknown) => {
         console.error("[pix] createPixPayment error", e);
         const msg =
-          typeof e?.message === "string" && e.message.length < 240
+          e instanceof Error && e.message.length < 240
             ? e.message
             : "Não foi possível gerar o PIX. Verifique os dados e tente novamente.";
         setError(msg);
@@ -127,7 +135,7 @@ export default function PixPaymentDialog({
     let cancelled = false;
     const poll = async () => {
       try {
-        const res: any = await statusFn({ data: { paymentId: pix.paymentId } });
+        const res = (await statusFn({ data: { paymentId: pix.paymentId } })) as PaymentStatusResponse;
         if (cancelled) return;
         if (res.status === "approved") {
           setStatus("approved");
@@ -182,7 +190,7 @@ export default function PixPaymentDialog({
     if (!pix?.paymentId) return;
     setChecking(true);
     try {
-      const res: any = await statusFn({ data: { paymentId: pix.paymentId } });
+      const res = (await statusFn({ data: { paymentId: pix.paymentId } })) as PaymentStatusResponse;
       if (res?.status === "approved") {
         setStatus("approved");
         onApproved();
