@@ -43,7 +43,25 @@ import { useCurrency, formatPrice } from "@/lib/currency";
 import { useAuth } from "@/lib/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import PixPaymentDialog from "@/components/checkout/PixPaymentDialog";
+import DomainSearchDialog from "@/components/site/DomainSearchDialog";
 import { createCheckoutOrder } from "@/lib/payments.functions";
+
+/* Sanitize raw domain input → lowercase, no protocol/path/www/spaces. */
+function sanitizeDomain(input: string): string {
+  return (input || "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/.*$/, "");
+}
+/* Allow xn-- IDN, multi-level TLDs (.com.br, .co.ao). 2+ labels, valid chars. */
+const DOMAIN_REGEX =
+  /^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)){1,3}$/;
+function isValidDomain(d: string): boolean {
+  return DOMAIN_REGEX.test(d) && /\.[a-z]{2,}$/.test(d);
+}
 
 const STEPS = [
   { id: "cycle", label: "Ciclo", icon: Sparkles },
