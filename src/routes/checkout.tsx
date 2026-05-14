@@ -490,11 +490,14 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
             const p = findProduct(it.productId);
             if (!p) return null;
             const annual = isAnnualProduct(p);
+            const oneTime = isOneTimeService(p);
             const total = lineTotal(it.productId, cart.cycle, it.qty);
             const unit = lineUnit(it.productId, cart.cycle);
-            const subLabel = annual
-              ? `${p.type} · ${brl(unit, currency)}/ano`
-              : `${p.type} · ${brl(unit, currency)}/mês`;
+            const subLabel = oneTime
+              ? `${p.type} · ${brl(unit, currency)} · projeto`
+              : annual
+                ? `${p.type} · ${brl(unit, currency)}/ano`
+                : `${p.type} · ${brl(unit, currency)}/mês`;
             return (
               <div
                 key={it.productId}
