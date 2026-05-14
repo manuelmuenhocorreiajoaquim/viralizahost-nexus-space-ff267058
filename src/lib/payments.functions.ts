@@ -8,6 +8,7 @@ import { getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getProvider } from "@/integrations/payments/mercadopago/client.server";
+import { activateOrderAfterPayment } from "@/lib/payments-activation.server";
 
 const OrderItemSchema = z.object({
   id: z.string().min(1),
@@ -322,6 +323,9 @@ export const getPaymentStatus = createServerFn({ method: "POST" })
             .eq("id", payment.id);
           payment.status = snap.status;
           payment.paid_at = snap.paidAt ?? payment.paid_at;
+        }
+        if (snap.status === "approved" && payment.order_id) {
+          await activateOrderAfterPayment(payment.order_id);
         }
       } catch (e) {
         console.error("[payments] poll MP failed", e);
