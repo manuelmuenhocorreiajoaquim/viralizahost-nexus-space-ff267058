@@ -34,6 +34,7 @@ import { Route as AuthenticatedAudiovisualRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAiRouteImport } from './routes/_authenticated/ai'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminServersRouteImport } from './routes/_authenticated/admin/servers'
+import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authenticated/admin/payments'
 import { Route as ApiPublicPaymentsMercadopagoWebhookRouteImport } from './routes/api/public/payments/mercadopago/webhook'
 
 const SignupRoute = SignupRouteImport.update({
@@ -163,6 +164,12 @@ const AuthenticatedAdminServersRoute =
     path: '/admin/servers',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAdminPaymentsRoute =
+  AuthenticatedAdminPaymentsRouteImport.update({
+    id: '/admin/payments',
+    path: '/admin/payments',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const ApiPublicPaymentsMercadopagoWebhookRoute =
   ApiPublicPaymentsMercadopagoWebhookRouteImport.update({
     id: '/api/public/payments/mercadopago/webhook',
@@ -194,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/security': typeof AuthenticatedSecurityRoute
   '/sites': typeof AuthenticatedSitesRoute
   '/support': typeof AuthenticatedSupportRoute
+  '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/servers': typeof AuthenticatedAdminServersRoute
   '/api/public/payments/mercadopago/webhook': typeof ApiPublicPaymentsMercadopagoWebhookRoute
 }
@@ -221,6 +229,7 @@ export interface FileRoutesByTo {
   '/security': typeof AuthenticatedSecurityRoute
   '/sites': typeof AuthenticatedSitesRoute
   '/support': typeof AuthenticatedSupportRoute
+  '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/servers': typeof AuthenticatedAdminServersRoute
   '/api/public/payments/mercadopago/webhook': typeof ApiPublicPaymentsMercadopagoWebhookRoute
 }
@@ -250,6 +259,7 @@ export interface FileRoutesById {
   '/_authenticated/security': typeof AuthenticatedSecurityRoute
   '/_authenticated/sites': typeof AuthenticatedSitesRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
+  '/_authenticated/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/_authenticated/admin/servers': typeof AuthenticatedAdminServersRoute
   '/api/public/payments/mercadopago/webhook': typeof ApiPublicPaymentsMercadopagoWebhookRoute
 }
@@ -279,6 +289,7 @@ export interface FileRouteTypes {
     | '/security'
     | '/sites'
     | '/support'
+    | '/admin/payments'
     | '/admin/servers'
     | '/api/public/payments/mercadopago/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -306,6 +317,7 @@ export interface FileRouteTypes {
     | '/security'
     | '/sites'
     | '/support'
+    | '/admin/payments'
     | '/admin/servers'
     | '/api/public/payments/mercadopago/webhook'
   id:
@@ -334,6 +346,7 @@ export interface FileRouteTypes {
     | '/_authenticated/security'
     | '/_authenticated/sites'
     | '/_authenticated/support'
+    | '/_authenticated/admin/payments'
     | '/_authenticated/admin/servers'
     | '/api/public/payments/mercadopago/webhook'
   fileRoutesById: FileRoutesById
@@ -526,6 +539,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminServersRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/admin/payments': {
+      id: '/_authenticated/admin/payments'
+      path: '/admin/payments'
+      fullPath: '/admin/payments'
+      preLoaderRoute: typeof AuthenticatedAdminPaymentsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/api/public/payments/mercadopago/webhook': {
       id: '/api/public/payments/mercadopago/webhook'
       path: '/api/public/payments/mercadopago/webhook'
@@ -554,6 +574,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSecurityRoute: typeof AuthenticatedSecurityRoute
   AuthenticatedSitesRoute: typeof AuthenticatedSitesRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
+  AuthenticatedAdminPaymentsRoute: typeof AuthenticatedAdminPaymentsRoute
   AuthenticatedAdminServersRoute: typeof AuthenticatedAdminServersRoute
 }
 
@@ -575,6 +596,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSecurityRoute: AuthenticatedSecurityRoute,
   AuthenticatedSitesRoute: AuthenticatedSitesRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
+  AuthenticatedAdminPaymentsRoute: AuthenticatedAdminPaymentsRoute,
   AuthenticatedAdminServersRoute: AuthenticatedAdminServersRoute,
 }
 

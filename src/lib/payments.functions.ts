@@ -26,8 +26,8 @@ const CreateCheckoutOrderSchema = z.object({
   subtotal: z.number().finite().nonnegative(),
   discount: z.number().finite().nonnegative(),
   total: z.number().finite().positive(),
-  paymentMethod: z.enum(["pix", "card", "boleto", "paypal"]),
-  paymentProvider: z.enum(["mercadopago", "paypal"]),
+  paymentMethod: z.enum(["pix", "card", "boleto", "paypal", "bank_bic"]),
+  paymentProvider: z.enum(["mercadopago", "paypal", "manual_bic"]),
   customerEmail: z.string().email().optional(),
   customerName: z.string().max(160).optional(),
   items: z.array(OrderItemSchema).min(1),
@@ -731,4 +731,212 @@ export const capturePayPalOrder = createServerFn({ method: "POST" })
     }
 
     return { success: true, status: result.status, paymentId: payment.id };
+  });
+
+
+/* ============================================================
+ * BANK TRANSFER — Banco BIC (manual)
+ * ============================================================ */
+const SubmitBankBicSchema = z.object({
+  orderId: z.string().uuid(),
+  receiptUrl: z.string().url().max(1024),
+  receiptName: z.string().min(1).max(255),
+  reference: z.string().max(500).optional(),
+  payerEmail: z.string().email().optional(),
+});
+
+export const submitBankBicReceipt = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => SubmitBankBicSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { order, amount } = await loadOrderForCharge(data.orderId);
+
+    const { data: existing } = await supabaseAdmin
+      .from("payments")
+      .select("id")
+      .eq("order_id", order.id)
+      .eq("provider", "manual_bic")
+      .maybeSingle();
+
+    const meta = {
+      receipt_url: data.receiptUrl,
+      receipt_name: data.receiptName,
+      reference: data.reference ?? null,
+      payer_email: data.payerEmail ?? null,
+      bank: "Banco BIC",
+      account_holder: "VIRALIZA FACIL ANGOLA, LDA",
+      account_number: "A006.0051.0000.2477.5179.1014.1",
+      submitted_at: new Date().toISOString(),
+    };
+
+    let paymentId: string;
+    if (existing?.id) {
+      const { error } = await supabaseAdmin
+        .from("payments")
+        .update({
+          status: "in_process",
+          metadata: meta,
+        })
+        .eq("id", existing.id);
+      if (error) throw new Error(error.message);
+      paymentId = existing.id;
+    } else {
+      const { data: payment, error } = await supabaseAdmin
+        .from("payments")
+        .insert({
+          user_id: order.user_id ?? null,
+          order_id: order.id,
+          amount,
+          currency: "BRL",
+          method: "bank_bic",
+          provider: "manual_bic",
+          status: "in_process",
+          metadata: meta,
+        })
+        .select("id")
+        .single();
+      if (error) throw new Error(error.message);
+      paymentId = payment!.id;
+    }
+
+    await supabaseAdmin
+      .from("orders")
+      .update({
+        payment_status: "pending",
+        status: "pending",
+        payment_provider: "manual_bic",
+        payment_method: "bank_bic",
+        notes: `[Banco BIC] Aguardando validação · ${data.receiptName}${data.reference ? ` · Ref: ${data.reference}` : ""}`,
+      })
+      .eq("id", order.id);
+
+    return { success: true, paymentId, status: "in_process" as const };
+  });
+
+/* --- Admin: list & approve/reject bank transfers --- */
+async function assertAdmin() {
+  const authHeader = getRequestHeader("authorization");
+  if (!authHeader?.startsWith("Bearer ")) throw new Error("Não autenticado");
+  const token = authHeader.replace("Bearer ", "");
+  const { data: userRes, error } = await supabaseAdmin.auth.getUser(token);
+  if (error || !userRes?.user?.id) throw new Error("Não autenticado");
+  const { data: roles } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userRes.user.id);
+  if (!roles?.some((r) => r.role === "admin")) throw new Error("Acesso negado");
+  return userRes.user.id;
+}
+
+export const adminListBankTransfers = createServerFn({ method: "POST" }).handler(async () => {
+  await assertAdmin();
+  const { data, error } = await supabaseAdmin
+    .from("payments")
+    .select("id, order_id, amount, currency, status, metadata, created_at, user_id, orders(id,total,notes,user_id)")
+    .eq("provider", "manual_bic")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) throw new Error(error.message);
+
+  const userIds = Array.from(
+    new Set((data ?? []).map((p) => p.user_id).filter(Boolean) as string[]),
+  );
+  const profiles: Record<string, { full_name: string | null; email?: string | null }> = {};
+  if (userIds.length) {
+    const { data: profs } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", userIds);
+    for (const p of profs ?? []) profiles[p.id] = { full_name: p.full_name };
+    for (const uid of userIds) {
+      try {
+        const { data: u } = await supabaseAdmin.auth.admin.getUserById(uid);
+        if (profiles[uid]) profiles[uid].email = u?.user?.email ?? null;
+      } catch {}
+    }
+  }
+
+  return (data ?? []).map((p) => ({
+    id: p.id,
+    orderId: p.order_id,
+    amount: Number(p.amount),
+    currency: p.currency,
+    status: p.status,
+    createdAt: p.created_at,
+    metadata: p.metadata as any,
+    customer: p.user_id
+      ? {
+          name: profiles[p.user_id]?.full_name ?? null,
+          email: profiles[p.user_id]?.email ?? null,
+        }
+      : { name: null, email: ((p.metadata as any)?.payer_email as string) ?? null },
+  }));
+});
+
+const AdminDecisionSchema = z.object({
+  paymentId: z.string().uuid(),
+  reason: z.string().max(500).optional(),
+});
+
+export const adminApproveBankTransfer = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => AdminDecisionSchema.parse(input))
+  .handler(async ({ data }) => {
+    await assertAdmin();
+    const { data: payment, error } = await supabaseAdmin
+      .from("payments")
+      .select("id, order_id, metadata")
+      .eq("id", data.paymentId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!payment) throw new Error("Pagamento não encontrado");
+
+    await supabaseAdmin
+      .from("payments")
+      .update({
+        status: "approved",
+        paid_at: new Date().toISOString(),
+        metadata: { ...(payment.metadata as any), approved_at: new Date().toISOString() },
+      })
+      .eq("id", payment.id);
+
+    if (payment.order_id) {
+      await supabaseAdmin
+        .from("orders")
+        .update({ status: "paid", payment_status: "approved" })
+        .eq("id", payment.order_id);
+      await activateOrderAfterPayment(payment.order_id);
+    }
+    return { success: true };
+  });
+
+export const adminRejectBankTransfer = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => AdminDecisionSchema.parse(input))
+  .handler(async ({ data }) => {
+    await assertAdmin();
+    const { data: payment, error } = await supabaseAdmin
+      .from("payments")
+      .select("id, order_id, metadata")
+      .eq("id", data.paymentId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!payment) throw new Error("Pagamento não encontrado");
+
+    await supabaseAdmin
+      .from("payments")
+      .update({
+        status: "rejected",
+        metadata: {
+          ...(payment.metadata as any),
+          rejected_at: new Date().toISOString(),
+          reject_reason: data.reason ?? null,
+        },
+      })
+      .eq("id", payment.id);
+
+    if (payment.order_id) {
+      await supabaseAdmin
+        .from("orders")
+        .update({ status: "pending", payment_status: "rejected" })
+        .eq("id", payment.order_id);
+    }
+    return { success: true };
   });

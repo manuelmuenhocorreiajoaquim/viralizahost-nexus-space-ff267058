@@ -46,6 +46,8 @@ import PixPaymentDialog from "@/components/checkout/PixPaymentDialog";
 import CardPaymentDialog from "@/components/checkout/CardPaymentDialog";
 import BoletoPaymentDialog from "@/components/checkout/BoletoPaymentDialog";
 import PayPalPaymentDialog from "@/components/checkout/PayPalPaymentDialog";
+import BankTransferDialog from "@/components/checkout/BankTransferDialog";
+import bicLogoImg from "@/assets/banco-bic-logo.png";
 import DomainSearchDialog from "@/components/site/DomainSearchDialog";
 import { createCheckoutOrder } from "@/lib/payments.functions";
 
@@ -1132,7 +1134,7 @@ function PaymentStep({
   const { user } = useAuth();
   const { currency } = useCurrency();
   const createOrderFn = useServerFn(createCheckoutOrder);
-  const [method, setMethod] = useState<"pix" | "card" | "boleto" | "paypal">("pix");
+  const [method, setMethod] = useState<"pix" | "card" | "boleto" | "paypal" | "bank_bic">("pix");
   const [loading, setLoading] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
   const [pendingEmail, setPendingEmail] = useState<string | undefined>();
@@ -1142,6 +1144,7 @@ function PaymentStep({
   const [cardOpen, setCardOpen] = useState(false);
   const [boletoOpen, setBoletoOpen] = useState(false);
   const [paypalOpen, setPaypalOpen] = useState(false);
+  const [bankOpen, setBankOpen] = useState(false);
 
   const submit = async () => {
     if (cart.items.length === 0) {
@@ -1209,7 +1212,8 @@ function PaymentStep({
           discount: Number(Number(cart.totals.discount).toFixed(2)),
           total,
           paymentMethod: method,
-          paymentProvider: method === "paypal" ? "paypal" : "mercadopago",
+          paymentProvider:
+            method === "paypal" ? "paypal" : method === "bank_bic" ? "manual_bic" : "mercadopago",
           customerEmail: user?.email ?? customer.email,
           customerName: customer.name,
           items,
@@ -1226,6 +1230,7 @@ function PaymentStep({
       if (method === "pix") setPixOpen(true);
       else if (method === "card") setCardOpen(true);
       else if (method === "boleto") setBoletoOpen(true);
+      else if (method === "bank_bic") setBankOpen(true);
       else setPaypalOpen(true);
     } catch (e: any) {
       console.error("[checkout] submit error", e);
@@ -1247,6 +1252,7 @@ function PaymentStep({
       setCardOpen(false);
       setBoletoOpen(false);
       setPaypalOpen(false);
+      setBankOpen(false);
       onDone(pendingOrderId);
     }, 1200);
   };
@@ -1315,6 +1321,18 @@ function PaymentStep({
                 meta: (
                   <span className="text-xs font-bold text-amber-700">Sandbox (teste)</span>
                 ),
+                available: true,
+              },
+              {
+                id: "bank_bic" as const,
+                label: "Transferência Bancária BIC",
+                desc: "Banco BIC Angola — envie o comprovativo após a transferência",
+                icon: (
+                  <div className="grid h-11 w-11 place-items-center overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
+                    <img src={bicLogoImg} alt="Banco BIC" className="h-11 w-11 object-contain" />
+                  </div>
+                ),
+                meta: <span className="text-xs font-bold text-red-700">Manual · Angola</span>,
                 available: true,
               },
             ].map((m) => {
@@ -1414,6 +1432,8 @@ function PaymentStep({
               <CreditCard className="h-5 w-5" />
             ) : method === "boleto" ? (
               <FileText className="h-5 w-5" />
+            ) : method === "bank_bic" ? (
+              <img src={bicLogoImg} alt="" className="h-5 w-5 object-contain" />
             ) : (
               <span className="text-[13px] font-black tracking-tight">
                 <span>Pay</span>
@@ -1428,7 +1448,9 @@ function PaymentStep({
                   ? "Pagar com Cartão"
                   : method === "boleto"
                     ? "Gerar Boleto"
-                    : "Pagar com PayPal"}
+                    : method === "bank_bic"
+                      ? "Pagar via Banco BIC"
+                      : "Pagar com PayPal"}
             {!loading && <ArrowRight className="h-4 w-4" />}
           </motion.button>
           <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
@@ -1466,6 +1488,14 @@ function PaymentStep({
         open={paypalOpen}
         onOpenChange={setPaypalOpen}
         orderId={pendingOrderId}
+        onApproved={onApproved}
+      />
+      <BankTransferDialog
+        open={bankOpen}
+        onOpenChange={setBankOpen}
+        orderId={pendingOrderId}
+        customerEmail={pendingEmail}
+        amount={pendingAmount}
         onApproved={onApproved}
       />
     </div>
