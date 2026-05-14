@@ -1,16 +1,20 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { CATALOG, type CycleId, findCycle, findProduct, monthlyPrice, cyclePeriodTotal, isAnnualProduct, productUnitPrice, productPeriodTotal, productSubtotalRef } from "./catalog";
+import { CATALOG, type CycleId, type Product, findCycle, findProduct, monthlyPrice, cyclePeriodTotal, isAnnualProduct, productUnitPrice, productPeriodTotal, productSubtotalRef, registerDomainProduct } from "./catalog";
 
 export type CartItem = {
   productId: string;
   qty: number;
   domain?: string;
+  name?: string;
+  type?: Product["type"];
+  priceBRL?: number;
+  billing?: Product["billing"];
 };
 
 type Ctx = {
   items: CartItem[];
   cycle: CycleId;
-  add: (productId: string) => void;
+  add: (productId: string, snapshot?: Partial<Omit<CartItem, "productId" | "qty">> & { qty?: number }) => void;
   remove: (productId: string) => void;
   setQty: (productId: string, qty: number) => void;
   setDomain: (productId: string, domain: string) => void;
@@ -38,8 +42,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
               productId: String(item.productId ?? item.id ?? ""),
               qty: Number(item.qty ?? item.quantity ?? 1),
               domain: typeof item.domain === "string" ? item.domain : undefined,
+              name: typeof item.name === "string" ? item.name : undefined,
+              type: typeof item.type === "string" ? item.type : undefined,
+              priceBRL: Number.isFinite(Number(item.priceBRL ?? item.price)) ? Number(item.priceBRL ?? item.price) : undefined,
+              billing: item.billing === "annual" || item.billing === "monthly" ? item.billing : undefined,
             }))
-            .filter((item: CartItem) => item.productId && Number.isFinite(item.qty) && item.qty > 0);
+            .filter((item: CartItem) => item.productId && Number.isFinite(item.qty) && item.qty > 0)
+            .map((item: CartItem) => {
+              if (item.productId.startsWith("domain:") && item.priceBRL && !findProduct(item.productId)) {
+                const domain = item.domain ?? item.name ?? item.productId.replace(/^domain:/, "");
+                registerDomainProduct(domain, item.priceBRL);
+              }
+              return item;
+            });
           setItems(normalized);
         }
         if (data.cycle) setCycleState(data.cycle);
@@ -53,11 +68,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, [items, cycle]);
 
-  const add = (productId: string) => {
+  const add = (productId: string, snapshot?: Partial<Omit<CartItem, "productId" | "qty">> & { qty?: number }) => {
     setItems((prev) => {
       const existing = prev.find((i) => i.productId === productId);
-      if (existing) return prev.map((i) => (i.productId === productId ? { ...i, qty: i.qty + 1 } : i));
-      return [...prev, { productId, qty: 1 }];
+      const qty = Math.max(1, Math.trunc(Number(snapshot?.qty ?? 1)) || 1);
+      if (existing) return prev.map((i) => (i.productId === productId ? { ...i, ...snapshot, qty: i.qty + qty } : i));
+      return [...prev, { productId, qty, ...snapshot }];
     });
   };
   const remove = (productId: string) => setItems((p) => p.filter((i) => i.productId !== productId));
