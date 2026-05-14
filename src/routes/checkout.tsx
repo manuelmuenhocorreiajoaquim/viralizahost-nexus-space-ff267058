@@ -1206,27 +1206,30 @@ function PaymentStep({
           subtotal: Number(Number(cart.totals.subtotal).toFixed(2)),
           discount: Number(Number(cart.totals.discount).toFixed(2)),
           total,
-          paymentMethod: "pix",
+          paymentMethod: method,
           paymentProvider: "mercadopago",
           customerEmail: user?.email ?? customer.email,
           customerName: customer.name,
           items,
         },
       });
-      console.log("order", order);
       if (!order?.orderId) {
         throw new Error("Não foi possível criar o pedido. Tente novamente.");
       }
 
-      setPixOrderId(order.orderId);
-      setPixCustomerEmail(user?.email ?? customer.email);
-      setPixOpen(true);
+      setPendingOrderId(order.orderId);
+      setPendingEmail(user?.email ?? customer.email);
+      setPendingName(customer.name);
+      setPendingAmount(total);
+      if (method === "pix") setPixOpen(true);
+      else if (method === "card") setCardOpen(true);
+      else setBoletoOpen(true);
     } catch (e: any) {
       console.error("[checkout] submit error", e);
       const msg =
         typeof e?.message === "string" && e.message.length < 240
           ? e.message
-          : "Não foi possível gerar o PIX. Verifique os dados e tente novamente.";
+          : "Não foi possível processar o pagamento. Tente novamente.";
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -1234,12 +1237,13 @@ function PaymentStep({
   };
 
   const onApproved = () => {
-    if (!pixOrderId) return;
+    if (!pendingOrderId) return;
     cart.clear();
-    // Small delay so user sees the "approved" state.
     setTimeout(() => {
       setPixOpen(false);
-      onDone(pixOrderId);
+      setCardOpen(false);
+      setBoletoOpen(false);
+      onDone(pendingOrderId);
     }, 1200);
   };
 
