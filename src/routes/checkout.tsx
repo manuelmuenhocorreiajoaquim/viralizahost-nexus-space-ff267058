@@ -24,6 +24,8 @@ import {
   ShieldCheck,
   BadgeCheck,
   Zap,
+  Search,
+  AlertTriangle,
 } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -41,7 +43,25 @@ import { useCurrency, formatPrice } from "@/lib/currency";
 import { useAuth } from "@/lib/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import PixPaymentDialog from "@/components/checkout/PixPaymentDialog";
+import DomainSearchDialog from "@/components/site/DomainSearchDialog";
 import { createCheckoutOrder } from "@/lib/payments.functions";
+
+/* Sanitize raw domain input → lowercase, no protocol/path/www/spaces. */
+function sanitizeDomain(input: string): string {
+  return (input || "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/.*$/, "");
+}
+/* Allow xn-- IDN, multi-level TLDs (.com.br, .co.ao). 2+ labels, valid chars. */
+const DOMAIN_REGEX =
+  /^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)){1,3}$/;
+function isValidDomain(d: string): boolean {
+  return DOMAIN_REGEX.test(d) && /\.[a-z]{2,}$/.test(d);
+}
 
 const STEPS = [
   { id: "cycle", label: "Ciclo", icon: Sparkles },
@@ -632,26 +652,106 @@ function DomainPicker({
   hasDomainInCart?: boolean;
   domainInCart?: string;
 }) {
-  const initialMode: "new" | "existing" | "use-cart" =
+  type Mode = "new" | "existing" | "use-cart";
+  const initialMode: Mode =
     hasDomainInCart && !value ? "use-cart" : value ? "existing" : "new";
-  const [mode, setMode] = useState<"new" | "existing" | "use-cart">(initialMode);
-  const [domain, setDomain] = useState(value);
+  const [mode, setMode] = useState<Mode>(initialMode);
+  const [raw, setRaw] = useState(value);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [status, setStatus] = useState<
+    | { kind: "idle" }
+    | { kind: "ok"; domain: string }
+    | { kind: "available"; domain: string }
+    | { kind: "invalid"; message: string }
+    | { kind: "error"; message: string }
+  >({ kind: "idle" });
 
+  const cleaned = sanitizeDomain(raw);
+
+  // Sync to parent: only push value when valid existing/use-cart, clear otherwise.
   useEffect(() => {
     if (mode === "use-cart" && domainInCart) {
       onChange(domainInCart);
+    } else if (mode === "existing" && status.kind === "ok") {
+      onChange(status.domain);
     } else {
-      onChange(domain);
+      onChange("");
     }
-  }, [domain, mode, domainInCart]); // eslint-disable-line
+  }, [mode, status, domainInCart]); // eslint-disable-line
+
+  // Reset status when user edits or switches mode.
+  useEffect(() => {
+    setStatus({ kind: "idle" });
+  }, [raw, mode]);
+
+  const handleNewSearch = () => {
+    if (!cleaned) {
+      setStatus({ kind: "invalid", message: "Digite o domínio que deseja registrar." });
+      return;
+    }
+    // Allow base name (without dot) or full domain — open dialog with sanitized base.
+    const base = cleaned.split(".")[0];
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(base)) {
+      setStatus({ kind: "invalid", message: "Nome inválido. Use apenas letras, números e hífen." });
+      return;
+    }
+    setSearchQuery(base);
+    setSearchOpen(true);
+  };
+
+  const handleExistingCheck = async () => {
+    if (!cleaned) {
+      setStatus({ kind: "invalid", message: "Informe o domínio que você já possui." });
+      return;
+    }
+    if (!isValidDomain(cleaned)) {
+      setStatus({
+        kind: "invalid",
+        message: "Formato inválido. Exemplo: meudominio.com, empresa.com.br, marca.ao",
+      });
+      return;
+    }
+    setChecking(true);
+    try {
+      const base = cleaned.split(".")[0];
+      const { data, error } = await supabase.functions.invoke("domain-search", {
+        body: { query: base },
+      });
+      if (error) throw error;
+      const results: Array<{ domain: string; available: boolean }> = Array.isArray(data?.results)
+        ? data.results
+        : [];
+      const match = results.find((r) => r.domain.toLowerCase() === cleaned);
+      if (match && match.available) {
+        setStatus({
+          kind: "available",
+          domain: cleaned,
+        });
+      } else {
+        // Considered registered/taken (or unknown TLD) → accept.
+        setStatus({ kind: "ok", domain: cleaned });
+      }
+    } catch (e) {
+      console.error("[domain-check] failed", e);
+      // Network/edge fail → accept domain optimistically; backend will validate at provisioning.
+      setStatus({ kind: "ok", domain: cleaned });
+    } finally {
+      setChecking(false);
+    }
+  };
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-card p-5">
-      <div className="text-xs text-slate-500 uppercase tracking-wider mb-1 font-semibold">Para</div>
+      <div className="text-xs text-slate-500 uppercase tracking-wider mb-1 font-semibold">
+        Para
+      </div>
       <div className="font-semibold mb-4 text-slate-900">{name}</div>
       <div className="grid sm:grid-cols-3 gap-2 mb-4">
         {hasDomainInCart && (
           <button
+            type="button"
             onClick={() => setMode("use-cart")}
             className={`p-3 rounded-xl border text-sm font-medium transition ${
               mode === "use-cart"
@@ -663,6 +763,7 @@ function DomainPicker({
           </button>
         )}
         <button
+          type="button"
           onClick={() => setMode("new")}
           className={`p-3 rounded-xl border text-sm font-medium transition ${
             mode === "new"
@@ -670,9 +771,10 @@ function DomainPicker({
               : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
           }`}
         >
-          Registar novo
+          Registrar novo
         </button>
         <button
+          type="button"
           onClick={() => setMode("existing")}
           className={`p-3 rounded-xl border text-sm font-medium transition ${
             mode === "existing"
@@ -683,18 +785,107 @@ function DomainPicker({
           Já tenho
         </button>
       </div>
+
       {mode === "use-cart" && domainInCart ? (
         <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800 font-medium">
           <Check className="h-4 w-4 inline mr-1" /> Vinculado a <strong>{domainInCart}</strong>
         </div>
       ) : (
-        <input
-          value={domain}
-          onChange={(e) => setDomain(e.target.value)}
-          placeholder="meudominio.com"
-          className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-primary focus:bg-white outline-none transition"
-        />
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <input
+              value={raw}
+              onChange={(e) => setRaw(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  mode === "new" ? handleNewSearch() : handleExistingCheck();
+                }
+              }}
+              placeholder={mode === "new" ? "minhamarca" : "meudominio.com"}
+              spellCheck={false}
+              autoCapitalize="off"
+              autoCorrect="off"
+              className="flex-1 px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-primary focus:bg-white outline-none transition"
+            />
+            <button
+              type="button"
+              onClick={mode === "new" ? handleNewSearch : handleExistingCheck}
+              disabled={checking}
+              className="inline-flex items-center gap-2 px-5 rounded-xl bg-gradient-primary text-primary-foreground font-semibold text-sm shadow-glow-soft hover:scale-[1.02] transition disabled:opacity-60"
+            >
+              {checking ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : mode === "new" ? (
+                <Search className="h-4 w-4" />
+              ) : (
+                <ShieldCheck className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">
+                {mode === "new" ? "Pesquisar" : "Verificar"}
+              </span>
+            </button>
+          </div>
+
+          {status.kind === "ok" && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800 font-medium flex items-start gap-2"
+            >
+              <Check className="h-4 w-4 mt-0.5 shrink-0" />
+              <div>
+                Domínio <strong>{status.domain}</strong> aceito. Será vinculado ao seu serviço sem
+                custo adicional.
+              </div>
+            </motion.div>
+          )}
+          {status.kind === "available" && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 flex items-start gap-2"
+            >
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <div>
+                <strong>{status.domain}</strong> parece estar disponível para registro. Escolha{" "}
+                <button
+                  type="button"
+                  className="underline font-semibold"
+                  onClick={() => setMode("new")}
+                >
+                  Registrar novo
+                </button>{" "}
+                para comprá-lo, ou informe um domínio que você já possui.
+              </div>
+            </motion.div>
+          )}
+          {status.kind === "invalid" && (
+            <div className="rounded-xl bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700 flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <div>{status.message}</div>
+            </div>
+          )}
+          {mode === "new" && status.kind === "idle" && (
+            <p className="text-xs text-slate-500">
+              Digite o nome desejado e clique em <strong>Pesquisar</strong> para ver disponibilidade
+              e preços oficiais.
+            </p>
+          )}
+          {mode === "existing" && status.kind === "idle" && (
+            <p className="text-xs text-slate-500">
+              Informe o domínio completo (ex.: <code>minhaempresa.com</code>). Vamos verificar se
+              já está registrado.
+            </p>
+          )}
+        </div>
       )}
+
+      <DomainSearchDialog
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        query={searchQuery}
+      />
     </div>
   );
 }
