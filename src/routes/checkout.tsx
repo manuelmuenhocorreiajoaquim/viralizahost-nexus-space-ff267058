@@ -308,7 +308,9 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
   const cart = useCart();
   const hostingItems = cart.items.filter((i) => findProduct(i.productId)?.needsDomain);
 
-  if (hostingItems.length === 0) {
+  const domainItemsOnly = cart.items.filter((i) => findProduct(i.productId)?.type === "domain");
+
+  if (hostingItems.length === 0 && domainItemsOnly.length === 0) {
     return (
       <div className="text-center py-12">
         <Globe className="h-10 w-10 mx-auto text-slate-300 mb-3" />
