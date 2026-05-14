@@ -755,7 +755,7 @@ function DomainPicker({
         Para
       </div>
       <div className="font-semibold mb-4 text-slate-900">{name}</div>
-      <div className="grid sm:grid-cols-3 gap-2 mb-4">
+      <div className={`grid gap-2 mb-4 ${!required || hasDomainInCart ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
         {hasDomainInCart && (
           <button
             type="button"
@@ -791,9 +791,27 @@ function DomainPicker({
         >
           Já tenho
         </button>
+        {!required && !hasDomainInCart && (
+          <button
+            type="button"
+            onClick={() => setMode("skip")}
+            className={`p-3 rounded-xl border text-sm font-medium transition ${
+              mode === "skip"
+                ? "border-primary bg-primary/5 text-primary shadow-glow-soft"
+                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+            }`}
+          >
+            Continuar sem domínio
+          </button>
+        )}
       </div>
 
-      {mode === "use-cart" && domainInCart ? (
+      {mode === "skip" ? (
+        <div className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 text-sm text-slate-700">
+          <Check className="h-4 w-4 inline mr-1 text-emerald-600" />
+          Você pode adicionar um domínio depois, no painel. O serviço será provisionado com um endereço temporário.
+        </div>
+      ) : mode === "use-cart" && domainInCart ? (
         <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800 font-medium">
           <Check className="h-4 w-4 inline mr-1" /> Vinculado a <strong>{domainInCart}</strong>
         </div>
