@@ -1,12 +1,16 @@
-// ExPay provider — placeholder for future integration. Keeps the
-// PaymentProvider interface honest so we can switch with a single env var
-// once credentials are available.
+// ExPay provider — placeholder for future integration.
 import type { PaymentProvider } from "../types";
 
 export const expay: PaymentProvider = {
   id: "expay",
   async createPixPayment() {
-    throw new Error("ExPay ainda não está habilitado. Configure as credenciais ExPay para ativar.");
+    throw new Error("ExPay ainda não está habilitado.");
+  },
+  async createCardPayment() {
+    throw new Error("ExPay ainda não está habilitado.");
+  },
+  async createBoletoPayment() {
+    throw new Error("ExPay ainda não está habilitado.");
   },
   async getPaymentStatus() {
     throw new Error("ExPay ainda não está habilitado.");

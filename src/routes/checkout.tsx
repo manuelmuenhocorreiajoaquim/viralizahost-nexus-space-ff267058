@@ -43,6 +43,8 @@ import { useCurrency, formatPrice } from "@/lib/currency";
 import { useAuth } from "@/lib/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import PixPaymentDialog from "@/components/checkout/PixPaymentDialog";
+import CardPaymentDialog from "@/components/checkout/CardPaymentDialog";
+import BoletoPaymentDialog from "@/components/checkout/BoletoPaymentDialog";
 import DomainSearchDialog from "@/components/site/DomainSearchDialog";
 import { createCheckoutOrder } from "@/lib/payments.functions";
 
@@ -1131,19 +1133,17 @@ function PaymentStep({
   const createOrderFn = useServerFn(createCheckoutOrder);
   const [method, setMethod] = useState<"pix" | "card" | "boleto">("pix");
   const [loading, setLoading] = useState(false);
-  const [pixOrderId, setPixOrderId] = useState<string | null>(null);
-  const [pixCustomerEmail, setPixCustomerEmail] = useState<string | undefined>();
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string | undefined>();
+  const [pendingName, setPendingName] = useState<string | undefined>();
+  const [pendingAmount, setPendingAmount] = useState(0);
   const [pixOpen, setPixOpen] = useState(false);
+  const [cardOpen, setCardOpen] = useState(false);
+  const [boletoOpen, setBoletoOpen] = useState(false);
 
   const submit = async () => {
-    console.log("cart", cart);
-    console.log("user", user);
     if (cart.items.length === 0) {
       toast.error("Carrinho vazio.");
-      return;
-    }
-    if (method !== "pix") {
-      toast.info("Cartão e boleto serão liberados em breve. Use PIX por enquanto.");
       return;
     }
     const total = Number(Number(cart.totals.total).toFixed(2));
@@ -1206,27 +1206,30 @@ function PaymentStep({
           subtotal: Number(Number(cart.totals.subtotal).toFixed(2)),
           discount: Number(Number(cart.totals.discount).toFixed(2)),
           total,
-          paymentMethod: "pix",
+          paymentMethod: method,
           paymentProvider: "mercadopago",
           customerEmail: user?.email ?? customer.email,
           customerName: customer.name,
           items,
         },
       });
-      console.log("order", order);
       if (!order?.orderId) {
         throw new Error("Não foi possível criar o pedido. Tente novamente.");
       }
 
-      setPixOrderId(order.orderId);
-      setPixCustomerEmail(user?.email ?? customer.email);
-      setPixOpen(true);
+      setPendingOrderId(order.orderId);
+      setPendingEmail(user?.email ?? customer.email);
+      setPendingName(customer.name);
+      setPendingAmount(total);
+      if (method === "pix") setPixOpen(true);
+      else if (method === "card") setCardOpen(true);
+      else setBoletoOpen(true);
     } catch (e: any) {
       console.error("[checkout] submit error", e);
       const msg =
         typeof e?.message === "string" && e.message.length < 240
           ? e.message
-          : "Não foi possível gerar o PIX. Verifique os dados e tente novamente.";
+          : "Não foi possível processar o pagamento. Tente novamente.";
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -1234,12 +1237,13 @@ function PaymentStep({
   };
 
   const onApproved = () => {
-    if (!pixOrderId) return;
+    if (!pendingOrderId) return;
     cart.clear();
-    // Small delay so user sees the "approved" state.
     setTimeout(() => {
       setPixOpen(false);
-      onDone(pixOrderId);
+      setCardOpen(false);
+      setBoletoOpen(false);
+      onDone(pendingOrderId);
     }, 1200);
   };
 
@@ -1277,20 +1281,20 @@ function PaymentStep({
                 label: "Cartão de crédito",
                 desc: "Checkout com Visa, Mastercard e Elo",
                 icon: <CardBrands />,
-                meta: <span className="text-xs font-bold text-slate-500">Em breve</span>,
-                available: false,
+                meta: <span className="text-xs font-bold text-blue-700">Disponível</span>,
+                available: true,
               },
               {
                 id: "boleto" as const,
                 label: "Boleto bancário",
-                desc: "Compensação tradicional em 1–2 dias úteis",
+                desc: "Compensação em 1–2 dias úteis",
                 icon: (
                   <div className="grid h-11 w-11 place-items-center rounded-xl bg-white ring-1 ring-slate-200">
                     <FileText className="h-6 w-6 text-slate-700" />
                   </div>
                 ),
-                meta: <span className="text-xs font-bold text-slate-500">Em breve</span>,
-                available: false,
+                meta: <span className="text-xs font-bold text-slate-700">Disponível</span>,
+                available: true,
               },
             ].map((m) => {
               const selected = method === m.id;
@@ -1374,19 +1378,29 @@ function PaymentStep({
         </div>
         <Summary>
           <motion.button
-            whileHover={{ scale: loading || method !== "pix" ? 1 : 1.02 }}
-            whileTap={{ scale: loading || method !== "pix" ? 1 : 0.98 }}
+            whileHover={{ scale: loading ? 1 : 1.02 }}
+            whileTap={{ scale: loading ? 1 : 0.98 }}
             onClick={submit}
-            disabled={loading || method !== "pix"}
+            disabled={loading}
             className="relative mt-5 inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-500 py-4 text-[15px] font-black tracking-tight text-white shadow-[0_18px_45px_rgba(37,99,235,0.38)] transition hover:shadow-[0_22px_60px_rgba(37,99,235,0.48)] disabled:opacity-50"
           >
             <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/18 to-white/0 translate-x-[-120%] transition-transform duration-700 hover:translate-x-[120%]" />
             {loading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
+            ) : method === "pix" ? (
+              <PixBrandIcon className="h-5 w-5" />
+            ) : method === "card" ? (
+              <CreditCard className="h-5 w-5" />
             ) : (
-              <PixBrandIcon className="h-5 w-5 animate-pulse" />
+              <FileText className="h-5 w-5" />
             )}
-            {loading ? "A criar QR Code PIX…" : "Gerar PIX seguro"}{" "}
+            {loading
+              ? "Processando…"
+              : method === "pix"
+                ? "Gerar PIX"
+                : method === "card"
+                  ? "Pagar com Cartão"
+                  : "Gerar Boleto"}
             {!loading && <ArrowRight className="h-4 w-4" />}
           </motion.button>
           <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
@@ -1399,8 +1413,25 @@ function PaymentStep({
       <PixPaymentDialog
         open={pixOpen}
         onOpenChange={setPixOpen}
-        orderId={pixOrderId}
-        customerEmail={pixCustomerEmail}
+        orderId={pendingOrderId}
+        customerEmail={pendingEmail}
+        onApproved={onApproved}
+      />
+      <CardPaymentDialog
+        open={cardOpen}
+        onOpenChange={setCardOpen}
+        orderId={pendingOrderId}
+        amount={pendingAmount}
+        customerEmail={pendingEmail}
+        customerName={pendingName}
+        onApproved={onApproved}
+      />
+      <BoletoPaymentDialog
+        open={boletoOpen}
+        onOpenChange={setBoletoOpen}
+        orderId={pendingOrderId}
+        customerEmail={pendingEmail}
+        customerName={pendingName}
         onApproved={onApproved}
       />
     </div>
