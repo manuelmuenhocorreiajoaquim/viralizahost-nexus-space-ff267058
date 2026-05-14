@@ -173,7 +173,7 @@ export default function DomainSearchDialog({
     setCycle("annual");
     toast.success(`${r.domain} adicionado ao carrinho`);
     onOpenChange(false);
-    navigate({ to: "/checkout" });
+    navigate({ to: "/checkout", search: { step: "cart" } });
   };
 
   const availableCount = results.filter((r) => r.available).length;
