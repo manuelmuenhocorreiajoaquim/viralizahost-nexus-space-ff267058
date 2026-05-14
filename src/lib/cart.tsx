@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { CATALOG, type CycleId, findCycle, findProduct, monthlyPrice, cyclePeriodTotal } from "./catalog";
+import { CATALOG, type CycleId, findCycle, findProduct, monthlyPrice, cyclePeriodTotal, isAnnualProduct, productUnitPrice, productPeriodTotal, productSubtotalRef } from "./catalog";
 
 export type CartItem = {
   productId: string;
@@ -75,8 +75,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     for (const it of items) {
       const p = findProduct(it.productId);
       if (!p) continue;
-      subtotal += p.basePriceBRL * c.months * it.qty;
-      total += cyclePeriodTotal(p.basePriceBRL, c) * it.qty;
+      subtotal += productSubtotalRef(p, c) * it.qty;
+      total += productPeriodTotal(p, c) * it.qty;
     }
     const discount = Math.round((subtotal - total) * 100) / 100;
     return { subtotal: Math.round(subtotal * 100) / 100, discount, total: Math.round(total * 100) / 100 };
@@ -97,10 +97,26 @@ export function useCart() {
   return ctx;
 }
 
+/** Per-month price for monthly products; for annual products returns annual/12 (display-only). */
 export function lineMonthly(productId: string, cycle: CycleId): number {
   const p = findProduct(productId);
   if (!p) return 0;
+  if (isAnnualProduct(p)) return Math.round((p.basePriceBRL / 12) * 100) / 100;
   return monthlyPrice(p.basePriceBRL, findCycle(cycle));
 }
 
-export { CATALOG };
+/** Total billed for an item (one cycle period × qty). Domains: annual × qty. */
+export function lineTotal(productId: string, cycle: CycleId, qty: number): number {
+  const p = findProduct(productId);
+  if (!p) return 0;
+  return Math.round(productPeriodTotal(p, findCycle(cycle)) * qty * 100) / 100;
+}
+
+/** Unit price (per month for recurring, per year for annual). */
+export function lineUnit(productId: string, cycle: CycleId): number {
+  const p = findProduct(productId);
+  if (!p) return 0;
+  return productUnitPrice(p, findCycle(cycle));
+}
+
+export { CATALOG, isAnnualProduct };

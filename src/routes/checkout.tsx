@@ -10,7 +10,7 @@ import {
 import { z } from "zod";
 import { toast } from "sonner";
 import logo from "@/assets/viraliza-checkout-logo.png";
-import { useCart, lineMonthly, CATALOG } from "@/lib/cart";
+import { useCart, lineMonthly, lineTotal, lineUnit, CATALOG, isAnnualProduct } from "@/lib/cart";
 import { CYCLES, findCycle, findProduct, cyclePeriodTotal, cycleSavings, type CycleId } from "@/lib/catalog";
 import { useCurrency, formatPrice } from "@/lib/currency";
 import { useAuth } from "@/lib/use-auth";
@@ -164,12 +164,42 @@ function Stepper({ current }: { current: StepId }) {
 function CycleStep({ onNext }: { onNext: () => void }) {
   const cart = useCart();
   const { currency } = useCurrency();
-  const refBase = cart.items[0] ? findProduct(cart.items[0].productId)?.basePriceBRL ?? 50 : 50;
+  const recurringItems = cart.items.filter((i) => {
+    const p = findProduct(i.productId);
+    return p && !isAnnualProduct(p);
+  });
+
+  // Cart contains only annual products (domains) — skip cycle step.
+  if (cart.items.length > 0 && recurringItems.length === 0) {
+    return (
+      <div>
+        <Header title="Registro anual de domínio" subtitle="Domínios são cobrados anualmente — sem ciclo de assinatura." />
+        <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-blue-50 p-6 max-w-xl shadow-card">
+          <div className="flex items-start gap-4">
+            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 grid place-items-center text-white shadow-md">
+              <Globe className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="font-semibold text-slate-900">Apenas domínios no carrinho</div>
+              <p className="text-sm text-slate-600 mt-1">
+                Você pode prosseguir direto para a finalização. O preço do domínio é fixo por ano.
+              </p>
+            </div>
+          </div>
+        </div>
+        <Footer onNext={onNext} nextLabel="Continuar" />
+      </div>
+    );
+  }
+
+  const refBase = recurringItems[0]
+    ? findProduct(recurringItems[0].productId)?.basePriceBRL ?? 50
+    : (cart.items[0] ? findProduct(cart.items[0].productId)?.basePriceBRL ?? 50 : 50);
   const maxDiscount = Math.max(...CYCLES.map((c) => c.discountPct), 1);
 
   return (
     <div>
-      <Header title="Escolha sua assinatura" subtitle="Quanto maior o ciclo, maior o desconto. Sem fidelidade obrigatória." />
+      <Header title="Escolha sua assinatura" subtitle="Quanto maior o ciclo, maior o desconto. Sem fidelidade obrigatória. Domínios são cobrados anualmente." />
       <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
         {CYCLES.map((c) => {
           const monthly = refBase * (1 - c.discountPct / 100);
@@ -206,7 +236,6 @@ function CycleStep({ onNext }: { onNext: () => void }) {
                   <div className="text-slate-400">Sem desconto</div>
                 )}
               </div>
-              {/* Savings progress bar */}
               <div className="mt-3 h-1.5 rounded-full bg-slate-100 overflow-hidden">
                 <motion.div
                   className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600"
@@ -257,22 +286,33 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
           {cart.items.map((it) => {
             const p = findProduct(it.productId);
             if (!p) return null;
-            const monthly = lineMonthly(it.productId, cart.cycle);
-            const total = monthly * findCycle(cart.cycle).months * it.qty;
+            const annual = isAnnualProduct(p);
+            const total = lineTotal(it.productId, cart.cycle, it.qty);
+            const unit = lineUnit(it.productId, cart.cycle);
+            const subLabel = annual
+              ? `${p.type} · ${brl(unit, currency)}/ano`
+              : `${p.type} · ${brl(unit, currency)}/mês`;
             return (
               <div key={it.productId} className="rounded-2xl border border-slate-200 bg-white shadow-card p-5 flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-gradient-primary grid place-items-center shrink-0 shadow-glow-soft">
-                  <Sparkles className="h-5 w-5 text-primary-foreground" />
+                <div className={`h-12 w-12 rounded-xl grid place-items-center shrink-0 shadow-glow-soft ${annual ? "bg-gradient-to-br from-emerald-500 to-teal-500" : "bg-gradient-primary"}`}>
+                  {annual ? <Globe className="h-5 w-5 text-white" /> : <Sparkles className="h-5 w-5 text-primary-foreground" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-slate-900">{p.name}</div>
-                  <div className="text-xs text-slate-500 capitalize">{p.type} · {brl(monthly, currency)}/mês</div>
+                  <div className="font-semibold text-slate-900 truncate">{p.name}</div>
+                  <div className="text-xs text-slate-500 capitalize">{subLabel}</div>
+                  {it.domain && !annual && <div className="text-[11px] text-slate-400 truncate mt-0.5">{it.domain}</div>}
                 </div>
-                <div className="flex items-center gap-1 bg-slate-100 rounded-full p-1">
-                  <button onClick={() => cart.setQty(it.productId, it.qty - 1)} className="h-7 w-7 grid place-items-center rounded-full hover:bg-white"><Minus className="h-3 w-3" /></button>
-                  <span className="w-6 text-center text-sm font-semibold">{it.qty}</span>
-                  <button onClick={() => cart.setQty(it.productId, it.qty + 1)} className="h-7 w-7 grid place-items-center rounded-full hover:bg-white"><Plus className="h-3 w-3" /></button>
-                </div>
+                {annual ? (
+                  <div className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
+                    Anual
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 bg-slate-100 rounded-full p-1">
+                    <button onClick={() => cart.setQty(it.productId, it.qty - 1)} className="h-7 w-7 grid place-items-center rounded-full hover:bg-white"><Minus className="h-3 w-3" /></button>
+                    <span className="w-6 text-center text-sm font-semibold">{it.qty}</span>
+                    <button onClick={() => cart.setQty(it.productId, it.qty + 1)} className="h-7 w-7 grid place-items-center rounded-full hover:bg-white"><Plus className="h-3 w-3" /></button>
+                  </div>
+                )}
                 <div className="text-right shrink-0">
                   <div className="font-bold text-slate-900">{brl(total, currency)}</div>
                   <button onClick={() => cart.remove(it.productId)} className="text-xs text-slate-400 hover:text-red-500 inline-flex items-center gap-1 mt-1">
@@ -287,7 +327,7 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
           </button>
           {showAdd && (
             <div className="rounded-2xl border border-slate-200 bg-white p-4 grid sm:grid-cols-2 gap-2 max-h-72 overflow-y-auto shadow-card">
-              {CATALOG.filter((p) => !cart.items.some((i) => i.productId === p.id)).map((p) => (
+              {CATALOG.filter((p) => p.type !== "domain" && !cart.items.some((i) => i.productId === p.id)).map((p) => (
                 <button key={p.id} onClick={() => { cart.add(p.id); setShowAdd(false); }} className="text-left p-3 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200">
                   <div className="text-sm font-semibold">{p.name}</div>
                   <div className="text-xs text-slate-500 capitalize">{p.type} · {brl(p.basePriceBRL, currency)}/mês</div>
@@ -306,6 +346,7 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
 /* ====================== STEP 3 — DOMAIN ====================== */
 function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
   const cart = useCart();
+  const { currency } = useCurrency();
   const hostingItems = cart.items.filter((i) => findProduct(i.productId)?.needsDomain);
 
   const domainItemsOnly = cart.items.filter((i) => findProduct(i.productId)?.type === "domain");
@@ -333,8 +374,7 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
             <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Domínios no pedido</div>
             {domainItems.map((it) => {
               const p = findProduct(it.productId)!;
-              const c = findCycle(cart.cycle);
-              const total = lineMonthly(it.productId, cart.cycle) * c.months * it.qty;
+              const total = lineTotal(it.productId, cart.cycle, it.qty);
               return (
                 <motion.div
                   key={it.productId}
@@ -350,12 +390,12 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
                     <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
                       <span className="inline-flex items-center gap-1"><ShieldCheck className="h-3 w-3 text-emerald-600" /> Proteção WHOIS</span>
                       <span className="inline-flex items-center gap-1"><Zap className="h-3 w-3 text-amber-500" /> Registro instantâneo</span>
-                      <span>· Ciclo: {c.label}</span>
+                      <span>· Registro anual</span>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-[11px] text-slate-500">Total</div>
-                    <div className="font-bold text-slate-900">R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div>
+                    <div className="text-[11px] text-slate-500">Preço</div>
+                    <div className="font-bold text-slate-900">{brl(total, currency)}<span className="text-[11px] font-medium text-slate-500">/ano</span></div>
                   </div>
                 </motion.div>
               );
@@ -556,12 +596,12 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
       if (!user?.id && !customer.email) {
         throw new Error("Informe um email válido na etapa Identificação.");
       }
-      const c = findCycle(cart.cycle);
       const items = cart.items.map((it) => {
         const p = findProduct(it.productId);
         if (!p?.id || !p.name || !p.type) throw new Error("Item inválido no carrinho.");
         const quantity = Number(it.qty);
-        const price = Number(lineMonthly(it.productId, cart.cycle).toFixed(2));
+        const price = Number(lineUnit(it.productId, cart.cycle).toFixed(2));
+        const itemTotal = Number(lineTotal(it.productId, cart.cycle, quantity).toFixed(2));
         if (!Number.isFinite(price) || price < 0 || !Number.isFinite(quantity) || quantity <= 0) {
           throw new Error("Item inválido no carrinho.");
         }
@@ -572,7 +612,7 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
           price,
           quantity,
           domain: it.domain ?? null,
-          total: Number((price * c.months * quantity).toFixed(2)),
+          total: itemTotal,
         };
       });
 
@@ -825,12 +865,14 @@ function Summary({ children }: { children?: React.ReactNode }) {
         {cart.items.map((it) => {
           const p = findProduct(it.productId);
           if (!p) return null;
-          const total = lineMonthly(it.productId, cart.cycle) * c.months * it.qty;
+          const total = lineTotal(it.productId, cart.cycle, it.qty);
+          const annual = isAnnualProduct(p);
           return (
             <div key={it.productId} className="flex justify-between gap-2">
               <span className="text-slate-700 truncate">
                 {p.name} ×{it.qty}
-                {it.domain && <span className="block text-[11px] text-slate-400 truncate">{it.domain}</span>}
+                {annual && <span className="ml-1 text-[10px] font-semibold text-emerald-700">/ano</span>}
+                {it.domain && !annual && <span className="block text-[11px] text-slate-400 truncate">{it.domain}</span>}
               </span>
               <span className="font-semibold text-slate-900 shrink-0">{brl(total, currency)}</span>
             </div>
