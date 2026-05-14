@@ -1252,6 +1252,7 @@ function PaymentStep({
       setCardOpen(false);
       setBoletoOpen(false);
       setPaypalOpen(false);
+      setBankOpen(false);
       onDone(pendingOrderId);
     }, 1200);
   };
