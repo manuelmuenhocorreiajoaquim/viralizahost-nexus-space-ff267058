@@ -145,8 +145,16 @@ export default function DomainSearchDialog({
   }, [open, cleanQuery]);
 
   const buy = (r: DomainResult) => {
-    const product = registerDomainProduct(r.domain, r.priceBRL);
-    add(product.id);
+    const annualPrice = Number(Number(r.priceBRL).toFixed(2));
+    const product = registerDomainProduct(r.domain, annualPrice);
+    add(product.id, {
+      domain: r.domain,
+      name: r.domain,
+      type: "domain",
+      priceBRL: annualPrice,
+      billing: "annual",
+      qty: 1,
+    });
     setDomain(product.id, r.domain);
     setCycle("annual");
     toast.success(`${r.domain} adicionado ao carrinho`);
