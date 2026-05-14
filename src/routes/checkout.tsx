@@ -165,6 +165,7 @@ function CycleStep({ onNext }: { onNext: () => void }) {
   const cart = useCart();
   const { currency } = useCurrency();
   const refBase = cart.items[0] ? findProduct(cart.items[0].productId)?.basePriceBRL ?? 50 : 50;
+  const maxDiscount = Math.max(...CYCLES.map((c) => c.discountPct), 1);
 
   return (
     <div>
@@ -175,17 +176,20 @@ function CycleStep({ onNext }: { onNext: () => void }) {
           const total = cyclePeriodTotal(refBase, c);
           const save = cycleSavings(refBase, c);
           const active = cart.cycle === c.id;
+          const pct = Math.round((c.discountPct / maxDiscount) * 100);
           return (
             <motion.button
               key={c.id}
               whileHover={{ y: -4 }}
               onClick={() => cart.setCycle(c.id)}
-              className={`text-left rounded-2xl p-5 border transition-all relative bg-white ${
-                active ? "border-primary shadow-glow ring-1 ring-primary/30" : "border-slate-200 shadow-card hover:shadow-glow-soft hover:border-slate-300"
+              className={`text-left rounded-2xl p-5 border transition-all relative bg-white/90 backdrop-blur ${
+                active
+                  ? "border-primary shadow-glow ring-2 ring-primary/25 -translate-y-0.5"
+                  : "border-slate-200 shadow-card hover:shadow-glow-soft hover:border-primary/30"
               }`}
             >
               {c.badge && (
-                <div className="absolute -top-2 right-4 px-2 py-0.5 rounded-full bg-gradient-primary text-[10px] font-bold text-primary-foreground shadow-glow-soft">
+                <div className="absolute -top-2 right-4 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-indigo-600 to-blue-500 text-[10px] font-bold text-white shadow-lg">
                   {c.badge}
                 </div>
               )}
@@ -196,9 +200,22 @@ function CycleStep({ onNext }: { onNext: () => void }) {
               </div>
               <div className="mt-3 space-y-1 text-xs text-slate-600">
                 <div>Total: <span className="font-semibold text-slate-900">{brl(total, currency)}</span></div>
-                {save > 0 && <div className="text-emerald-600 font-medium">Economize {brl(save, currency)}</div>}
-                <div className="text-slate-400">Renova em {c.months}m pelo mesmo valor</div>
+                {save > 0 ? (
+                  <div className="text-emerald-600 font-medium">Economize {brl(save, currency)}</div>
+                ) : (
+                  <div className="text-slate-400">Sem desconto</div>
+                )}
               </div>
+              {/* Savings progress bar */}
+              <div className="mt-3 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600"
+                  initial={false}
+                  animate={{ width: `${pct}%` }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                />
+              </div>
+              <div className="mt-1 text-[10px] text-slate-400">{c.discountPct}% de desconto</div>
               {active && (
                 <div className="mt-3 flex items-center gap-1 text-xs text-primary font-semibold">
                   <Check className="h-3 w-3" /> Selecionado
