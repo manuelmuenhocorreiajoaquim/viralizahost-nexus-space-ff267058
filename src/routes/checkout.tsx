@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
-import logo from "@/assets/viralizahost-logo.png";
+import logo from "@/assets/viraliza-checkout-logo.png";
 import { useCart, lineMonthly, CATALOG } from "@/lib/cart";
 import { CYCLES, findCycle, findProduct, cyclePeriodTotal, cycleSavings, type CycleId } from "@/lib/catalog";
 import { useCurrency, formatPrice } from "@/lib/currency";
@@ -165,6 +165,7 @@ function CycleStep({ onNext }: { onNext: () => void }) {
   const cart = useCart();
   const { currency } = useCurrency();
   const refBase = cart.items[0] ? findProduct(cart.items[0].productId)?.basePriceBRL ?? 50 : 50;
+  const maxDiscount = Math.max(...CYCLES.map((c) => c.discountPct), 1);
 
   return (
     <div>
@@ -175,17 +176,20 @@ function CycleStep({ onNext }: { onNext: () => void }) {
           const total = cyclePeriodTotal(refBase, c);
           const save = cycleSavings(refBase, c);
           const active = cart.cycle === c.id;
+          const pct = Math.round((c.discountPct / maxDiscount) * 100);
           return (
             <motion.button
               key={c.id}
               whileHover={{ y: -4 }}
               onClick={() => cart.setCycle(c.id)}
-              className={`text-left rounded-2xl p-5 border transition-all relative bg-white ${
-                active ? "border-primary shadow-glow ring-1 ring-primary/30" : "border-slate-200 shadow-card hover:shadow-glow-soft hover:border-slate-300"
+              className={`text-left rounded-2xl p-5 border transition-all relative bg-white/90 backdrop-blur ${
+                active
+                  ? "border-primary shadow-glow ring-2 ring-primary/25 -translate-y-0.5"
+                  : "border-slate-200 shadow-card hover:shadow-glow-soft hover:border-primary/30"
               }`}
             >
               {c.badge && (
-                <div className="absolute -top-2 right-4 px-2 py-0.5 rounded-full bg-gradient-primary text-[10px] font-bold text-primary-foreground shadow-glow-soft">
+                <div className="absolute -top-2 right-4 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-indigo-600 to-blue-500 text-[10px] font-bold text-white shadow-lg">
                   {c.badge}
                 </div>
               )}
@@ -196,9 +200,22 @@ function CycleStep({ onNext }: { onNext: () => void }) {
               </div>
               <div className="mt-3 space-y-1 text-xs text-slate-600">
                 <div>Total: <span className="font-semibold text-slate-900">{brl(total, currency)}</span></div>
-                {save > 0 && <div className="text-emerald-600 font-medium">Economize {brl(save, currency)}</div>}
-                <div className="text-slate-400">Renova em {c.months}m pelo mesmo valor</div>
+                {save > 0 ? (
+                  <div className="text-emerald-600 font-medium">Economize {brl(save, currency)}</div>
+                ) : (
+                  <div className="text-slate-400">Sem desconto</div>
+                )}
               </div>
+              {/* Savings progress bar */}
+              <div className="mt-3 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600"
+                  initial={false}
+                  animate={{ width: `${pct}%` }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                />
+              </div>
+              <div className="mt-1 text-[10px] text-slate-400">{c.discountPct}% de desconto</div>
               {active && (
                 <div className="mt-3 flex items-center gap-1 text-xs text-primary font-semibold">
                   <Check className="h-3 w-3" /> Selecionado
@@ -291,7 +308,9 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
   const cart = useCart();
   const hostingItems = cart.items.filter((i) => findProduct(i.productId)?.needsDomain);
 
-  if (hostingItems.length === 0) {
+  const domainItemsOnly = cart.items.filter((i) => findProduct(i.productId)?.type === "domain");
+
+  if (hostingItems.length === 0 && domainItemsOnly.length === 0) {
     return (
       <div className="text-center py-12">
         <Globe className="h-10 w-10 mx-auto text-slate-300 mb-3" />
@@ -304,12 +323,55 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
   return (
     <div>
       <Header title="Configure seu domínio" subtitle="Para cada hospedagem escolha registar um novo domínio ou usar um existente." />
-      <div className="space-y-4 max-w-3xl">
-        {hostingItems.map((it) => {
-          const p = findProduct(it.productId)!;
-          return <DomainPicker key={it.productId} name={p.name} value={it.domain ?? ""} onChange={(v) => cart.setDomain(it.productId, v)} />;
-        })}
-      </div>
+
+      {/* Domínios já adicionados ao carrinho */}
+      {(() => {
+        const domainItems = cart.items.filter((i) => findProduct(i.productId)?.type === "domain");
+        if (domainItems.length === 0) return null;
+        return (
+          <div className="mb-6 max-w-3xl space-y-3">
+            <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Domínios no pedido</div>
+            {domainItems.map((it) => {
+              const p = findProduct(it.productId)!;
+              const c = findCycle(cart.cycle);
+              const total = lineMonthly(it.productId, cart.cycle) * c.months * it.qty;
+              return (
+                <motion.div
+                  key={it.productId}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-blue-50 shadow-card p-4 flex items-center gap-4"
+                >
+                  <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 grid place-items-center text-white shadow-md shrink-0">
+                    <Globe className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-slate-900 truncate">{p.name}</div>
+                    <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+                      <span className="inline-flex items-center gap-1"><ShieldCheck className="h-3 w-3 text-emerald-600" /> Proteção WHOIS</span>
+                      <span className="inline-flex items-center gap-1"><Zap className="h-3 w-3 text-amber-500" /> Registro instantâneo</span>
+                      <span>· Ciclo: {c.label}</span>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-[11px] text-slate-500">Total</div>
+                    <div className="font-bold text-slate-900">R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        );
+      })()}
+
+      {hostingItems.length > 0 && (
+        <div className="space-y-4 max-w-3xl">
+          {hostingItems.map((it) => {
+            const p = findProduct(it.productId)!;
+            return <DomainPicker key={it.productId} name={p.name} value={it.domain ?? ""} onChange={(v) => cart.setDomain(it.productId, v)} />;
+          })}
+        </div>
+      )}
       <Footer onBack={onBack} onNext={onNext} />
     </div>
   );
@@ -328,7 +390,7 @@ function DomainPicker({ name, value, onChange }: { name: string; value: string; 
         {(["new", "existing", "later"] as const).map((m) => (
           <button key={m} onClick={() => setMode(m)}
             className={`p-3 rounded-xl border text-sm font-medium transition ${
-              mode === m ? "border-primary bg-primary/5 text-primary" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+              mode === m ? "border-primary bg-primary/5 text-primary shadow-glow-soft" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
             }`}>
             {m === "new" ? "Registar novo" : m === "existing" ? "Já tenho" : "Decidir depois"}
           </button>
@@ -536,7 +598,10 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
       setPixOpen(true);
     } catch (e: any) {
       console.error("[checkout] submit error", e);
-      toast.error("Não foi possível gerar o PIX. Verifique os dados e tente novamente.");
+      const msg = typeof e?.message === "string" && e.message.length < 240
+        ? e.message
+        : "Não foi possível gerar o PIX. Verifique os dados e tente novamente.";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -748,16 +813,25 @@ function Summary({ children }: { children?: React.ReactNode }) {
   const { currency } = useCurrency();
   const c = findCycle(cart.cycle);
   return (
-    <aside className="rounded-2xl border border-slate-200 bg-white shadow-card p-6 h-fit sticky top-24">
-      <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">Resumo · {c.label}</div>
-      <div className="space-y-2 text-sm mb-4 max-h-48 overflow-y-auto">
+    <aside
+      className="rounded-2xl border border-slate-200/80 bg-white/80 backdrop-blur-xl shadow-glow-soft p-6 h-fit sticky top-24"
+      style={{ backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(248,250,252,0.85) 100%)" }}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Resumo do pedido</div>
+        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary">{c.label}</span>
+      </div>
+      <div className="space-y-2 text-sm mb-4 max-h-48 overflow-y-auto pr-1">
         {cart.items.map((it) => {
           const p = findProduct(it.productId);
           if (!p) return null;
           const total = lineMonthly(it.productId, cart.cycle) * c.months * it.qty;
           return (
             <div key={it.productId} className="flex justify-between gap-2">
-              <span className="text-slate-700 truncate">{p.name} ×{it.qty}</span>
+              <span className="text-slate-700 truncate">
+                {p.name} ×{it.qty}
+                {it.domain && <span className="block text-[11px] text-slate-400 truncate">{it.domain}</span>}
+              </span>
               <span className="font-semibold text-slate-900 shrink-0">{brl(total, currency)}</span>
             </div>
           );
@@ -766,9 +840,17 @@ function Summary({ children }: { children?: React.ReactNode }) {
       <div className="border-t border-slate-200 pt-3 space-y-1.5 text-sm">
         <Row label="Subtotal" value={brl(cart.totals.subtotal, currency)} />
         {cart.totals.discount > 0 && <Row label="Desconto" value={`- ${brl(cart.totals.discount, currency)}`} highlight />}
-        <Row label="Total" value={brl(cart.totals.total, currency)} bold />
+        <div className="flex justify-between items-baseline pt-2 mt-1 border-t border-slate-200">
+          <span className="text-sm font-semibold text-slate-700">Total</span>
+          <span className="text-2xl font-extrabold text-gradient-primary tracking-tight">{brl(cart.totals.total, currency)}</span>
+        </div>
       </div>
       {children}
+      <div className="mt-5 pt-4 border-t border-slate-100 space-y-1.5 text-[11px] text-slate-500">
+        <div className="flex items-center gap-1.5"><Lock className="h-3 w-3 text-emerald-600" /> Pagamento seguro · SSL 256-bit</div>
+        <div className="flex items-center gap-1.5"><ShieldCheck className="h-3 w-3 text-emerald-600" /> Processado pelo Mercado Pago</div>
+        <div className="flex items-center gap-1.5"><BadgeCheck className="h-3 w-3 text-sky-600" /> Cancele quando quiser</div>
+      </div>
     </aside>
   );
 }
