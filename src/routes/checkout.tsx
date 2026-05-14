@@ -330,7 +330,7 @@ function CycleStep({ onNext }: { onNext: () => void }) {
 
                 <div className="mt-4 flex items-baseline gap-1.5">
                   <span className="text-[11px] font-semibold text-slate-400">
-                    {currency === "AOA" ? "Kz" : "R$"}
+                    {currency === "AKZ" ? "Kz" : "R$"}
                   </span>
                   <span className="text-[34px] leading-none font-extrabold tracking-tight text-slate-900 tabular-nums">
                     {brl(monthly, currency).replace(/^[^\d]+/, "")}
