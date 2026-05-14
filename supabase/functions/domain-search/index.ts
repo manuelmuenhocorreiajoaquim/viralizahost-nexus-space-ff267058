@@ -1,23 +1,28 @@
 import { corsHeaders } from "../_shared/cors.ts";
 
-const FALLBACK_PRICES_BRL: Record<string, number> = {
+// Tabela OFICIAL de preços ViralizaHost (BRL/ano).
+// Esta é a única fonte de verdade dos preços de domínio.
+// O preço retornado pela API de disponibilidade é IGNORADO — usado apenas para verificar disponibilidade.
+const OFFICIAL_PRICES_BRL: Record<string, number> = {
   ".com": 59,
   ".com.br": 49,
+  ".ao": 250,
+  ".co.ao": 350,
   ".net": 69,
   ".org": 69,
+  ".tech": 49,
+  ".store": 28,
+  ".cloud": 29,
+  // Extensões adicionais (preço padrão para TLDs não listados na tabela oficial)
   ".io": 199,
   ".dev": 89,
   ".app": 89,
   ".co": 149,
   ".xyz": 39,
-  ".store": 99,
   ".online": 79,
-  ".tech": 99,
-  ".cloud": 129,
   ".site": 49,
-  ".ao": 250,
-  ".co.ao": 350,
 };
+const DEFAULT_PRICE_BRL = 79;
 
 const PRIMARY_TLDS = [
   ".com",
