@@ -384,3 +384,220 @@ export const getPaymentStatus = createServerFn({ method: "POST" })
       orderId: payment.order_id,
     };
   });
+
+/* ============================================================
+ * Helper: load order + recompute amount + lookup payer email
+ * ============================================================ */
+async function loadOrderForCharge(orderId: string) {
+  const { data: order, error } = await supabaseAdmin
+    .from("orders")
+    .select("id, user_id, total, currency, status, payment_status")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!order) throw new Error("Pedido não encontrado");
+
+  const { data: orderItems, error: itemsErr } = await supabaseAdmin
+    .from("order_items")
+    .select("product_name, unit_price, quantity, total, domain")
+    .eq("order_id", order.id);
+  if (itemsErr) throw new Error(itemsErr.message);
+
+  const itemsAmount = Number(
+    (orderItems ?? [])
+      .reduce((s, it) => s + Number(it.unit_price) * Math.max(1, Math.trunc(Number(it.quantity))), 0)
+      .toFixed(2),
+  );
+  const orderAmount = Number(Number(order.total).toFixed(2));
+  const amount = Number(
+    (Number.isFinite(itemsAmount) && itemsAmount > 0 ? itemsAmount : orderAmount).toFixed(2),
+  );
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error("Valor do pedido inválido");
+
+  let accountEmail: string | undefined;
+  if (order.user_id) {
+    const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(order.user_id);
+    accountEmail = userRes?.user?.email ?? undefined;
+  }
+  return { order, amount, accountEmail };
+}
+
+/* ============================================================
+ * Public publishable key (safe to expose to the browser)
+ * ============================================================ */
+export const getMercadoPagoPublicKey = createServerFn({ method: "GET" }).handler(async () => {
+  const mode = (process.env.MP_MODE ?? "test").toLowerCase();
+  const key =
+    mode === "live" ? process.env.MP_PUBLIC_KEY_LIVE : process.env.MP_PUBLIC_KEY_TEST;
+  if (!key) throw new Error("Mercado Pago public key not configured");
+  return { publicKey: key, mode };
+});
+
+/* ============================================================
+ * CARD
+ * ============================================================ */
+const CreateCardSchema = z.object({
+  orderId: z.string().uuid(),
+  cardToken: z.string().min(1),
+  paymentMethodId: z.string().min(1),
+  installments: z.number().int().min(1).max(24),
+  issuerId: z.string().optional(),
+  payerEmail: z.string().email(),
+  payerName: z.string().min(2).max(160),
+  identification: z.object({
+    type: z.enum(["CPF", "CNPJ"]),
+    number: z.string().min(8).max(20),
+  }),
+});
+
+export const createCardPayment = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => CreateCardSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { order, amount, accountEmail } = await loadOrderForCharge(data.orderId);
+    const payerEmail = data.payerEmail || accountEmail || "cliente@viralizahost.com";
+    const provider = getProvider();
+    const result = await provider.createCardPayment({
+      orderId: order.id,
+      amount,
+      payerEmail,
+      description: `Pedido ViralizaHost ${order.id.slice(0, 8)}`,
+      cardToken: data.cardToken,
+      paymentMethodId: data.paymentMethodId,
+      installments: data.installments,
+      issuerId: data.issuerId,
+      payerName: data.payerName,
+      identification: data.identification,
+    });
+
+    const { data: payment, error } = await supabaseAdmin
+      .from("payments")
+      .insert({
+        user_id: order.user_id ?? null,
+        order_id: order.id,
+        amount,
+        currency: "BRL",
+        method: "card",
+        provider: "mercadopago",
+        provider_payment_id: result.providerPaymentId,
+        status: result.status,
+        raw_response: result.raw as any,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+
+    await supabaseAdmin
+      .from("orders")
+      .update({
+        payment_status: result.status === "approved" ? "approved" : "pending",
+        status: result.status === "approved" ? "paid" : "pending",
+        payment_provider: "mercadopago",
+        payment_method: "card",
+      })
+      .eq("id", order.id);
+
+    if (result.status === "approved") {
+      await activateOrderAfterPayment(order.id);
+    }
+
+    return {
+      success: true,
+      paymentId: payment!.id,
+      status: result.status,
+      statusDetail: result.statusDetail ?? null,
+    };
+  });
+
+/* ============================================================
+ * BOLETO
+ * ============================================================ */
+const CreateBoletoSchema = z.object({
+  orderId: z.string().uuid(),
+  payerEmail: z.string().email(),
+  payerFirstName: z.string().min(1).max(80),
+  payerLastName: z.string().min(1).max(80),
+  identification: z.object({
+    type: z.enum(["CPF", "CNPJ"]),
+    number: z.string().min(8).max(20),
+  }),
+});
+
+export const createBoletoPayment = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => CreateBoletoSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { order, amount, accountEmail } = await loadOrderForCharge(data.orderId);
+    const payerEmail = data.payerEmail || accountEmail || "cliente@viralizahost.com";
+
+    // Reuse pending boleto if any
+    const { data: existing } = await supabaseAdmin
+      .from("payments")
+      .select("*")
+      .eq("order_id", order.id)
+      .eq("provider", "mercadopago")
+      .eq("method", "boleto")
+      .in("status", ["pending", "in_process"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existing && existing.expires_at && new Date(existing.expires_at) > new Date()) {
+      const raw = (existing.raw_response ?? {}) as Record<string, any>;
+      return {
+        success: true,
+        paymentId: existing.id,
+        ticketUrl: raw?.transaction_details?.external_resource_url ?? "",
+        barcode: raw?.barcode?.content ?? "",
+        amount,
+        expiresAt: existing.expires_at,
+        status: existing.status,
+      };
+    }
+
+    const provider = getProvider();
+    const result = await provider.createBoletoPayment({
+      orderId: order.id,
+      amount,
+      payerEmail,
+      description: `Pedido ViralizaHost ${order.id.slice(0, 8)}`,
+      payerFirstName: data.payerFirstName,
+      payerLastName: data.payerLastName,
+      identification: data.identification,
+    });
+
+    const { data: payment, error } = await supabaseAdmin
+      .from("payments")
+      .insert({
+        user_id: order.user_id ?? null,
+        order_id: order.id,
+        amount,
+        currency: "BRL",
+        method: "boleto",
+        provider: "mercadopago",
+        provider_payment_id: result.providerPaymentId,
+        status: result.status,
+        expires_at: result.expiresAt,
+        raw_response: result.raw as any,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+
+    await supabaseAdmin
+      .from("orders")
+      .update({
+        payment_status: "pending",
+        payment_provider: "mercadopago",
+        payment_method: "boleto",
+      })
+      .eq("id", order.id);
+
+    return {
+      success: true,
+      paymentId: payment!.id,
+      ticketUrl: result.ticketUrl,
+      barcode: result.barcode,
+      amount,
+      expiresAt: result.expiresAt,
+      status: result.status,
+    };
+  });
+
