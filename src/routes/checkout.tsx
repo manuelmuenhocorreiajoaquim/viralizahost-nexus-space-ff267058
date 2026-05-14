@@ -1212,7 +1212,8 @@ function PaymentStep({
           discount: Number(Number(cart.totals.discount).toFixed(2)),
           total,
           paymentMethod: method,
-          paymentProvider: method === "paypal" ? "paypal" : "mercadopago",
+          paymentProvider:
+            method === "paypal" ? "paypal" : method === "bank_bic" ? "manual_bic" : "mercadopago",
           customerEmail: user?.email ?? customer.email,
           customerName: customer.name,
           items,
