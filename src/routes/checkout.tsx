@@ -1193,10 +1193,14 @@ function Footer({
   onBack,
   onNext,
   nextLabel = "Continuar",
+  nextDisabled = false,
+  nextHint,
 }: {
   onBack?: () => void;
   onNext?: () => void;
   nextLabel?: string;
+  nextDisabled?: boolean;
+  nextHint?: string;
 }) {
   return (
     <div className="mt-10 flex items-center justify-between gap-3">
@@ -1211,12 +1215,18 @@ function Footer({
         <span />
       )}
       {onNext && (
-        <button
-          onClick={onNext}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-primary text-primary-foreground font-semibold shadow-glow hover:scale-[1.02] transition"
-        >
-          {nextLabel} <ArrowRight className="h-4 w-4" />
-        </button>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            onClick={onNext}
+            disabled={nextDisabled}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-primary text-primary-foreground font-semibold shadow-glow hover:scale-[1.02] transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          >
+            {nextLabel} <ArrowRight className="h-4 w-4" />
+          </button>
+          {nextDisabled && nextHint && (
+            <span className="text-xs text-amber-600 font-medium">{nextHint}</span>
+          )}
+        </div>
       )}
     </div>
   );
