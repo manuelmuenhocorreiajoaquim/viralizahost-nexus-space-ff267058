@@ -83,6 +83,28 @@ const STEPS = [
 ] as const;
 type StepId = (typeof STEPS)[number]["id"];
 
+/** Compute which steps are relevant for the current cart contents. */
+function computeActiveSteps(items: Array<{ productId: string }>): StepId[] {
+  const products = items
+    .map((i) => findProduct(i.productId))
+    .filter((p): p is Product => Boolean(p));
+  const hasCycleItem = products.some(productNeedsCycle);
+  const hasDomainItem =
+    products.some(productRequiresDomain) || products.some((p) => p.type === "domain");
+  // Email upsell only makes sense if a hosting product is present and no email plan yet.
+  const hasHosting = products.some((p) => p.type === "hosting");
+  const hasEmail = products.some((p) => p.type === "email");
+  const showEmailStep = hasHosting && !hasEmail;
+
+  const out: StepId[] = [];
+  if (hasCycleItem) out.push("cycle");
+  out.push("cart");
+  if (hasDomainItem) out.push("domain");
+  if (showEmailStep) out.push("email");
+  out.push("auth", "payment", "done");
+  return out;
+}
+
 const searchSchema = z.object({
   step: z.enum(["cycle", "cart", "domain", "email", "auth", "payment", "done"]).optional(),
   product: z.string().optional(),
