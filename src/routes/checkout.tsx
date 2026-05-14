@@ -1335,6 +1335,7 @@ function PaymentStep({
                 meta: <span className="text-xs font-bold text-red-700">Manual · Angola</span>,
                 available: true,
               },
+            ].map((m) => {
               const selected = method === m.id;
               return (
                 <motion.button
