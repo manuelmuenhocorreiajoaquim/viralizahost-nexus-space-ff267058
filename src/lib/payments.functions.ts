@@ -26,7 +26,7 @@ const CreateCheckoutOrderSchema = z.object({
   subtotal: z.number().finite().nonnegative(),
   discount: z.number().finite().nonnegative(),
   total: z.number().finite().positive(),
-  paymentMethod: z.literal("pix"),
+  paymentMethod: z.enum(["pix", "card", "boleto"]),
   paymentProvider: z.literal("mercadopago"),
   customerEmail: z.string().email().optional(),
   customerName: z.string().max(160).optional(),
