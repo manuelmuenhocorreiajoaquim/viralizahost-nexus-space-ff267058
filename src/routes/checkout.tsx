@@ -373,8 +373,7 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
             <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Domínios no pedido</div>
             {domainItems.map((it) => {
               const p = findProduct(it.productId)!;
-              const c = findCycle(cart.cycle);
-              const total = lineMonthly(it.productId, cart.cycle) * c.months * it.qty;
+              const total = lineTotal(it.productId, cart.cycle, it.qty);
               return (
                 <motion.div
                   key={it.productId}
@@ -390,12 +389,12 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
                     <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
                       <span className="inline-flex items-center gap-1"><ShieldCheck className="h-3 w-3 text-emerald-600" /> Proteção WHOIS</span>
                       <span className="inline-flex items-center gap-1"><Zap className="h-3 w-3 text-amber-500" /> Registro instantâneo</span>
-                      <span>· Ciclo: {c.label}</span>
+                      <span>· Registro anual</span>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-[11px] text-slate-500">Total</div>
-                    <div className="font-bold text-slate-900">R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div>
+                    <div className="text-[11px] text-slate-500">Preço</div>
+                    <div className="font-bold text-slate-900">{brl(total, currency)}<span className="text-[11px] font-medium text-slate-500">/ano</span></div>
                   </div>
                 </motion.div>
               );
