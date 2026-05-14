@@ -23,6 +23,13 @@ export type CreatePixInput = {
   payerEmail: string;
   description: string;
   expiresInMinutes?: number;
+  items?: Array<{
+    title: string;
+    quantity: number;
+    unit_price: number;
+    currency_id: "BRL";
+    description?: string;
+  }>;
 };
 
 export type CreatePixOutput = {
