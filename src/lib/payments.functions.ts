@@ -8,15 +8,16 @@ import { getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getProvider } from "@/integrations/payments/mercadopago/client.server";
+import { activateOrderAfterPayment } from "@/lib/payments-activation.server";
 
 const OrderItemSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   type: z.string().min(1),
-  price: z.number().finite().nonnegative(),
+  price: z.number().finite().positive(),
   quantity: z.number().int().positive(),
   domain: z.string().optional().nullable(),
-  total: z.number().finite().nonnegative().optional(),
+  total: z.number().finite().positive().optional(),
 });
 
 const CreateCheckoutOrderSchema = z.object({
@@ -75,18 +76,42 @@ export const createCheckoutOrder = createServerFn({ method: "POST" })
     }
     if (!order?.id) throw new Error("Não foi possível criar o pedido.");
 
-    const items = data.items.map((item) => ({
-      order_id: order.id,
-      product_id: item.id,
-      product_type: item.type,
-      product_name: item.name,
-      cycle: data.cycle,
-      unit_price: Number(item.price.toFixed(2)),
-      quantity: item.quantity,
-      total: Number((item.total ?? item.price * item.quantity).toFixed(2)),
-      domain: item.domain ?? null,
-      metadata: {},
-    }));
+    const items = data.items.map((item) => {
+      const quantity = Math.trunc(Number(item.quantity));
+      const unitPrice = Number(Number(item.price).toFixed(2));
+      const itemTotal = Number(Number(item.total ?? unitPrice * quantity).toFixed(2));
+      const title = String(item.domain || item.name || item.id).trim();
+      if (
+        !title ||
+        !Number.isInteger(quantity) ||
+        quantity <= 0 ||
+        !Number.isFinite(unitPrice) ||
+        unitPrice <= 0 ||
+        !Number.isFinite(itemTotal) ||
+        itemTotal <= 0
+      ) {
+        console.error("[checkout] invalid order item", {
+          item,
+          title,
+          quantity,
+          unitPrice,
+          itemTotal,
+        });
+        throw new Error("Item inválido no carrinho.");
+      }
+      return {
+        order_id: order.id,
+        product_id: item.id,
+        product_type: item.type,
+        product_name: title,
+        cycle: data.cycle,
+        unit_price: unitPrice,
+        quantity,
+        total: itemTotal,
+        domain: item.domain ?? null,
+        metadata: { billing: item.type === "domain" ? "annual" : "cycle" },
+      };
+    });
 
     const { error: itemsErr } = await supabaseAdmin.from("order_items").insert(items);
     if (itemsErr) {
@@ -119,11 +144,66 @@ export const createPixPayment = createServerFn({ method: "POST" })
       throw new Error(orderErr.message);
     }
     if (!order) throw new Error("Pedido não encontrado");
-    const amount = Number(Number(order.total).toFixed(2));
-    if (!Number.isFinite(amount) || amount <= 0) {
-      throw new Error("Valor do pedido inválido");
+    const { data: orderItems, error: itemsErr } = await supabaseAdmin
+      .from("order_items")
+      .select("product_name, product_type, unit_price, quantity, total, domain")
+      .eq("order_id", order.id);
+    if (itemsErr) {
+      console.error("[pix] order items lookup error", itemsErr);
+      throw new Error(itemsErr.message);
     }
-    console.log("[pix] creating payment", { orderId: order.id, amount, userId: order.user_id ?? null });
+
+    const mpItems = (orderItems ?? []).map((item) => {
+      const title = String(item.domain || item.product_name || "")
+        .trim()
+        .slice(0, 120);
+      const quantity = Math.max(1, Math.trunc(Number(item.quantity)));
+      const unitPrice = Number(Number(item.unit_price).toFixed(2));
+      const total = Number(Number(item.total).toFixed(2));
+      if (
+        !title ||
+        !Number.isInteger(quantity) ||
+        quantity <= 0 ||
+        !Number.isFinite(unitPrice) ||
+        unitPrice <= 0 ||
+        !Number.isFinite(total) ||
+        total <= 0
+      ) {
+        console.error("[pix] invalid MP item", { item, title, quantity, unitPrice, total });
+        throw new Error("Item inválido no carrinho.");
+      }
+      return {
+        title,
+        quantity,
+        unit_price: unitPrice,
+        currency_id: "BRL" as const,
+        description: item.product_type === "domain" ? `Registro anual do domínio ${title}` : title,
+      };
+    });
+    if (mpItems.length === 0) throw new Error("Item inválido no carrinho.");
+    const itemsAmount = Number(
+      mpItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0).toFixed(2),
+    );
+    const orderAmount = Number(Number(order.total).toFixed(2));
+    const amount = Number(
+      (Number.isFinite(itemsAmount) && itemsAmount > 0 ? itemsAmount : orderAmount).toFixed(2),
+    );
+    if (!Number.isFinite(amount) || amount <= 0) throw new Error("Valor do pedido inválido");
+    if (Math.abs(amount - orderAmount) > 0.01) {
+      console.warn("[pix] order total mismatch, syncing from items", {
+        orderId: order.id,
+        orderAmount,
+        itemsAmount,
+      });
+      await supabaseAdmin.from("orders").update({ total: amount }).eq("id", order.id);
+    }
+    console.log("[pix] creating payment", {
+      orderId: order.id,
+      amount,
+      itemCount: mpItems.length,
+      items: mpItems,
+      userId: order.user_id ?? null,
+    });
 
     // If a pending PIX already exists for this order, reuse it (avoids
     // duplicate charges if the user retries).
@@ -154,7 +234,9 @@ export const createPixPayment = createServerFn({ method: "POST" })
         qrCodeBase64: existing.qr_code_base64 ?? "",
         copyPasteCode: existing.pix_copy_paste ?? existing.qr_code,
         pixCopyPaste: existing.pix_copy_paste ?? existing.qr_code,
-        ticketUrl: (existing.raw_response as any)?.point_of_interaction?.transaction_data?.ticket_url ?? null,
+        ticketUrl:
+          (existing.raw_response as any)?.point_of_interaction?.transaction_data?.ticket_url ??
+          null,
         expiresAt: existing.expires_at,
         status: existing.status,
       };
@@ -178,9 +260,14 @@ export const createPixPayment = createServerFn({ method: "POST" })
         payerEmail,
         description: data.description ?? `Pedido ViralizaHost ${order.id.slice(0, 8)}`,
         expiresInMinutes: 30,
+        items: mpItems,
       });
     } catch (err: any) {
-      console.error("[pix] provider error", { message: err?.message, status: err?.status, data: err?.data });
+      console.error("[pix] provider error", {
+        message: err?.message,
+        status: err?.status,
+        data: err?.data,
+      });
       throw new Error(err?.message ?? "Falha ao gerar PIX no provedor");
     }
     console.log("[pix] provider response", {
@@ -257,7 +344,8 @@ export const getPaymentStatus = createServerFn({ method: "POST" })
     const authHeader = getRequestHeader("authorization");
     if (payment.user_id && authHeader?.startsWith("Bearer ")) {
       const { data: userRes } = await supabaseAdmin.auth.getUser(authHeader.replace("Bearer ", ""));
-      if (userRes?.user?.id && payment.user_id !== userRes.user.id) throw new Error("Acesso negado");
+      if (userRes?.user?.id && payment.user_id !== userRes.user.id)
+        throw new Error("Acesso negado");
     }
 
     // If still pending, ask MP for the latest snapshot to short-circuit
@@ -280,6 +368,9 @@ export const getPaymentStatus = createServerFn({ method: "POST" })
             .eq("id", payment.id);
           payment.status = snap.status;
           payment.paid_at = snap.paidAt ?? payment.paid_at;
+        }
+        if (snap.status === "approved" && payment.order_id) {
+          await activateOrderAfterPayment(payment.order_id);
         }
       } catch (e) {
         console.error("[payments] poll MP failed", e);

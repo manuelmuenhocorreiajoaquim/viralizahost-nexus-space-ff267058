@@ -72,21 +72,31 @@ function fallbackSuggestions(query: string): DomainResult[] {
   };
   const tlds = [".com", ".net", ".org", ".com.br", ".ao", ".co.ao", ".tech", ".cloud", ".store"];
 
-  return Array.from(new Set(variants.flatMap((variant, index) => {
-    const scope = index === 0 ? tlds : [".com", ".net", ".com.br", ".cloud"];
-    return scope.map((ext) => `${variant}${ext}`);
-  }))).slice(0, 24).map((domain) => {
-    const ext = domain.endsWith(".com.br") ? ".com.br" : domain.endsWith(".co.ao") ? ".co.ao" : domain.match(/\.[^.]+$/)?.[0] ?? ".com";
-    return {
-      domain,
-      ext,
-      priceBRL: prices[ext] ?? 79,
-      available: false,
-      status: "suggestion" as const,
-      source: "fallback",
-      suggested: true,
-    };
-  });
+  return Array.from(
+    new Set(
+      variants.flatMap((variant, index) => {
+        const scope = index === 0 ? tlds : [".com", ".net", ".com.br", ".cloud"];
+        return scope.map((ext) => `${variant}${ext}`);
+      }),
+    ),
+  )
+    .slice(0, 24)
+    .map((domain) => {
+      const ext = domain.endsWith(".com.br")
+        ? ".com.br"
+        : domain.endsWith(".co.ao")
+          ? ".co.ao"
+          : (domain.match(/\.[^.]+$/)?.[0] ?? ".com");
+      return {
+        domain,
+        ext,
+        priceBRL: prices[ext] ?? 79,
+        available: false,
+        status: "suggestion" as const,
+        source: "fallback",
+        suggested: true,
+      };
+    });
 }
 
 export default function DomainSearchDialog({
@@ -128,12 +138,16 @@ export default function DomainSearchDialog({
         console.log("[domain-search] response", data);
         const nextResults = Array.isArray(data?.results) ? data.results : [];
         setResults(nextResults.length > 0 ? nextResults : fallbackSuggestions(cleanQuery));
-        setWarning(data?.warning ?? (nextResults.length ? null : "Não foi possível consultar o domínio."));
-      } catch (e: any) {
+        setWarning(
+          data?.warning ?? (nextResults.length ? null : "Não foi possível consultar o domínio."),
+        );
+      } catch (e: unknown) {
         if (cancelled) return;
         console.error("[domain-search] failed", e);
         setResults(fallbackSuggestions(cleanQuery));
-        setWarning("Não foi possível consultar o domínio. Mostrando sugestões alternativas automáticas.");
+        setWarning(
+          "Não foi possível consultar o domínio. Mostrando sugestões alternativas automáticas.",
+        );
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -145,8 +159,16 @@ export default function DomainSearchDialog({
   }, [open, cleanQuery]);
 
   const buy = (r: DomainResult) => {
-    const product = registerDomainProduct(r.domain, r.priceBRL);
-    add(product.id);
+    const annualPrice = Number(Number(r.priceBRL).toFixed(2));
+    const product = registerDomainProduct(r.domain, annualPrice);
+    add(product.id, {
+      domain: r.domain,
+      name: r.domain,
+      type: "domain",
+      priceBRL: annualPrice,
+      billing: "annual",
+      qty: 1,
+    });
     setDomain(product.id, r.domain);
     setCycle("annual");
     toast.success(`${r.domain} adicionado ao carrinho`);
@@ -175,7 +197,10 @@ export default function DomainSearchDialog({
               </DialogTitle>
               <DialogDescription className="text-muted-foreground">
                 {cleanQuery ? (
-                  <>Disponibilidade, extensões e sugestões para <span className="font-bold text-foreground">{cleanQuery}</span></>
+                  <>
+                    Disponibilidade, extensões e sugestões para{" "}
+                    <span className="font-bold text-foreground">{cleanQuery}</span>
+                  </>
                 ) : (
                   "Digite um nome para pesquisar."
                 )}
@@ -209,12 +234,15 @@ export default function DomainSearchDialog({
                     className="space-y-4"
                   >
                     <div className="flex items-center justify-center py-4 gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                      A verificar disponibilidade em tempo real...
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />A verificar
+                      disponibilidade em tempo real...
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {[0, 1, 2, 3, 4, 5].map((i) => (
-                        <div key={i} className="p-4 rounded-2xl border border-border bg-card shadow-sm">
+                        <div
+                          key={i}
+                          className="p-4 rounded-2xl border border-border bg-card shadow-sm"
+                        >
                           <div className="flex items-start gap-3">
                             <Skeleton className="h-10 w-10 rounded-xl" />
                             <div className="flex-1 space-y-3">
@@ -266,7 +294,8 @@ export default function DomainSearchDialog({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {visibleResults.map((r, i) => {
-                        const isSuggestion = !r.available && (r.status === "suggestion" || r.suggested);
+                        const isSuggestion =
+                          !r.available && (r.status === "suggestion" || r.suggested);
                         return (
                           <motion.div
                             key={`${r.domain}-${i}`}
@@ -282,20 +311,32 @@ export default function DomainSearchDialog({
                                   : "border-destructive/20 hover:border-destructive/35"
                             }`}
                           >
-                            {r.available && <div className="absolute inset-0 bg-success/5 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                            {r.available && (
+                              <div className="absolute inset-0 bg-success/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            )}
                             <div className="relative flex h-full flex-col gap-4">
                               <div className="flex items-start gap-3">
-                                <div className={`h-10 w-10 rounded-xl grid place-items-center shrink-0 ${
-                                  r.available
-                                    ? "bg-success/10 text-success"
-                                    : isSuggestion
-                                      ? "bg-primary/10 text-primary"
-                                      : "bg-destructive/10 text-destructive"
-                                }`}>
-                                  {r.available ? <Check className="h-5 w-5" /> : isSuggestion ? <Sparkles className="h-5 w-5" /> : <X className="h-5 w-5" />}
+                                <div
+                                  className={`h-10 w-10 rounded-xl grid place-items-center shrink-0 ${
+                                    r.available
+                                      ? "bg-success/10 text-success"
+                                      : isSuggestion
+                                        ? "bg-primary/10 text-primary"
+                                        : "bg-destructive/10 text-destructive"
+                                  }`}
+                                >
+                                  {r.available ? (
+                                    <Check className="h-5 w-5" />
+                                  ) : isSuggestion ? (
+                                    <Sparkles className="h-5 w-5" />
+                                  ) : (
+                                    <X className="h-5 w-5" />
+                                  )}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <div className="font-semibold text-foreground break-words">{r.domain}</div>
+                                  <div className="font-semibold text-foreground break-words">
+                                    {r.domain}
+                                  </div>
                                   <div className="mt-1 flex flex-wrap items-center gap-2">
                                     {r.available ? (
                                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success/10 text-success text-[10px] font-bold border border-success/20">
@@ -310,7 +351,9 @@ export default function DomainSearchDialog({
                                         <X className="h-3 w-3" /> Ocupado
                                       </span>
                                     )}
-                                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-normal">{r.ext}</span>
+                                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-normal">
+                                      {r.ext}
+                                    </span>
                                   </div>
                                 </div>
                               </div>
@@ -319,7 +362,10 @@ export default function DomainSearchDialog({
                                 <div>
                                   <div className="text-xs text-muted-foreground">Preço anual</div>
                                   <div className="text-lg font-bold text-foreground">
-                                    {formatPrice(`R$ ${r.priceBRL}`, currency)}<span className="text-xs font-medium text-muted-foreground">/ano</span>
+                                    {formatPrice(`R$ ${r.priceBRL}`, currency)}
+                                    <span className="text-xs font-medium text-muted-foreground">
+                                      /ano
+                                    </span>
                                   </div>
                                 </div>
 

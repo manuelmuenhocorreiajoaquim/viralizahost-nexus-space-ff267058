@@ -11,12 +11,27 @@ import type {
 
 const MP_API = "https://api.mercadopago.com";
 
+type MercadoPagoResponse = {
+  id?: string | number;
+  status?: string | null;
+  message?: string;
+  error?: string;
+  date_approved?: string | null;
+  point_of_interaction?: {
+    transaction_data?: {
+      qr_code?: string;
+      qr_code_base64?: string;
+    };
+  };
+  raw?: string;
+};
+
+type MercadoPagoError = Error & { status?: number; data?: MercadoPagoResponse | null };
+
 function resolveAccessToken(): string {
   const mode = (process.env.MP_MODE ?? "test").toLowerCase();
   const token =
-    mode === "live"
-      ? process.env.MP_ACCESS_TOKEN_LIVE
-      : process.env.MP_ACCESS_TOKEN_TEST;
+    mode === "live" ? process.env.MP_ACCESS_TOKEN_LIVE : process.env.MP_ACCESS_TOKEN_TEST;
   if (!token) {
     throw new Error(
       `Mercado Pago access token missing for mode "${mode}". Configure MP_ACCESS_TOKEN_${mode.toUpperCase()}.`,
@@ -48,7 +63,7 @@ function mapStatus(s: string | undefined | null): PaymentStatus {
   }
 }
 
-async function mpFetch(path: string, init: RequestInit = {}): Promise<any> {
+async function mpFetch(path: string, init: RequestInit = {}): Promise<MercadoPagoResponse> {
   const token = resolveAccessToken();
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Bearer ${token}`);
@@ -57,18 +72,18 @@ async function mpFetch(path: string, init: RequestInit = {}): Promise<any> {
   }
   const res = await fetch(`${MP_API}${path}`, { ...init, headers });
   const text = await res.text();
-  let data: any = null;
+  let data: MercadoPagoResponse | null = null;
   try {
-    data = text ? JSON.parse(text) : null;
+    data = text ? (JSON.parse(text) as MercadoPagoResponse) : null;
   } catch {
     data = { raw: text };
   }
+  data ??= {};
   if (!res.ok) {
-    const msg =
-      data?.message || data?.error || `Mercado Pago error ${res.status}`;
-    const err = new Error(msg);
-    (err as any).status = res.status;
-    (err as any).data = data;
+    const msg = data?.message || data?.error || `Mercado Pago error ${res.status}`;
+    const err: MercadoPagoError = new Error(msg);
+    err.status = res.status;
+    err.data = data;
     throw err;
   }
   return data;
@@ -83,6 +98,25 @@ export const mercadopago: PaymentProvider = {
     // MP requires ISO with timezone offset; toISOString returns Z which is accepted.
     const expirationStr = expires.toISOString().replace("Z", "-00:00");
 
+    const sanitizedItems = (input.items ?? [])
+      .map((item) => ({
+        title: String(item.title ?? "")
+          .trim()
+          .slice(0, 120),
+        quantity: Math.max(1, Math.trunc(Number(item.quantity))),
+        unit_price: Number(Number(item.unit_price).toFixed(2)),
+        currency_id: "BRL" as const,
+        description: item.description ? String(item.description).trim().slice(0, 255) : undefined,
+      }))
+      .filter(
+        (item) =>
+          item.title.length > 0 &&
+          Number.isInteger(item.quantity) &&
+          item.quantity > 0 &&
+          Number.isFinite(item.unit_price) &&
+          item.unit_price > 0,
+      );
+
     const body = {
       transaction_amount: Number(input.amount.toFixed(2)),
       description: input.description,
@@ -92,6 +126,7 @@ export const mercadopago: PaymentProvider = {
       date_of_expiration: expirationStr,
       notification_url: process.env.MP_NOTIFICATION_URL || undefined,
       metadata: { order_id: input.orderId },
+      ...(sanitizedItems.length ? { additional_info: { items: sanitizedItems } } : {}),
     };
 
     const idemKey = `${input.orderId}-${Date.now()}`;
@@ -103,6 +138,8 @@ export const mercadopago: PaymentProvider = {
     console.log("[mercadopago] create pix raw response", {
       id: data?.id ?? null,
       status: data?.status ?? null,
+      amount: body.transaction_amount,
+      itemCount: sanitizedItems.length,
       hasPointOfInteraction: !!data?.point_of_interaction,
       hasTransactionData: !!data?.point_of_interaction?.transaction_data,
     });
@@ -125,9 +162,7 @@ export const mercadopago: PaymentProvider = {
   },
 
   async getPaymentStatus(providerPaymentId: string): Promise<PaymentSnapshot> {
-    const data = await mpFetch(
-      `/v1/payments/${encodeURIComponent(providerPaymentId)}`,
-    );
+    const data = await mpFetch(`/v1/payments/${encodeURIComponent(providerPaymentId)}`);
     if (!data?.id) {
       console.error("[mercadopago] status invalid response", data);
       throw new Error("Mercado Pago não retornou o ID do pagamento.");
