@@ -37,7 +37,11 @@ import {
   findProduct,
   cyclePeriodTotal,
   cycleSavings,
+  productRequiresDomain,
+  productNeedsCycle,
+  isOneTimeService,
   type CycleId,
+  type Product,
 } from "@/lib/catalog";
 import { useCurrency, formatPrice } from "@/lib/currency";
 import { useAuth } from "@/lib/use-auth";
