@@ -61,6 +61,9 @@ export const CATALOG: Product[] = [
   { id: "email-business", type: "email", name: "E-mail Business", basePriceBRL: 59, needsDomain: true },
   { id: "email-premium", type: "email", name: "E-mail Premium", basePriceBRL: 99, needsDomain: true },
   // IA
+  { id: "ai-chatbot-starter", type: "ai", name: "Chatbot IA Starter", basePriceBRL: 299 },
+  { id: "ai-automation-business", type: "ai", name: "Automação Business", basePriceBRL: 799 },
+  { id: "ai-agent-premium", type: "ai", name: "Agente IA Premium", basePriceBRL: 1499 },
   { id: "ai-start", type: "ai", name: "IA Start", basePriceBRL: 350 },
   { id: "ai-pro", type: "ai", name: "IA Pro", basePriceBRL: 890 },
   { id: "ai-enterprise", type: "ai", name: "IA Enterprise", basePriceBRL: 2400 },
@@ -70,10 +73,16 @@ export const CATALOG: Product[] = [
   { id: "traf-perf", type: "traffic", name: "Performance Business", basePriceBRL: 1200 },
   { id: "traf-growth", type: "traffic", name: "Growth Premium", basePriceBRL: 2500 },
   // Design
+  { id: "design-flyer", type: "design", name: "Flyer Digital", basePriceBRL: 80 },
+  { id: "design-social-kit", type: "design", name: "Social Media Kit", basePriceBRL: 350 },
+  { id: "design-branding-premium", type: "design", name: "Branding Premium", basePriceBRL: 1500 },
   { id: "design-essential", type: "design", name: "Design Essential", basePriceBRL: 690 },
   { id: "design-brand", type: "design", name: "Brand Premium", basePriceBRL: 1490 },
   { id: "design-studio", type: "design", name: "Studio Completo", basePriceBRL: 2890 },
   // Audiovisual
+  { id: "av-reels-prof", type: "audiovisual", name: "Reels Profissional", basePriceBRL: 250 },
+  { id: "av-institutional", type: "audiovisual", name: "Vídeo Institucional", basePriceBRL: 1500 },
+  { id: "av-event", type: "audiovisual", name: "Cobertura de Evento", basePriceBRL: 2500 },
   { id: "av-reels", type: "audiovisual", name: "Pacote Reels", basePriceBRL: 990 },
   { id: "av-vsl", type: "audiovisual", name: "VSL Premium", basePriceBRL: 2490 },
   { id: "av-studio", type: "audiovisual", name: "Studio Audiovisual", basePriceBRL: 4990 },
