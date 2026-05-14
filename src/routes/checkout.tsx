@@ -45,6 +45,7 @@ import { supabase } from "@/integrations/supabase/client";
 import PixPaymentDialog from "@/components/checkout/PixPaymentDialog";
 import CardPaymentDialog from "@/components/checkout/CardPaymentDialog";
 import BoletoPaymentDialog from "@/components/checkout/BoletoPaymentDialog";
+import PayPalPaymentDialog from "@/components/checkout/PayPalPaymentDialog";
 import DomainSearchDialog from "@/components/site/DomainSearchDialog";
 import { createCheckoutOrder } from "@/lib/payments.functions";
 
@@ -1131,7 +1132,7 @@ function PaymentStep({
   const { user } = useAuth();
   const { currency } = useCurrency();
   const createOrderFn = useServerFn(createCheckoutOrder);
-  const [method, setMethod] = useState<"pix" | "card" | "boleto">("pix");
+  const [method, setMethod] = useState<"pix" | "card" | "boleto" | "paypal">("pix");
   const [loading, setLoading] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
   const [pendingEmail, setPendingEmail] = useState<string | undefined>();
@@ -1140,6 +1141,7 @@ function PaymentStep({
   const [pixOpen, setPixOpen] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
   const [boletoOpen, setBoletoOpen] = useState(false);
+  const [paypalOpen, setPaypalOpen] = useState(false);
 
   const submit = async () => {
     if (cart.items.length === 0) {
