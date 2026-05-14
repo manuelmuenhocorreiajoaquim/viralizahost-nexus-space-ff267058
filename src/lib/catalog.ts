@@ -75,15 +75,39 @@ export function findProduct(id: string): Product | undefined {
 export function registerDomainProduct(domain: string, priceBRLAnnual: number): Product {
   const id = `domain:${domain.toLowerCase()}`;
   const existing = CATALOG.find((p) => p.id === id);
-  if (existing) return existing;
+  if (existing) {
+    // Keep price in sync with latest search result.
+    existing.basePriceBRL = priceBRLAnnual;
+    existing.billing = "annual";
+    return existing;
+  }
   const product: Product = {
     id,
     type: "domain",
     name: domain.toLowerCase(),
-    basePriceBRL: Math.round((priceBRLAnnual / 12) * 100) / 100,
+    basePriceBRL: priceBRLAnnual,
+    billing: "annual",
   };
   CATALOG.push(product);
   return product;
+}
+
+/** Unit price shown for an item (per month for recurring, per year for annual). */
+export function productUnitPrice(product: Product, cycle: Cycle): number {
+  if (isAnnualProduct(product)) return product.basePriceBRL;
+  return monthlyPrice(product.basePriceBRL, cycle);
+}
+
+/** Total billed for one quantity unit over the chosen cycle. */
+export function productPeriodTotal(product: Product, cycle: Cycle): number {
+  if (isAnnualProduct(product)) return product.basePriceBRL;
+  return cyclePeriodTotal(product.basePriceBRL, cycle);
+}
+
+/** Reference subtotal (no cycle discount) for one unit, used to compute discount display. */
+export function productSubtotalRef(product: Product, cycle: Cycle): number {
+  if (isAnnualProduct(product)) return product.basePriceBRL;
+  return Math.round(product.basePriceBRL * cycle.months * 100) / 100;
 }
 
 export type CycleId = "monthly" | "semestral" | "annual" | "biennial" | "triennial";
