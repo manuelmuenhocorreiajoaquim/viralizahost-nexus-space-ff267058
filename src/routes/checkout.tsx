@@ -1300,6 +1300,23 @@ function PaymentStep({
                 meta: <span className="text-xs font-bold text-slate-700">Disponível</span>,
                 available: true,
               },
+              {
+                id: "paypal" as const,
+                label: "PayPal",
+                desc: "Pague com sua conta PayPal ou cartão internacional",
+                icon: (
+                  <div className="grid h-11 w-16 place-items-center rounded-xl bg-white ring-1 ring-slate-200">
+                    <span className="text-[15px] font-black tracking-tight">
+                      <span className="text-[#003087]">Pay</span>
+                      <span className="text-[#009cde]">Pal</span>
+                    </span>
+                  </div>
+                ),
+                meta: (
+                  <span className="text-xs font-bold text-amber-700">Sandbox (teste)</span>
+                ),
+                available: true,
+              },
             ].map((m) => {
               const selected = method === m.id;
               return (
