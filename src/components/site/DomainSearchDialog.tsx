@@ -323,28 +323,18 @@ export default function DomainSearchDialog({
                                   </div>
                                 </div>
 
-                                {r.available ? (
-                                  <button
-                                    onClick={() => buy(r)}
-                                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-primary text-primary-foreground text-sm font-semibold shadow-glow-soft hover:scale-[1.02] transition-all"
-                                  >
-                                    <ShoppingCart className="h-4 w-4" /> Comprar domínio
-                                  </button>
-                                ) : isSuggestion ? (
-                                  <button
-                                    onClick={() => setShowAlternatives(true)}
-                                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary/10 text-primary text-sm font-semibold hover:bg-primary/15 transition"
-                                  >
-                                    Ver alternativa <ArrowRight className="h-3.5 w-3.5" />
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() => setShowAlternatives(true)}
-                                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-muted text-foreground text-sm font-semibold hover:bg-muted/80 transition"
-                                  >
-                                    Ver alternativas <ArrowRight className="h-3.5 w-3.5" />
-                                  </button>
-                                )}
+                                <button
+                                  onClick={() => buy(r)}
+                                  className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02] ${
+                                    r.available
+                                      ? "bg-gradient-primary text-primary-foreground shadow-glow-soft"
+                                      : isSuggestion
+                                        ? "bg-primary/10 text-primary hover:bg-primary/15"
+                                        : "bg-muted text-foreground hover:bg-muted/80"
+                                  }`}
+                                >
+                                  <ShoppingCart className="h-4 w-4" /> Comprar domínio
+                                </button>
                               </div>
                             </div>
                           </motion.div>
