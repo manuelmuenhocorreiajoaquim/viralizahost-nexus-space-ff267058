@@ -64,7 +64,6 @@ function Page() {
       <PageHeader
         title="Pagamentos Bancários"
         subtitle="Comprovativos de transferência via Banco BIC aguardando validação manual."
-        icon={Banknote}
       />
 
       {isLoading ? (
