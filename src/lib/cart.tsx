@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { CATALOG, type CycleId, findCycle, findProduct, monthlyPrice, cyclePeriodTotal } from "./catalog";
+import { CATALOG, type CycleId, findCycle, findProduct, monthlyPrice, cyclePeriodTotal, isAnnualProduct, productUnitPrice, productPeriodTotal, productSubtotalRef } from "./catalog";
 
 export type CartItem = {
   productId: string;
