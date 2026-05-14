@@ -108,21 +108,21 @@ export function registerDomainProduct(domain: string, priceBRLAnnual: number): P
   return product;
 }
 
-/** Unit price shown for an item (per month for recurring, per year for annual). */
+/** Unit price shown for an item (per month for recurring, per year for annual, per project for one-time). */
 export function productUnitPrice(product: Product, cycle: Cycle): number {
-  if (isAnnualProduct(product)) return product.basePriceBRL;
+  if (isAnnualProduct(product) || isOneTimeService(product)) return product.basePriceBRL;
   return monthlyPrice(product.basePriceBRL, cycle);
 }
 
 /** Total billed for one quantity unit over the chosen cycle. */
 export function productPeriodTotal(product: Product, cycle: Cycle): number {
-  if (isAnnualProduct(product)) return product.basePriceBRL;
+  if (isAnnualProduct(product) || isOneTimeService(product)) return product.basePriceBRL;
   return cyclePeriodTotal(product.basePriceBRL, cycle);
 }
 
 /** Reference subtotal (no cycle discount) for one unit, used to compute discount display. */
 export function productSubtotalRef(product: Product, cycle: Cycle): number {
-  if (isAnnualProduct(product)) return product.basePriceBRL;
+  if (isAnnualProduct(product) || isOneTimeService(product)) return product.basePriceBRL;
   return Math.round(product.basePriceBRL * cycle.months * 100) / 100;
 }
 
