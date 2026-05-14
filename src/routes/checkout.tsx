@@ -1133,19 +1133,17 @@ function PaymentStep({
   const createOrderFn = useServerFn(createCheckoutOrder);
   const [method, setMethod] = useState<"pix" | "card" | "boleto">("pix");
   const [loading, setLoading] = useState(false);
-  const [pixOrderId, setPixOrderId] = useState<string | null>(null);
-  const [pixCustomerEmail, setPixCustomerEmail] = useState<string | undefined>();
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string | undefined>();
+  const [pendingName, setPendingName] = useState<string | undefined>();
+  const [pendingAmount, setPendingAmount] = useState(0);
   const [pixOpen, setPixOpen] = useState(false);
+  const [cardOpen, setCardOpen] = useState(false);
+  const [boletoOpen, setBoletoOpen] = useState(false);
 
   const submit = async () => {
-    console.log("cart", cart);
-    console.log("user", user);
     if (cart.items.length === 0) {
       toast.error("Carrinho vazio.");
-      return;
-    }
-    if (method !== "pix") {
-      toast.info("Cartão e boleto serão liberados em breve. Use PIX por enquanto.");
       return;
     }
     const total = Number(Number(cart.totals.total).toFixed(2));
