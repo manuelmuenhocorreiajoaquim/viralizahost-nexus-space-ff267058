@@ -43,6 +43,8 @@ import { useCurrency, formatPrice } from "@/lib/currency";
 import { useAuth } from "@/lib/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import PixPaymentDialog from "@/components/checkout/PixPaymentDialog";
+import CardPaymentDialog from "@/components/checkout/CardPaymentDialog";
+import BoletoPaymentDialog from "@/components/checkout/BoletoPaymentDialog";
 import DomainSearchDialog from "@/components/site/DomainSearchDialog";
 import { createCheckoutOrder } from "@/lib/payments.functions";
 
