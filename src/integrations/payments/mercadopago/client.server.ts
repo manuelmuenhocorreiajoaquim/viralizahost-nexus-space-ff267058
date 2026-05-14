@@ -105,7 +105,6 @@ export const mercadopago: PaymentProvider = {
           .slice(0, 120),
         quantity: Math.max(1, Math.trunc(Number(item.quantity))),
         unit_price: Number(Number(item.unit_price).toFixed(2)),
-        currency_id: "BRL" as const,
         description: item.description ? String(item.description).trim().slice(0, 255) : undefined,
       }))
       .filter(
