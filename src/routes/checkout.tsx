@@ -696,61 +696,84 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
 
   return (
     <div>
-      <Header title="Pagamento" subtitle="Escolha como quer pagar — rápido, seguro e processado pelo Mercado Pago." />
+      <Header title="Pagamento" subtitle="Finalize com PIX em ambiente criptografado e confirmação automática." />
       <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-3">
+        <div className="lg:col-span-2 space-y-5">
+          <div className="rounded-[28px] border border-white/70 bg-white/72 p-4 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur-2xl sm:p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Método de pagamento</div>
+                <div className="mt-1 text-lg font-black tracking-tight text-slate-950">Gateway seguro ViralizaHost</div>
+              </div>
+              <MercadoPagoMark />
+            </div>
           {[
-            { id: "pix" as const, label: "Pix", desc: "Aprovação imediata · Mercado Pago", Icon: QrCode, tint: "from-emerald-500 to-teal-500", available: true },
-            { id: "card" as const, label: "Cartão de crédito", desc: "Em breve · Visa, Mastercard, Elo", Icon: CreditCard, tint: "from-indigo-500 to-blue-500", available: false },
-            { id: "boleto" as const, label: "Boleto bancário", desc: "Em breve · 1–2 dias úteis", Icon: FileText, tint: "from-slate-500 to-slate-700", available: false },
+            { id: "pix" as const, label: "PIX instantâneo", desc: "QR Code e copia e cola com aprovação em tempo real", icon: <PixBrandIcon className="h-9 w-9" />, meta: <span className="text-xs font-bold text-emerald-700">Disponível agora</span>, available: true },
+            { id: "card" as const, label: "Cartão de crédito", desc: "Checkout com Visa, Mastercard e Elo", icon: <CardBrands />, meta: <span className="text-xs font-bold text-slate-500">Em breve</span>, available: false },
+            { id: "boleto" as const, label: "Boleto bancário", desc: "Compensação tradicional em 1–2 dias úteis", icon: <div className="grid h-11 w-11 place-items-center rounded-xl bg-white ring-1 ring-slate-200"><FileText className="h-6 w-6 text-slate-700" /></div>, meta: <span className="text-xs font-bold text-slate-500">Em breve</span>, available: false },
           ].map((m) => {
             const selected = method === m.id;
             return (
               <motion.button
                 key={m.id}
-                whileHover={{ y: -2 }}
+                whileHover={{ y: m.available ? -4 : -1 }}
+                whileTap={{ scale: m.available ? 0.99 : 1 }}
                 onClick={() => setMethod(m.id)}
-                className={`w-full text-left p-5 rounded-2xl border transition-all bg-white relative overflow-hidden ${
-                  selected ? "border-primary ring-2 ring-primary/20 shadow-glow-soft" : "border-slate-200 shadow-card hover:border-slate-300"
-                } ${!m.available ? "opacity-70" : ""}`}
+                className={`group relative mb-3 w-full overflow-hidden rounded-3xl border p-5 text-left transition-all ${
+                  selected
+                    ? "border-blue-300 bg-gradient-to-br from-white via-blue-50/70 to-white shadow-[0_20px_60px_rgba(37,99,235,0.18)] ring-4 ring-blue-500/10"
+                    : "border-slate-200/80 bg-white/86 shadow-[0_12px_38px_rgba(15,23,42,0.07)] hover:border-blue-200 hover:shadow-[0_18px_52px_rgba(37,99,235,0.11)]"
+                } ${!m.available ? "opacity-75" : ""}`}
               >
-                <div className="flex items-center gap-4">
-                  <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${m.tint} grid place-items-center text-white shadow-md shrink-0`}>
-                    <m.Icon className="h-5 w-5" />
+                {selected && <motion.div layoutId="payment-glow" className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-blue-500 via-cyan-400 to-emerald-400" />}
+                <div className="relative flex items-center gap-4">
+                  <div className={`grid min-h-16 min-w-16 place-items-center rounded-2xl border shadow-inner transition ${selected ? "border-blue-200 bg-white" : "border-slate-100 bg-slate-50"}`}>
+                    {m.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <div className="font-semibold text-slate-900">{m.label}</div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="text-base font-black tracking-tight text-slate-950">{m.label}</div>
                       {m.id === "pix" && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 text-[10px] font-bold">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black text-emerald-700 ring-1 ring-emerald-200">
                           <Zap className="h-3 w-3" /> Recomendado
                         </span>
                       )}
                       {!m.available && (
-                        <span className="rounded-full bg-slate-100 text-slate-500 px-2 py-0.5 text-[10px] font-semibold">Em breve</span>
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">Indisponível</span>
                       )}
                     </div>
-                    <div className="text-xs text-slate-500 mt-0.5">{m.desc}</div>
+                    <div className="mt-1 text-sm leading-relaxed text-slate-500">{m.desc}</div>
                   </div>
-                  <div className={`h-5 w-5 rounded-full border-2 transition ${selected ? "border-primary bg-primary ring-4 ring-primary/15" : "border-slate-300"}`} />
+                  <div className="hidden shrink-0 text-right sm:block">{m.meta}</div>
+                  <div className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 transition ${selected ? "border-blue-600 bg-blue-600 text-white ring-4 ring-blue-500/15" : "border-slate-300 bg-white"}`}>
+                    {selected && <Check className="h-4 w-4" />}
+                  </div>
                 </div>
               </motion.button>
             );
           })}
+          </div>
 
-          <div className="grid sm:grid-cols-2 gap-3 pt-2">
-            <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4 text-xs text-emerald-800 flex items-start gap-3">
+          <div className="grid sm:grid-cols-3 gap-3 pt-1">
+            <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4 text-xs text-emerald-800 flex items-start gap-3 shadow-sm">
               <ShieldCheck className="h-5 w-5 shrink-0 mt-0.5" />
               <div>
-                <div className="font-bold text-emerald-900 text-[13px]">Compra 100% segura</div>
-                Criptografia SSL 256-bit · Dados nunca tocam o nosso servidor
+                <div className="font-bold text-emerald-900 text-[13px]">Pagamento seguro</div>
+                Ambiente criptografado e antifraude ativo
               </div>
             </div>
-            <div className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-4 text-xs text-sky-900 flex items-start gap-3">
+            <div className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-4 text-xs text-sky-900 flex items-start gap-3 shadow-sm">
               <BadgeCheck className="h-5 w-5 shrink-0 mt-0.5 text-sky-600" />
               <div>
-                <div className="font-bold text-[13px]">Processado por Mercado Pago</div>
-                Mais de 100 milhões de transações por mês na América Latina
+                <div className="font-bold text-[13px]">SSL 256-bit</div>
+                Conexão protegida durante toda a compra
+              </div>
+            </div>
+            <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-4 text-xs text-blue-900 flex items-start gap-3 shadow-sm">
+              <Lock className="h-5 w-5 shrink-0 mt-0.5 text-blue-600" />
+              <div>
+                <div className="font-bold text-[13px]">Anti-fraude</div>
+                Validação automática Mercado Pago
               </div>
             </div>
           </div>
@@ -761,10 +784,11 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
             whileTap={{ scale: loading || method !== "pix" ? 1 : 0.98 }}
             onClick={submit}
             disabled={loading || method !== "pix"}
-            className="w-full mt-4 py-3.5 rounded-xl bg-gradient-primary text-primary-foreground font-bold inline-flex items-center justify-center gap-2 disabled:opacity-50 shadow-glow text-[15px] tracking-tight"
+            className="relative mt-5 inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-500 py-4 text-[15px] font-black tracking-tight text-white shadow-[0_18px_45px_rgba(37,99,235,0.38)] transition hover:shadow-[0_22px_60px_rgba(37,99,235,0.48)] disabled:opacity-50"
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
-            {loading ? "A gerar PIX…" : "Gerar PIX"} {!loading && <ArrowRight className="h-4 w-4" />}
+            <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/18 to-white/0 translate-x-[-120%] transition-transform duration-700 hover:translate-x-[120%]" />
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <PixBrandIcon className="h-5 w-5 animate-pulse" />}
+            {loading ? "A criar QR Code PIX…" : "Gerar PIX seguro"} {!loading && <ArrowRight className="h-4 w-4" />}
           </motion.button>
           <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
             <Lock className="h-3 w-3" /> Pagamento criptografado
