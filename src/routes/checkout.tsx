@@ -46,6 +46,8 @@ import PixPaymentDialog from "@/components/checkout/PixPaymentDialog";
 import CardPaymentDialog from "@/components/checkout/CardPaymentDialog";
 import BoletoPaymentDialog from "@/components/checkout/BoletoPaymentDialog";
 import PayPalPaymentDialog from "@/components/checkout/PayPalPaymentDialog";
+import BankTransferDialog from "@/components/checkout/BankTransferDialog";
+import bicLogoImg from "@/assets/banco-bic-logo.png";
 import DomainSearchDialog from "@/components/site/DomainSearchDialog";
 import { createCheckoutOrder } from "@/lib/payments.functions";
 
