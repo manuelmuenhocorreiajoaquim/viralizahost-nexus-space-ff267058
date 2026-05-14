@@ -565,6 +565,37 @@ function AuthStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
 }
 
 /* ====================== STEP 6 — PAYMENT ====================== */
+function PixBrandIcon({ className = "h-7 w-7" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
+      <path fill="#32BCAD" d="M31.99 6.8 57.2 32 31.99 57.2 6.8 32 31.99 6.8Z" />
+      <path fill="#fff" d="M22.1 24.2c2.7-2.7 7.1-2.7 9.8 0l2.1 2.1 2.1-2.1c2.7-2.7 7.1-2.7 9.8 0l5.5 5.5-3.7 3.7-5.5-5.5a1.8 1.8 0 0 0-2.5 0l-3.9 3.9a2.6 2.6 0 0 1-3.6 0l-3.9-3.9a1.8 1.8 0 0 0-2.5 0l-5.5 5.5-3.7-3.7 5.5-5.5Zm-5.5 10.1 3.7-3.7 5.5 5.5a1.8 1.8 0 0 0 2.5 0l3.9-3.9a2.6 2.6 0 0 1 3.6 0l3.9 3.9a1.8 1.8 0 0 0 2.5 0l5.5-5.5 3.7 3.7-5.5 5.5c-2.7 2.7-7.1 2.7-9.8 0L34 37.7l-2.1 2.1c-2.7 2.7-7.1 2.7-9.8 0l-5.5-5.5Z" />
+    </svg>
+  );
+}
+
+function MercadoPagoMark() {
+  return (
+    <div className="inline-flex items-center gap-2 rounded-full bg-[#E7F4FF] px-3 py-1.5 text-[#009EE3] ring-1 ring-[#009EE3]/20 shadow-sm">
+      <span className="grid h-6 w-6 place-items-center rounded-full bg-[#009EE3] text-[10px] font-black text-white">MP</span>
+      <span className="text-xs font-extrabold tracking-tight">Mercado Pago</span>
+    </div>
+  );
+}
+
+function CardBrands() {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="rounded bg-[#1434CB] px-2 py-1 text-[10px] font-black italic text-white">VISA</span>
+      <span className="relative inline-flex h-6 w-10 items-center justify-center rounded bg-slate-900">
+        <span className="absolute left-2 h-4 w-4 rounded-full bg-[#EB001B]" />
+        <span className="absolute right-2 h-4 w-4 rounded-full bg-[#F79E1B] mix-blend-screen" />
+      </span>
+      <span className="rounded bg-white px-2 py-1 text-[10px] font-black text-[#111827] ring-1 ring-slate-200"><span className="text-[#00A4E0]">E</span><span className="text-[#EF4123]">l</span><span className="text-[#FFD200]">o</span></span>
+    </div>
+  );
+}
+
 function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId: string) => void }) {
   const cart = useCart();
   const { user } = useAuth();
