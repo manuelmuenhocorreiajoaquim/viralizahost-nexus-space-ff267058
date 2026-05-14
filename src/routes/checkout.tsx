@@ -865,12 +865,14 @@ function Summary({ children }: { children?: React.ReactNode }) {
         {cart.items.map((it) => {
           const p = findProduct(it.productId);
           if (!p) return null;
-          const total = lineMonthly(it.productId, cart.cycle) * c.months * it.qty;
+          const total = lineTotal(it.productId, cart.cycle, it.qty);
+          const annual = isAnnualProduct(p);
           return (
             <div key={it.productId} className="flex justify-between gap-2">
               <span className="text-slate-700 truncate">
                 {p.name} ×{it.qty}
-                {it.domain && <span className="block text-[11px] text-slate-400 truncate">{it.domain}</span>}
+                {annual && <span className="ml-1 text-[10px] font-semibold text-emerald-700">/ano</span>}
+                {it.domain && !annual && <span className="block text-[11px] text-slate-400 truncate">{it.domain}</span>}
               </span>
               <span className="font-semibold text-slate-900 shrink-0">{brl(total, currency)}</span>
             </div>
