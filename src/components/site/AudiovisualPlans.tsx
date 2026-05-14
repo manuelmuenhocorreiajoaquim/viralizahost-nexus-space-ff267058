@@ -23,15 +23,15 @@ export default function AudiovisualPlans() {
           desc="Equipamentos profissionais, direção criativa e qualidade cinematográfica."
           plans={[
             {
-              icon: Video, name: "Reels Profissional", price: "R$ 250", tag: "Conteúdo",
+              icon: Video, name: "Reels Profissional", price: "R$ 250", tag: "Conteúdo", productId: "av-reels-prof",
               features: ["Captação", "Edição premium", "Legendas dinâmicas", "Trilha sonora"],
             },
             {
-              icon: Film, name: "Vídeo Institucional", price: "R$ 1.500", tag: "Mais escolhido", popular: true,
+              icon: Film, name: "Vídeo Institucional", price: "R$ 1.500", tag: "Mais escolhido", popular: true, productId: "av-institutional",
               features: ["Roteiro estratégico", "Captação profissional", "Edição premium", "Color grading"],
             },
             {
-              icon: Camera, name: "Cobertura de Evento", price: "R$ 2.500", tag: "Eventos",
+              icon: Camera, name: "Cobertura de Evento", price: "R$ 2.500", tag: "Eventos", productId: "av-event",
               features: ["Filmagem multi-câmera", "Fotografia profissional", "Highlights", "Entrega rápida"],
             },
             {

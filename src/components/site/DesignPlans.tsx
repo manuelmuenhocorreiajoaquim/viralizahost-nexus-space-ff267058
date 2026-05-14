@@ -10,15 +10,15 @@ export default function DesignPlans() {
       desc="Identidade visual e peças que comunicam autoridade e geram conversão."
       plans={[
         {
-          icon: ImageIcon, name: "Flyer Digital", price: "R$ 80", tag: "Avulso",
+          icon: ImageIcon, name: "Flyer Digital", price: "R$ 80", tag: "Avulso", productId: "design-flyer",
           features: ["Arte profissional", "Formato redes sociais", "Entrega rápida", "1 revisão incluída"],
         },
         {
-          icon: Layers, name: "Social Media Kit", price: "R$ 350", tag: "Pacote",
+          icon: Layers, name: "Social Media Kit", price: "R$ 350", tag: "Pacote", productId: "design-social-kit",
           features: ["10 artes premium", "Identidade visual", "Templates editáveis", "Stories & feed"],
         },
         {
-          icon: Palette, name: "Branding Premium", price: "R$ 1.500", tag: "Mais escolhido", popular: true,
+          icon: Palette, name: "Branding Premium", price: "R$ 1.500", tag: "Mais escolhido", popular: true, productId: "design-branding-premium",
           features: ["Logotipo profissional", "Paleta de cores", "Manual básico da marca", "Aplicações visuais"],
         },
         {
