@@ -141,7 +141,7 @@ export default function DomainSearchDialog({
         setWarning(
           data?.warning ?? (nextResults.length ? null : "Não foi possível consultar o domínio."),
         );
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (cancelled) return;
         console.error("[domain-search] failed", e);
         setResults(fallbackSuggestions(cleanQuery));
