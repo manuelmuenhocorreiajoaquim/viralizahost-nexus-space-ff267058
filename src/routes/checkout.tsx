@@ -1378,19 +1378,29 @@ function PaymentStep({
         </div>
         <Summary>
           <motion.button
-            whileHover={{ scale: loading || method !== "pix" ? 1 : 1.02 }}
-            whileTap={{ scale: loading || method !== "pix" ? 1 : 0.98 }}
+            whileHover={{ scale: loading ? 1 : 1.02 }}
+            whileTap={{ scale: loading ? 1 : 0.98 }}
             onClick={submit}
-            disabled={loading || method !== "pix"}
+            disabled={loading}
             className="relative mt-5 inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-500 py-4 text-[15px] font-black tracking-tight text-white shadow-[0_18px_45px_rgba(37,99,235,0.38)] transition hover:shadow-[0_22px_60px_rgba(37,99,235,0.48)] disabled:opacity-50"
           >
             <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/18 to-white/0 translate-x-[-120%] transition-transform duration-700 hover:translate-x-[120%]" />
             {loading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
+            ) : method === "pix" ? (
+              <PixBrandIcon className="h-5 w-5" />
+            ) : method === "card" ? (
+              <CreditCard className="h-5 w-5" />
             ) : (
-              <PixBrandIcon className="h-5 w-5 animate-pulse" />
+              <FileText className="h-5 w-5" />
             )}
-            {loading ? "A criar QR Code PIX…" : "Gerar PIX seguro"}{" "}
+            {loading
+              ? "Processando…"
+              : method === "pix"
+                ? "Gerar PIX"
+                : method === "card"
+                  ? "Pagar com Cartão"
+                  : "Gerar Boleto"}
             {!loading && <ArrowRight className="h-4 w-4" />}
           </motion.button>
           <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
@@ -1403,8 +1413,25 @@ function PaymentStep({
       <PixPaymentDialog
         open={pixOpen}
         onOpenChange={setPixOpen}
-        orderId={pixOrderId}
-        customerEmail={pixCustomerEmail}
+        orderId={pendingOrderId}
+        customerEmail={pendingEmail}
+        onApproved={onApproved}
+      />
+      <CardPaymentDialog
+        open={cardOpen}
+        onOpenChange={setCardOpen}
+        orderId={pendingOrderId}
+        amount={pendingAmount}
+        customerEmail={pendingEmail}
+        customerName={pendingName}
+        onApproved={onApproved}
+      />
+      <BoletoPaymentDialog
+        open={boletoOpen}
+        onOpenChange={setBoletoOpen}
+        orderId={pendingOrderId}
+        customerEmail={pendingEmail}
+        customerName={pendingName}
         onApproved={onApproved}
       />
     </div>
