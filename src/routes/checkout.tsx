@@ -248,7 +248,7 @@ function Stepper({ current, activeSteps }: { current: StepId; activeSteps: StepI
           />
         </div>
         <ol className="flex items-center gap-2 min-w-max overflow-x-auto">
-          {STEPS.map((s, i) => {
+          {steps.map((s, i) => {
             const done = i < idx;
             const active = i === idx;
             const Icon = s.icon;
@@ -272,7 +272,7 @@ function Stepper({ current, activeSteps }: { current: StepId; activeSteps: StepI
                     {i + 1}. {s.label}
                   </span>
                 </div>
-                {i < STEPS.length - 1 && <ChevronRight className="h-3 w-3 text-slate-300" />}
+                {i < steps.length - 1 && <ChevronRight className="h-3 w-3 text-slate-300" />}
               </li>
             );
           })}
