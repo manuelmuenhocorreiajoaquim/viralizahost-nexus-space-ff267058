@@ -321,12 +321,55 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
   return (
     <div>
       <Header title="Configure seu domínio" subtitle="Para cada hospedagem escolha registar um novo domínio ou usar um existente." />
-      <div className="space-y-4 max-w-3xl">
-        {hostingItems.map((it) => {
-          const p = findProduct(it.productId)!;
-          return <DomainPicker key={it.productId} name={p.name} value={it.domain ?? ""} onChange={(v) => cart.setDomain(it.productId, v)} />;
-        })}
-      </div>
+
+      {/* Domínios já adicionados ao carrinho */}
+      {(() => {
+        const domainItems = cart.items.filter((i) => findProduct(i.productId)?.type === "domain");
+        if (domainItems.length === 0) return null;
+        return (
+          <div className="mb-6 max-w-3xl space-y-3">
+            <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Domínios no pedido</div>
+            {domainItems.map((it) => {
+              const p = findProduct(it.productId)!;
+              const c = findCycle(cart.cycle);
+              const total = lineMonthly(it.productId, cart.cycle) * c.months * it.qty;
+              return (
+                <motion.div
+                  key={it.productId}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-blue-50 shadow-card p-4 flex items-center gap-4"
+                >
+                  <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 grid place-items-center text-white shadow-md shrink-0">
+                    <Globe className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-slate-900 truncate">{p.name}</div>
+                    <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+                      <span className="inline-flex items-center gap-1"><ShieldCheck className="h-3 w-3 text-emerald-600" /> Proteção WHOIS</span>
+                      <span className="inline-flex items-center gap-1"><Zap className="h-3 w-3 text-amber-500" /> Registro instantâneo</span>
+                      <span>· Ciclo: {c.label}</span>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-[11px] text-slate-500">Total</div>
+                    <div className="font-bold text-slate-900">R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        );
+      })()}
+
+      {hostingItems.length > 0 && (
+        <div className="space-y-4 max-w-3xl">
+          {hostingItems.map((it) => {
+            const p = findProduct(it.productId)!;
+            return <DomainPicker key={it.productId} name={p.name} value={it.domain ?? ""} onChange={(v) => cart.setDomain(it.productId, v)} />;
+          })}
+        </div>
+      )}
       <Footer onBack={onBack} onNext={onNext} />
     </div>
   );
@@ -345,7 +388,7 @@ function DomainPicker({ name, value, onChange }: { name: string; value: string; 
         {(["new", "existing", "later"] as const).map((m) => (
           <button key={m} onClick={() => setMode(m)}
             className={`p-3 rounded-xl border text-sm font-medium transition ${
-              mode === m ? "border-primary bg-primary/5 text-primary" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+              mode === m ? "border-primary bg-primary/5 text-primary shadow-glow-soft" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
             }`}>
             {m === "new" ? "Registar novo" : m === "existing" ? "Já tenho" : "Decidir depois"}
           </button>
