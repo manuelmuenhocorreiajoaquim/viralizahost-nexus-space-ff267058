@@ -1209,7 +1209,7 @@ function PaymentStep({
           discount: Number(Number(cart.totals.discount).toFixed(2)),
           total,
           paymentMethod: method,
-          paymentProvider: "mercadopago",
+          paymentProvider: method === "paypal" ? "paypal" : "mercadopago",
           customerEmail: user?.email ?? customer.email,
           customerName: customer.name,
           items,
@@ -1225,7 +1225,8 @@ function PaymentStep({
       setPendingAmount(total);
       if (method === "pix") setPixOpen(true);
       else if (method === "card") setCardOpen(true);
-      else setBoletoOpen(true);
+      else if (method === "boleto") setBoletoOpen(true);
+      else setPaypalOpen(true);
     } catch (e: any) {
       console.error("[checkout] submit error", e);
       const msg =
@@ -1245,6 +1246,7 @@ function PaymentStep({
       setPixOpen(false);
       setCardOpen(false);
       setBoletoOpen(false);
+      setPaypalOpen(false);
       onDone(pendingOrderId);
     }, 1200);
   };
