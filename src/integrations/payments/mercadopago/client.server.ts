@@ -78,6 +78,7 @@ async function mpFetch(path: string, init: RequestInit = {}): Promise<MercadoPag
   } catch {
     data = { raw: text };
   }
+  data ??= {};
   if (!res.ok) {
     const msg = data?.message || data?.error || `Mercado Pago error ${res.status}`;
     const err: MercadoPagoError = new Error(msg);
