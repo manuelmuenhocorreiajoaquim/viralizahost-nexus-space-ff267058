@@ -45,6 +45,7 @@ import { supabase } from "@/integrations/supabase/client";
 import PixPaymentDialog from "@/components/checkout/PixPaymentDialog";
 import CardPaymentDialog from "@/components/checkout/CardPaymentDialog";
 import BoletoPaymentDialog from "@/components/checkout/BoletoPaymentDialog";
+import PayPalPaymentDialog from "@/components/checkout/PayPalPaymentDialog";
 import DomainSearchDialog from "@/components/site/DomainSearchDialog";
 import { createCheckoutOrder } from "@/lib/payments.functions";
 
@@ -1131,7 +1132,7 @@ function PaymentStep({
   const { user } = useAuth();
   const { currency } = useCurrency();
   const createOrderFn = useServerFn(createCheckoutOrder);
-  const [method, setMethod] = useState<"pix" | "card" | "boleto">("pix");
+  const [method, setMethod] = useState<"pix" | "card" | "boleto" | "paypal">("pix");
   const [loading, setLoading] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
   const [pendingEmail, setPendingEmail] = useState<string | undefined>();
@@ -1140,6 +1141,7 @@ function PaymentStep({
   const [pixOpen, setPixOpen] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
   const [boletoOpen, setBoletoOpen] = useState(false);
+  const [paypalOpen, setPaypalOpen] = useState(false);
 
   const submit = async () => {
     if (cart.items.length === 0) {
@@ -1207,7 +1209,7 @@ function PaymentStep({
           discount: Number(Number(cart.totals.discount).toFixed(2)),
           total,
           paymentMethod: method,
-          paymentProvider: "mercadopago",
+          paymentProvider: method === "paypal" ? "paypal" : "mercadopago",
           customerEmail: user?.email ?? customer.email,
           customerName: customer.name,
           items,
@@ -1223,7 +1225,8 @@ function PaymentStep({
       setPendingAmount(total);
       if (method === "pix") setPixOpen(true);
       else if (method === "card") setCardOpen(true);
-      else setBoletoOpen(true);
+      else if (method === "boleto") setBoletoOpen(true);
+      else setPaypalOpen(true);
     } catch (e: any) {
       console.error("[checkout] submit error", e);
       const msg =
@@ -1243,6 +1246,7 @@ function PaymentStep({
       setPixOpen(false);
       setCardOpen(false);
       setBoletoOpen(false);
+      setPaypalOpen(false);
       onDone(pendingOrderId);
     }, 1200);
   };
@@ -1294,6 +1298,23 @@ function PaymentStep({
                   </div>
                 ),
                 meta: <span className="text-xs font-bold text-slate-700">Disponível</span>,
+                available: true,
+              },
+              {
+                id: "paypal" as const,
+                label: "PayPal",
+                desc: "Pague com sua conta PayPal ou cartão internacional",
+                icon: (
+                  <div className="grid h-11 w-16 place-items-center rounded-xl bg-white ring-1 ring-slate-200">
+                    <span className="text-[15px] font-black tracking-tight">
+                      <span className="text-[#003087]">Pay</span>
+                      <span className="text-[#009cde]">Pal</span>
+                    </span>
+                  </div>
+                ),
+                meta: (
+                  <span className="text-xs font-bold text-amber-700">Sandbox (teste)</span>
+                ),
                 available: true,
               },
             ].map((m) => {
@@ -1391,8 +1412,13 @@ function PaymentStep({
               <PixBrandIcon className="h-5 w-5" />
             ) : method === "card" ? (
               <CreditCard className="h-5 w-5" />
-            ) : (
+            ) : method === "boleto" ? (
               <FileText className="h-5 w-5" />
+            ) : (
+              <span className="text-[13px] font-black tracking-tight">
+                <span>Pay</span>
+                <span className="opacity-80">Pal</span>
+              </span>
             )}
             {loading
               ? "Processando…"
@@ -1400,7 +1426,9 @@ function PaymentStep({
                 ? "Gerar PIX"
                 : method === "card"
                   ? "Pagar com Cartão"
-                  : "Gerar Boleto"}
+                  : method === "boleto"
+                    ? "Gerar Boleto"
+                    : "Pagar com PayPal"}
             {!loading && <ArrowRight className="h-4 w-4" />}
           </motion.button>
           <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
@@ -1432,6 +1460,12 @@ function PaymentStep({
         orderId={pendingOrderId}
         customerEmail={pendingEmail}
         customerName={pendingName}
+        onApproved={onApproved}
+      />
+      <PayPalPaymentDialog
+        open={paypalOpen}
+        onOpenChange={setPaypalOpen}
+        orderId={pendingOrderId}
         onApproved={onApproved}
       />
     </div>
