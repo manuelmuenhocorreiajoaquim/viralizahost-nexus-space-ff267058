@@ -3,15 +3,40 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Check, ChevronRight, ShoppingCart, Globe, Mail, User, CreditCard, PartyPopper,
-  Trash2, Plus, Minus, ArrowRight, ArrowLeft, Lock, Sparkles, Loader2,
-  QrCode, FileText, ShieldCheck, BadgeCheck, Zap,
+  Check,
+  ChevronRight,
+  ShoppingCart,
+  Globe,
+  Mail,
+  User,
+  CreditCard,
+  PartyPopper,
+  Trash2,
+  Plus,
+  Minus,
+  ArrowRight,
+  ArrowLeft,
+  Lock,
+  Sparkles,
+  Loader2,
+  QrCode,
+  FileText,
+  ShieldCheck,
+  BadgeCheck,
+  Zap,
 } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
 import logo from "@/assets/viraliza-checkout-logo.png";
 import { useCart, lineMonthly, lineTotal, lineUnit, CATALOG, isAnnualProduct } from "@/lib/cart";
-import { CYCLES, findCycle, findProduct, cyclePeriodTotal, cycleSavings, type CycleId } from "@/lib/catalog";
+import {
+  CYCLES,
+  findCycle,
+  findProduct,
+  cyclePeriodTotal,
+  cycleSavings,
+  type CycleId,
+} from "@/lib/catalog";
 import { useCurrency, formatPrice } from "@/lib/currency";
 import { useAuth } from "@/lib/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,7 +52,7 @@ const STEPS = [
   { id: "payment", label: "Pagamento", icon: CreditCard },
   { id: "done", label: "Confirmação", icon: PartyPopper },
 ] as const;
-type StepId = typeof STEPS[number]["id"];
+type StepId = (typeof STEPS)[number]["id"];
 
 const searchSchema = z.object({
   step: z.enum(["cycle", "cart", "domain", "email", "auth", "payment", "done"]).optional(),
@@ -86,7 +111,11 @@ function CheckoutPage() {
       <header className="border-b border-slate-200/70 bg-white/75 backdrop-blur-xl sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-4 lg:px-8 h-[72px] flex items-center justify-between">
           <Link to="/" className="flex items-center group">
-            <img src={logo} alt="ViralizaHost" className="h-[44px] w-auto object-contain transition-transform group-hover:scale-105" />
+            <img
+              src={logo}
+              alt="ViralizaHost"
+              className="h-[44px] w-auto object-contain transition-transform group-hover:scale-105"
+            />
           </Link>
           <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50/80 px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm">
             <ShieldCheck className="h-4 w-4" /> Compra 100% segura
@@ -106,11 +135,26 @@ function CheckoutPage() {
             transition={{ duration: 0.28, ease: "easeOut" }}
           >
             {step === "cycle" && <CycleStep onNext={() => goto("cart")} />}
-            {step === "cart" && <CartStep onBack={() => goto("cycle")} onNext={() => goto("domain")} />}
-            {step === "domain" && <DomainStep onBack={() => goto("cart")} onNext={() => goto("email")} />}
-            {step === "email" && <EmailStep onBack={() => goto("domain")} onNext={() => goto("auth")} />}
-            {step === "auth" && <AuthStep onBack={() => goto("email")} onNext={() => goto("payment")} />}
-            {step === "payment" && <PaymentStep onBack={() => goto("auth")} onDone={(orderId) => navigate({ to: "/checkout", search: { step: "done", order: orderId } })} />}
+            {step === "cart" && (
+              <CartStep onBack={() => goto("cycle")} onNext={() => goto("domain")} />
+            )}
+            {step === "domain" && (
+              <DomainStep onBack={() => goto("cart")} onNext={() => goto("email")} />
+            )}
+            {step === "email" && (
+              <EmailStep onBack={() => goto("domain")} onNext={() => goto("auth")} />
+            )}
+            {step === "auth" && (
+              <AuthStep onBack={() => goto("email")} onNext={() => goto("payment")} />
+            )}
+            {step === "payment" && (
+              <PaymentStep
+                onBack={() => goto("auth")}
+                onDone={(orderId) =>
+                  navigate({ to: "/checkout", search: { step: "done", order: orderId } })
+                }
+              />
+            )}
             {step === "done" && <DoneStep orderId={search.order} />}
           </motion.div>
         </AnimatePresence>
@@ -141,14 +185,23 @@ function Stepper({ current }: { current: StepId }) {
             const Icon = s.icon;
             return (
               <li key={s.id} className="flex items-center gap-2">
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-semibold transition-all ${
-                  active ? "bg-gradient-primary text-primary-foreground shadow-glow-soft scale-[1.03]" :
-                  done ? "bg-white text-slate-700 border border-slate-200" : "bg-white/60 text-slate-400 border border-slate-200/60"
-                }`}>
-                  <span className={`grid place-items-center h-5 w-5 rounded-full ${done ? "bg-emerald-500 text-white" : active ? "bg-white/25 text-white" : "bg-slate-100 text-slate-400"}`}>
+                <div
+                  className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-semibold transition-all ${
+                    active
+                      ? "bg-gradient-primary text-primary-foreground shadow-glow-soft scale-[1.03]"
+                      : done
+                        ? "bg-white text-slate-700 border border-slate-200"
+                        : "bg-white/60 text-slate-400 border border-slate-200/60"
+                  }`}
+                >
+                  <span
+                    className={`grid place-items-center h-5 w-5 rounded-full ${done ? "bg-emerald-500 text-white" : active ? "bg-white/25 text-white" : "bg-slate-100 text-slate-400"}`}
+                  >
                     {done ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
                   </span>
-                  <span className="hidden sm:inline">{i + 1}. {s.label}</span>
+                  <span className="hidden sm:inline">
+                    {i + 1}. {s.label}
+                  </span>
                 </div>
                 {i < STEPS.length - 1 && <ChevronRight className="h-3 w-3 text-slate-300" />}
               </li>
@@ -173,7 +226,10 @@ function CycleStep({ onNext }: { onNext: () => void }) {
   if (cart.items.length > 0 && recurringItems.length === 0) {
     return (
       <div>
-        <Header title="Registro anual de domínio" subtitle="Domínios são cobrados anualmente — sem ciclo de assinatura." />
+        <Header
+          title="Registro anual de domínio"
+          subtitle="Domínios são cobrados anualmente — sem ciclo de assinatura."
+        />
         <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-blue-50 p-6 max-w-xl shadow-card">
           <div className="flex items-start gap-4">
             <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 grid place-items-center text-white shadow-md">
@@ -193,13 +249,18 @@ function CycleStep({ onNext }: { onNext: () => void }) {
   }
 
   const refBase = recurringItems[0]
-    ? findProduct(recurringItems[0].productId)?.basePriceBRL ?? 50
-    : (cart.items[0] ? findProduct(cart.items[0].productId)?.basePriceBRL ?? 50 : 50);
+    ? (findProduct(recurringItems[0].productId)?.basePriceBRL ?? 50)
+    : cart.items[0]
+      ? (findProduct(cart.items[0].productId)?.basePriceBRL ?? 50)
+      : 50;
   const maxDiscount = Math.max(...CYCLES.map((c) => c.discountPct), 1);
 
   return (
     <div>
-      <Header title="Escolha sua assinatura" subtitle="Quanto maior o ciclo, maior o desconto. Sem fidelidade obrigatória. Domínios são cobrados anualmente." />
+      <Header
+        title="Escolha sua assinatura"
+        subtitle="Quanto maior o ciclo, maior o desconto. Sem fidelidade obrigatória. Domínios são cobrados anualmente."
+      />
       <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
         {CYCLES.map((c) => {
           const monthly = refBase * (1 - c.discountPct / 100);
@@ -223,15 +284,24 @@ function CycleStep({ onNext }: { onNext: () => void }) {
                   {c.badge}
                 </div>
               )}
-              <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">{c.label}</div>
+              <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">
+                {c.label}
+              </div>
               <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-2xl font-bold text-gradient-primary">{brl(monthly, currency)}</span>
+                <span className="text-2xl font-bold text-gradient-primary">
+                  {brl(monthly, currency)}
+                </span>
                 <span className="text-xs text-slate-500">/mês</span>
               </div>
               <div className="mt-3 space-y-1 text-xs text-slate-600">
-                <div>Total: <span className="font-semibold text-slate-900">{brl(total, currency)}</span></div>
+                <div>
+                  Total:{" "}
+                  <span className="font-semibold text-slate-900">{brl(total, currency)}</span>
+                </div>
                 {save > 0 ? (
-                  <div className="text-emerald-600 font-medium">Economize {brl(save, currency)}</div>
+                  <div className="text-emerald-600 font-medium">
+                    Economize {brl(save, currency)}
+                  </div>
                 ) : (
                   <div className="text-slate-400">Sem desconto</div>
                 )}
@@ -271,7 +341,10 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
         <ShoppingCart className="h-12 w-12 mx-auto text-slate-300 mb-4" />
         <h2 className="text-2xl font-bold mb-2">Seu carrinho está vazio</h2>
         <p className="text-slate-500 mb-6">Escolha um plano na página inicial para começar.</p>
-        <Link to="/" className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-primary text-primary-foreground font-semibold shadow-glow">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-primary text-primary-foreground font-semibold shadow-glow"
+        >
           Ver planos <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
@@ -293,14 +366,25 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
               ? `${p.type} · ${brl(unit, currency)}/ano`
               : `${p.type} · ${brl(unit, currency)}/mês`;
             return (
-              <div key={it.productId} className="rounded-2xl border border-slate-200 bg-white shadow-card p-5 flex items-center gap-4">
-                <div className={`h-12 w-12 rounded-xl grid place-items-center shrink-0 shadow-glow-soft ${annual ? "bg-gradient-to-br from-emerald-500 to-teal-500" : "bg-gradient-primary"}`}>
-                  {annual ? <Globe className="h-5 w-5 text-white" /> : <Sparkles className="h-5 w-5 text-primary-foreground" />}
+              <div
+                key={it.productId}
+                className="rounded-2xl border border-slate-200 bg-white shadow-card p-5 flex items-center gap-4"
+              >
+                <div
+                  className={`h-12 w-12 rounded-xl grid place-items-center shrink-0 shadow-glow-soft ${annual ? "bg-gradient-to-br from-emerald-500 to-teal-500" : "bg-gradient-primary"}`}
+                >
+                  {annual ? (
+                    <Globe className="h-5 w-5 text-white" />
+                  ) : (
+                    <Sparkles className="h-5 w-5 text-primary-foreground" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-slate-900 truncate">{p.name}</div>
                   <div className="text-xs text-slate-500 capitalize">{subLabel}</div>
-                  {it.domain && !annual && <div className="text-[11px] text-slate-400 truncate mt-0.5">{it.domain}</div>}
+                  {it.domain && !annual && (
+                    <div className="text-[11px] text-slate-400 truncate mt-0.5">{it.domain}</div>
+                  )}
                 </div>
                 {annual ? (
                   <div className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
@@ -308,29 +392,56 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
                   </div>
                 ) : (
                   <div className="flex items-center gap-1 bg-slate-100 rounded-full p-1">
-                    <button onClick={() => cart.setQty(it.productId, it.qty - 1)} className="h-7 w-7 grid place-items-center rounded-full hover:bg-white"><Minus className="h-3 w-3" /></button>
+                    <button
+                      onClick={() => cart.setQty(it.productId, it.qty - 1)}
+                      className="h-7 w-7 grid place-items-center rounded-full hover:bg-white"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
                     <span className="w-6 text-center text-sm font-semibold">{it.qty}</span>
-                    <button onClick={() => cart.setQty(it.productId, it.qty + 1)} className="h-7 w-7 grid place-items-center rounded-full hover:bg-white"><Plus className="h-3 w-3" /></button>
+                    <button
+                      onClick={() => cart.setQty(it.productId, it.qty + 1)}
+                      className="h-7 w-7 grid place-items-center rounded-full hover:bg-white"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
                   </div>
                 )}
                 <div className="text-right shrink-0">
                   <div className="font-bold text-slate-900">{brl(total, currency)}</div>
-                  <button onClick={() => cart.remove(it.productId)} className="text-xs text-slate-400 hover:text-red-500 inline-flex items-center gap-1 mt-1">
+                  <button
+                    onClick={() => cart.remove(it.productId)}
+                    className="text-xs text-slate-400 hover:text-red-500 inline-flex items-center gap-1 mt-1"
+                  >
                     <Trash2 className="h-3 w-3" /> Remover
                   </button>
                 </div>
               </div>
             );
           })}
-          <button onClick={() => setShowAdd((v) => !v)} className="w-full py-3 rounded-2xl border border-dashed border-slate-300 text-sm text-slate-500 hover:bg-white hover:border-primary/40 hover:text-primary transition">
+          <button
+            onClick={() => setShowAdd((v) => !v)}
+            className="w-full py-3 rounded-2xl border border-dashed border-slate-300 text-sm text-slate-500 hover:bg-white hover:border-primary/40 hover:text-primary transition"
+          >
             <Plus className="h-4 w-4 inline mr-1" /> Adicionar outro serviço
           </button>
           {showAdd && (
             <div className="rounded-2xl border border-slate-200 bg-white p-4 grid sm:grid-cols-2 gap-2 max-h-72 overflow-y-auto shadow-card">
-              {CATALOG.filter((p) => p.type !== "domain" && !cart.items.some((i) => i.productId === p.id)).map((p) => (
-                <button key={p.id} onClick={() => { cart.add(p.id); setShowAdd(false); }} className="text-left p-3 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200">
+              {CATALOG.filter(
+                (p) => p.type !== "domain" && !cart.items.some((i) => i.productId === p.id),
+              ).map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    cart.add(p.id);
+                    setShowAdd(false);
+                  }}
+                  className="text-left p-3 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200"
+                >
                   <div className="text-sm font-semibold">{p.name}</div>
-                  <div className="text-xs text-slate-500 capitalize">{p.type} · {brl(p.basePriceBRL, currency)}/mês</div>
+                  <div className="text-xs text-slate-500 capitalize">
+                    {p.type} · {brl(p.basePriceBRL, currency)}/mês
+                  </div>
                 </button>
               ))}
             </div>
@@ -355,7 +466,9 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
     return (
       <div className="text-center py-12">
         <Globe className="h-10 w-10 mx-auto text-slate-300 mb-3" />
-        <p className="text-slate-500">Nenhum serviço requer domínio. Avançar para a próxima etapa.</p>
+        <p className="text-slate-500">
+          Nenhum serviço requer domínio. Avançar para a próxima etapa.
+        </p>
         <Footer onBack={onBack} onNext={onNext} />
       </div>
     );
@@ -363,7 +476,10 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
 
   return (
     <div>
-      <Header title="Configure seu domínio" subtitle="Para cada hospedagem escolha registar um novo domínio ou usar um existente." />
+      <Header
+        title="Configure seu domínio"
+        subtitle="Para cada hospedagem escolha registar um novo domínio ou usar um existente."
+      />
 
       {/* Domínios já adicionados ao carrinho */}
       {(() => {
@@ -371,7 +487,9 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
         if (domainItems.length === 0) return null;
         return (
           <div className="mb-6 max-w-3xl space-y-3">
-            <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Domínios no pedido</div>
+            <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">
+              Domínios no pedido
+            </div>
             {domainItems.map((it) => {
               const p = findProduct(it.productId)!;
               const total = lineTotal(it.productId, cart.cycle, it.qty);
@@ -388,14 +506,21 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-slate-900 truncate">{p.name}</div>
                     <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
-                      <span className="inline-flex items-center gap-1"><ShieldCheck className="h-3 w-3 text-emerald-600" /> Proteção WHOIS</span>
-                      <span className="inline-flex items-center gap-1"><Zap className="h-3 w-3 text-amber-500" /> Registro instantâneo</span>
+                      <span className="inline-flex items-center gap-1">
+                        <ShieldCheck className="h-3 w-3 text-emerald-600" /> Proteção WHOIS
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Zap className="h-3 w-3 text-amber-500" /> Registro instantâneo
+                      </span>
                       <span>· Registro anual</span>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-[11px] text-slate-500">Preço</div>
-                    <div className="font-bold text-slate-900">{brl(total, currency)}<span className="text-[11px] font-medium text-slate-500">/ano</span></div>
+                    <div className="font-bold text-slate-900">
+                      {brl(total, currency)}
+                      <span className="text-[11px] font-medium text-slate-500">/ano</span>
+                    </div>
                   </div>
                 </motion.div>
               );
@@ -408,7 +533,14 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
         <div className="space-y-4 max-w-3xl">
           {hostingItems.map((it) => {
             const p = findProduct(it.productId)!;
-            return <DomainPicker key={it.productId} name={p.name} value={it.domain ?? ""} onChange={(v) => cart.setDomain(it.productId, v)} />;
+            return (
+              <DomainPicker
+                key={it.productId}
+                name={p.name}
+                value={it.domain ?? ""}
+                onChange={(v) => cart.setDomain(it.productId, v)}
+              />
+            );
           })}
         </div>
       )}
@@ -417,10 +549,20 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
   );
 }
 
-function DomainPicker({ name, value, onChange }: { name: string; value: string; onChange: (v: string) => void }) {
+function DomainPicker({
+  name,
+  value,
+  onChange,
+}: {
+  name: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
   const [mode, setMode] = useState<"new" | "existing" | "later">(value ? "existing" : "new");
   const [domain, setDomain] = useState(value);
-  useEffect(() => { onChange(domain); }, [domain]); // eslint-disable-line
+  useEffect(() => {
+    onChange(domain);
+  }, [domain]); // eslint-disable-line
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-card p-5">
@@ -428,17 +570,26 @@ function DomainPicker({ name, value, onChange }: { name: string; value: string; 
       <div className="font-semibold mb-4 text-slate-900">{name}</div>
       <div className="grid sm:grid-cols-3 gap-2 mb-4">
         {(["new", "existing", "later"] as const).map((m) => (
-          <button key={m} onClick={() => setMode(m)}
+          <button
+            key={m}
+            onClick={() => setMode(m)}
             className={`p-3 rounded-xl border text-sm font-medium transition ${
-              mode === m ? "border-primary bg-primary/5 text-primary shadow-glow-soft" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-            }`}>
+              mode === m
+                ? "border-primary bg-primary/5 text-primary shadow-glow-soft"
+                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+            }`}
+          >
             {m === "new" ? "Registar novo" : m === "existing" ? "Já tenho" : "Decidir depois"}
           </button>
         ))}
       </div>
       {mode !== "later" && (
-        <input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="meudominio.com"
-          className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-primary focus:bg-white outline-none transition" />
+        <input
+          value={domain}
+          onChange={(e) => setDomain(e.target.value)}
+          placeholder="meudominio.com"
+          className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-primary focus:bg-white outline-none transition"
+        />
       )}
     </div>
   );
@@ -453,7 +604,10 @@ function EmailStep({ onBack, onNext }: { onBack: () => void; onNext: () => void 
 
   return (
     <div>
-      <Header title="Adicione e-mail profissional" subtitle="Caixas com seu domínio (você@suaempresa.com), antispam e IA." />
+      <Header
+        title="Adicione e-mail profissional"
+        subtitle="Caixas com seu domínio (você@suaempresa.com), antispam e IA."
+      />
       {has ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-700">
           <Check className="h-4 w-4 inline mr-2" /> Você já tem um plano de e-mail no carrinho.
@@ -461,12 +615,20 @@ function EmailStep({ onBack, onNext }: { onBack: () => void; onNext: () => void 
       ) : (
         <div className="grid md:grid-cols-3 gap-4">
           {emailPlans.map((p, i) => (
-            <button key={p.id} onClick={() => cart.add(p.id)}
+            <button
+              key={p.id}
+              onClick={() => cart.add(p.id)}
               className={`text-left rounded-2xl border p-5 transition bg-white ${
-                i === 1 ? "border-primary shadow-glow ring-1 ring-primary/20" : "border-slate-200 shadow-card hover:border-slate-300 hover:shadow-glow-soft"
-              }`}>
+                i === 1
+                  ? "border-primary shadow-glow ring-1 ring-primary/20"
+                  : "border-slate-200 shadow-card hover:border-slate-300 hover:shadow-glow-soft"
+              }`}
+            >
               <div className="font-bold text-lg text-slate-900">{p.name}</div>
-              <div className="mt-2 text-2xl font-bold text-gradient-primary">{brl(p.basePriceBRL, currency)}<span className="text-xs text-slate-500 font-normal">/mês</span></div>
+              <div className="mt-2 text-2xl font-bold text-gradient-primary">
+                {brl(p.basePriceBRL, currency)}
+                <span className="text-xs text-slate-500 font-normal">/mês</span>
+              </div>
               <div className="mt-4 inline-flex items-center gap-1 text-xs text-primary font-semibold">
                 <Plus className="h-3 w-3" /> Adicionar ao pedido
               </div>
@@ -495,7 +657,9 @@ function AuthStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
         <Header title="Identificação" />
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 max-w-md">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-gradient-primary grid place-items-center shadow-glow-soft"><User className="h-5 w-5 text-primary-foreground" /></div>
+            <div className="h-10 w-10 rounded-full bg-gradient-primary grid place-items-center shadow-glow-soft">
+              <User className="h-5 w-5 text-primary-foreground" />
+            </div>
             <div>
               <div className="font-semibold text-slate-900">{user.email}</div>
               <div className="text-xs text-emerald-700">Sessão ativa</div>
@@ -513,8 +677,12 @@ function AuthStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
       localStorage.setItem(CHECKOUT_CUSTOMER_KEY, JSON.stringify({ name, email }));
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
-          email, password,
-          options: { emailRedirectTo: window.location.origin + "/checkout?step=auth", data: { full_name: name } },
+          email,
+          password,
+          options: {
+            emailRedirectTo: window.location.origin + "/checkout?step=auth",
+            data: { full_name: name },
+          },
         });
         if (error) throw error;
         toast.success("Conta criada!");
@@ -533,27 +701,50 @@ function AuthStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
 
   return (
     <div>
-      <Header title="Identifique-se" subtitle="Crie sua conta ou faça login para finalizar o pedido." />
+      <Header
+        title="Identifique-se"
+        subtitle="Crie sua conta ou faça login para finalizar o pedido."
+      />
       <div className="max-w-md rounded-2xl border border-slate-200 bg-white shadow-card p-6">
         <div className="flex bg-slate-100 rounded-full p-1 mb-5">
           {(["signup", "login"] as const).map((m) => (
-            <button key={m} onClick={() => setMode(m)}
-              className={`flex-1 py-2 rounded-full text-sm font-semibold transition ${mode === m ? "bg-gradient-primary text-primary-foreground shadow-glow-soft" : "text-slate-500"}`}>
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className={`flex-1 py-2 rounded-full text-sm font-semibold transition ${mode === m ? "bg-gradient-primary text-primary-foreground shadow-glow-soft" : "text-slate-500"}`}
+            >
               {m === "signup" ? "Criar conta" : "Entrar"}
             </button>
           ))}
         </div>
         <div className="space-y-3">
           {mode === "signup" && (
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome completo"
-              className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-primary focus:bg-white outline-none transition" />
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Nome completo"
+              className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-primary focus:bg-white outline-none transition"
+            />
           )}
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email"
-            className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-primary focus:bg-white outline-none transition" />
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Senha"
-            className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-primary focus:bg-white outline-none transition" />
-          <button onClick={submit} disabled={loading || !email || !password}
-            className="w-full py-3 rounded-xl bg-gradient-primary text-primary-foreground font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-50 shadow-glow">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-primary focus:bg-white outline-none transition"
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Senha"
+            className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-primary focus:bg-white outline-none transition"
+          />
+          <button
+            onClick={submit}
+            disabled={loading || !email || !password}
+            className="w-full py-3 rounded-xl bg-gradient-primary text-primary-foreground font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-50 shadow-glow"
+          >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             {mode === "signup" ? "Criar conta" : "Entrar"}
           </button>
@@ -569,7 +760,10 @@ function PixBrandIcon({ className = "h-7 w-7" }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
       <path fill="#32BCAD" d="M31.99 6.8 57.2 32 31.99 57.2 6.8 32 31.99 6.8Z" />
-      <path fill="#fff" d="M22.1 24.2c2.7-2.7 7.1-2.7 9.8 0l2.1 2.1 2.1-2.1c2.7-2.7 7.1-2.7 9.8 0l5.5 5.5-3.7 3.7-5.5-5.5a1.8 1.8 0 0 0-2.5 0l-3.9 3.9a2.6 2.6 0 0 1-3.6 0l-3.9-3.9a1.8 1.8 0 0 0-2.5 0l-5.5 5.5-3.7-3.7 5.5-5.5Zm-5.5 10.1 3.7-3.7 5.5 5.5a1.8 1.8 0 0 0 2.5 0l3.9-3.9a2.6 2.6 0 0 1 3.6 0l3.9 3.9a1.8 1.8 0 0 0 2.5 0l5.5-5.5 3.7 3.7-5.5 5.5c-2.7 2.7-7.1 2.7-9.8 0L34 37.7l-2.1 2.1c-2.7 2.7-7.1 2.7-9.8 0l-5.5-5.5Z" />
+      <path
+        fill="#fff"
+        d="M22.1 24.2c2.7-2.7 7.1-2.7 9.8 0l2.1 2.1 2.1-2.1c2.7-2.7 7.1-2.7 9.8 0l5.5 5.5-3.7 3.7-5.5-5.5a1.8 1.8 0 0 0-2.5 0l-3.9 3.9a2.6 2.6 0 0 1-3.6 0l-3.9-3.9a1.8 1.8 0 0 0-2.5 0l-5.5 5.5-3.7-3.7 5.5-5.5Zm-5.5 10.1 3.7-3.7 5.5 5.5a1.8 1.8 0 0 0 2.5 0l3.9-3.9a2.6 2.6 0 0 1 3.6 0l3.9 3.9a1.8 1.8 0 0 0 2.5 0l5.5-5.5 3.7 3.7-5.5 5.5c-2.7 2.7-7.1 2.7-9.8 0L34 37.7l-2.1 2.1c-2.7 2.7-7.1 2.7-9.8 0l-5.5-5.5Z"
+      />
     </svg>
   );
 }
@@ -577,7 +771,9 @@ function PixBrandIcon({ className = "h-7 w-7" }: { className?: string }) {
 function MercadoPagoMark() {
   return (
     <div className="inline-flex items-center gap-2 rounded-full bg-[#E7F4FF] px-3 py-1.5 text-[#009EE3] ring-1 ring-[#009EE3]/20 shadow-sm">
-      <span className="grid h-6 w-6 place-items-center rounded-full bg-[#009EE3] text-[10px] font-black text-white">MP</span>
+      <span className="grid h-6 w-6 place-items-center rounded-full bg-[#009EE3] text-[10px] font-black text-white">
+        MP
+      </span>
       <span className="text-xs font-extrabold tracking-tight">Mercado Pago</span>
     </div>
   );
@@ -586,17 +782,29 @@ function MercadoPagoMark() {
 function CardBrands() {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="rounded bg-[#1434CB] px-2 py-1 text-[10px] font-black italic text-white">VISA</span>
+      <span className="rounded bg-[#1434CB] px-2 py-1 text-[10px] font-black italic text-white">
+        VISA
+      </span>
       <span className="relative inline-flex h-6 w-10 items-center justify-center rounded bg-slate-900">
         <span className="absolute left-2 h-4 w-4 rounded-full bg-[#EB001B]" />
         <span className="absolute right-2 h-4 w-4 rounded-full bg-[#F79E1B] mix-blend-screen" />
       </span>
-      <span className="rounded bg-white px-2 py-1 text-[10px] font-black text-[#111827] ring-1 ring-slate-200"><span className="text-[#00A4E0]">E</span><span className="text-[#EF4123]">l</span><span className="text-[#FFD200]">o</span></span>
+      <span className="rounded bg-white px-2 py-1 text-[10px] font-black text-[#111827] ring-1 ring-slate-200">
+        <span className="text-[#00A4E0]">E</span>
+        <span className="text-[#EF4123]">l</span>
+        <span className="text-[#FFD200]">o</span>
+      </span>
     </div>
   );
 }
 
-function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId: string) => void }) {
+function PaymentStep({
+  onBack,
+  onDone,
+}: {
+  onBack: () => void;
+  onDone: (orderId: string) => void;
+}) {
   const cart = useCart();
   const { user } = useAuth();
   const { currency } = useCurrency();
@@ -610,7 +818,10 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
   const submit = async () => {
     console.log("cart", cart);
     console.log("user", user);
-    if (cart.items.length === 0) { toast.error("Carrinho vazio."); return; }
+    if (cart.items.length === 0) {
+      toast.error("Carrinho vazio.");
+      return;
+    }
     if (method !== "pix") {
       toast.info("Cartão e boleto serão liberados em breve. Use PIX por enquanto.");
       return;
@@ -638,8 +849,23 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
         const price = Number((p ? lineUnit(it.productId, cart.cycle) : snapshotPrice).toFixed(2));
         const itemTotal = Number(lineTotal(it.productId, cart.cycle, quantity).toFixed(2));
         const safeTotal = Number((itemTotal > 0 ? itemTotal : price * quantity).toFixed(2));
-        if (!Number.isFinite(price) || price <= 0 || !Number.isInteger(quantity) || quantity <= 0 || !Number.isFinite(safeTotal) || safeTotal <= 0) {
-          console.error("[checkout] invalid cart item", { item: it, product: p, name, type, quantity, price, itemTotal: safeTotal });
+        if (
+          !Number.isFinite(price) ||
+          price <= 0 ||
+          !Number.isInteger(quantity) ||
+          quantity <= 0 ||
+          !Number.isFinite(safeTotal) ||
+          safeTotal <= 0
+        ) {
+          console.error("[checkout] invalid cart item", {
+            item: it,
+            product: p,
+            name,
+            type,
+            quantity,
+            price,
+            itemTotal: safeTotal,
+          });
           throw new Error("Item inválido no carrinho.");
         }
         return {
@@ -653,18 +879,20 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
         };
       });
 
-      const order = await createOrderFn({ data: {
-        cycle: cart.cycle,
-        currency: "BRL",
-        subtotal: Number(Number(cart.totals.subtotal).toFixed(2)),
-        discount: Number(Number(cart.totals.discount).toFixed(2)),
-        total,
-        paymentMethod: "pix",
-        paymentProvider: "mercadopago",
-        customerEmail: user?.email ?? customer.email,
-        customerName: customer.name,
-        items,
-      } });
+      const order = await createOrderFn({
+        data: {
+          cycle: cart.cycle,
+          currency: "BRL",
+          subtotal: Number(Number(cart.totals.subtotal).toFixed(2)),
+          discount: Number(Number(cart.totals.discount).toFixed(2)),
+          total,
+          paymentMethod: "pix",
+          paymentProvider: "mercadopago",
+          customerEmail: user?.email ?? customer.email,
+          customerName: customer.name,
+          items,
+        },
+      });
       console.log("order", order);
       if (!order?.orderId) {
         throw new Error("Não foi possível criar o pedido. Tente novamente.");
@@ -675,9 +903,10 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
       setPixOpen(true);
     } catch (e: any) {
       console.error("[checkout] submit error", e);
-      const msg = typeof e?.message === "string" && e.message.length < 240
-        ? e.message
-        : "Não foi possível gerar o PIX. Verifique os dados e tente novamente.";
+      const msg =
+        typeof e?.message === "string" && e.message.length < 240
+          ? e.message
+          : "Não foi possível gerar o PIX. Verifique os dados e tente novamente.";
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -696,62 +925,107 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
 
   return (
     <div>
-      <Header title="Pagamento" subtitle="Finalize com PIX em ambiente criptografado e confirmação automática." />
+      <Header
+        title="Pagamento"
+        subtitle="Finalize com PIX em ambiente criptografado e confirmação automática."
+      />
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-5">
           <div className="rounded-[28px] border border-white/70 bg-white/72 p-4 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur-2xl sm:p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <div className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Método de pagamento</div>
-                <div className="mt-1 text-lg font-black tracking-tight text-slate-950">Gateway seguro ViralizaHost</div>
+                <div className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                  Método de pagamento
+                </div>
+                <div className="mt-1 text-lg font-black tracking-tight text-slate-950">
+                  Gateway seguro ViralizaHost
+                </div>
               </div>
               <MercadoPagoMark />
             </div>
-          {[
-            { id: "pix" as const, label: "PIX instantâneo", desc: "QR Code e copia e cola com aprovação em tempo real", icon: <PixBrandIcon className="h-9 w-9" />, meta: <span className="text-xs font-bold text-emerald-700">Disponível agora</span>, available: true },
-            { id: "card" as const, label: "Cartão de crédito", desc: "Checkout com Visa, Mastercard e Elo", icon: <CardBrands />, meta: <span className="text-xs font-bold text-slate-500">Em breve</span>, available: false },
-            { id: "boleto" as const, label: "Boleto bancário", desc: "Compensação tradicional em 1–2 dias úteis", icon: <div className="grid h-11 w-11 place-items-center rounded-xl bg-white ring-1 ring-slate-200"><FileText className="h-6 w-6 text-slate-700" /></div>, meta: <span className="text-xs font-bold text-slate-500">Em breve</span>, available: false },
-          ].map((m) => {
-            const selected = method === m.id;
-            return (
-              <motion.button
-                key={m.id}
-                whileHover={{ y: m.available ? -4 : -1 }}
-                whileTap={{ scale: m.available ? 0.99 : 1 }}
-                onClick={() => setMethod(m.id)}
-                className={`group relative mb-3 w-full overflow-hidden rounded-3xl border p-5 text-left transition-all ${
-                  selected
-                    ? "border-blue-300 bg-gradient-to-br from-white via-blue-50/70 to-white shadow-[0_20px_60px_rgba(37,99,235,0.18)] ring-4 ring-blue-500/10"
-                    : "border-slate-200/80 bg-white/86 shadow-[0_12px_38px_rgba(15,23,42,0.07)] hover:border-blue-200 hover:shadow-[0_18px_52px_rgba(37,99,235,0.11)]"
-                } ${!m.available ? "opacity-75" : ""}`}
-              >
-                {selected && <motion.div layoutId="payment-glow" className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-blue-500 via-cyan-400 to-emerald-400" />}
-                <div className="relative flex items-center gap-4">
-                  <div className={`grid min-h-16 min-w-16 place-items-center rounded-2xl border shadow-inner transition ${selected ? "border-blue-200 bg-white" : "border-slate-100 bg-slate-50"}`}>
-                    {m.icon}
+            {[
+              {
+                id: "pix" as const,
+                label: "PIX instantâneo",
+                desc: "QR Code e copia e cola com aprovação em tempo real",
+                icon: <PixBrandIcon className="h-9 w-9" />,
+                meta: <span className="text-xs font-bold text-emerald-700">Disponível agora</span>,
+                available: true,
+              },
+              {
+                id: "card" as const,
+                label: "Cartão de crédito",
+                desc: "Checkout com Visa, Mastercard e Elo",
+                icon: <CardBrands />,
+                meta: <span className="text-xs font-bold text-slate-500">Em breve</span>,
+                available: false,
+              },
+              {
+                id: "boleto" as const,
+                label: "Boleto bancário",
+                desc: "Compensação tradicional em 1–2 dias úteis",
+                icon: (
+                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-white ring-1 ring-slate-200">
+                    <FileText className="h-6 w-6 text-slate-700" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="text-base font-black tracking-tight text-slate-950">{m.label}</div>
-                      {m.id === "pix" && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black text-emerald-700 ring-1 ring-emerald-200">
-                          <Zap className="h-3 w-3" /> Recomendado
-                        </span>
-                      )}
-                      {!m.available && (
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">Indisponível</span>
-                      )}
+                ),
+                meta: <span className="text-xs font-bold text-slate-500">Em breve</span>,
+                available: false,
+              },
+            ].map((m) => {
+              const selected = method === m.id;
+              return (
+                <motion.button
+                  key={m.id}
+                  whileHover={{ y: m.available ? -4 : -1 }}
+                  whileTap={{ scale: m.available ? 0.99 : 1 }}
+                  onClick={() => setMethod(m.id)}
+                  className={`group relative mb-3 w-full overflow-hidden rounded-3xl border p-5 text-left transition-all ${
+                    selected
+                      ? "border-blue-300 bg-gradient-to-br from-white via-blue-50/70 to-white shadow-[0_20px_60px_rgba(37,99,235,0.18)] ring-4 ring-blue-500/10"
+                      : "border-slate-200/80 bg-white/86 shadow-[0_12px_38px_rgba(15,23,42,0.07)] hover:border-blue-200 hover:shadow-[0_18px_52px_rgba(37,99,235,0.11)]"
+                  } ${!m.available ? "opacity-75" : ""}`}
+                >
+                  {selected && (
+                    <motion.div
+                      layoutId="payment-glow"
+                      className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-blue-500 via-cyan-400 to-emerald-400"
+                    />
+                  )}
+                  <div className="relative flex items-center gap-4">
+                    <div
+                      className={`grid min-h-16 min-w-16 place-items-center rounded-2xl border shadow-inner transition ${selected ? "border-blue-200 bg-white" : "border-slate-100 bg-slate-50"}`}
+                    >
+                      {m.icon}
                     </div>
-                    <div className="mt-1 text-sm leading-relaxed text-slate-500">{m.desc}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="text-base font-black tracking-tight text-slate-950">
+                          {m.label}
+                        </div>
+                        {m.id === "pix" && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black text-emerald-700 ring-1 ring-emerald-200">
+                            <Zap className="h-3 w-3" /> Recomendado
+                          </span>
+                        )}
+                        {!m.available && (
+                          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">
+                            Indisponível
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 text-sm leading-relaxed text-slate-500">{m.desc}</div>
+                    </div>
+                    <div className="hidden shrink-0 text-right sm:block">{m.meta}</div>
+                    <div
+                      className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 transition ${selected ? "border-blue-600 bg-blue-600 text-white ring-4 ring-blue-500/15" : "border-slate-300 bg-white"}`}
+                    >
+                      {selected && <Check className="h-4 w-4" />}
+                    </div>
                   </div>
-                  <div className="hidden shrink-0 text-right sm:block">{m.meta}</div>
-                  <div className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 transition ${selected ? "border-blue-600 bg-blue-600 text-white ring-4 ring-blue-500/15" : "border-slate-300 bg-white"}`}>
-                    {selected && <Check className="h-4 w-4" />}
-                  </div>
-                </div>
-              </motion.button>
-            );
-          })}
+                </motion.button>
+              );
+            })}
           </div>
 
           <div className="grid sm:grid-cols-3 gap-3 pt-1">
@@ -787,8 +1061,13 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
             className="relative mt-5 inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-500 py-4 text-[15px] font-black tracking-tight text-white shadow-[0_18px_45px_rgba(37,99,235,0.38)] transition hover:shadow-[0_22px_60px_rgba(37,99,235,0.48)] disabled:opacity-50"
           >
             <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/18 to-white/0 translate-x-[-120%] transition-transform duration-700 hover:translate-x-[120%]" />
-            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <PixBrandIcon className="h-5 w-5 animate-pulse" />}
-            {loading ? "A criar QR Code PIX…" : "Gerar PIX seguro"} {!loading && <ArrowRight className="h-4 w-4" />}
+            {loading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <PixBrandIcon className="h-5 w-5 animate-pulse" />
+            )}
+            {loading ? "A criar QR Code PIX…" : "Gerar PIX seguro"}{" "}
+            {!loading && <ArrowRight className="h-4 w-4" />}
           </motion.button>
           <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
             <Lock className="h-3 w-3" /> Pagamento criptografado
@@ -838,11 +1117,17 @@ function DoneStep({ orderId }: { orderId?: string }) {
       }
     };
     poll();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [orderId]);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-xl mx-auto text-center py-12">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-xl mx-auto text-center py-12"
+    >
       <div className="h-20 w-20 mx-auto rounded-full bg-gradient-primary grid place-items-center shadow-glow mb-6">
         <PartyPopper className="h-10 w-10 text-primary-foreground" />
       </div>
@@ -853,28 +1138,40 @@ function DoneStep({ orderId }: { orderId?: string }) {
         </p>
       )}
       {status === "ready" && (
-        <p className="text-emerald-600 font-semibold mb-2">
-          ✓ Hospedagem activa e pronta a usar
-        </p>
+        <p className="text-emerald-600 font-semibold mb-2">✓ Hospedagem activa e pronta a usar</p>
       )}
       {status === "error" && (
         <div className="text-left bg-amber-50 border border-amber-200 rounded-xl p-4 my-4 text-sm text-amber-800">
           <div className="font-semibold mb-1">Provisionamento incompleto</div>
           <ul className="list-disc pl-4 space-y-0.5">
-            {errors.map((e, i) => <li key={i}>{e}</li>)}
+            {errors.map((e, i) => (
+              <li key={i}>{e}</li>
+            ))}
           </ul>
           <p className="mt-2">A nossa equipa foi notificada e activará a sua conta manualmente.</p>
         </div>
       )}
       {status === "idle" && (
-        <p className="text-slate-600 mb-2">Recebemos seu pedido e a equipa irá ativar os serviços.</p>
+        <p className="text-slate-600 mb-2">
+          Recebemos seu pedido e a equipa irá ativar os serviços.
+        </p>
       )}
-      {orderId && <p className="text-xs text-slate-400 mb-8">Nº do pedido: <span className="font-mono">{orderId.slice(0, 8)}</span></p>}
+      {orderId && (
+        <p className="text-xs text-slate-400 mb-8">
+          Nº do pedido: <span className="font-mono">{orderId.slice(0, 8)}</span>
+        </p>
+      )}
       <div className="flex flex-wrap items-center justify-center gap-3">
-        <Link to="/dashboard" className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-primary text-primary-foreground font-semibold shadow-glow">
+        <Link
+          to="/dashboard"
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-primary text-primary-foreground font-semibold shadow-glow"
+        >
           Ir para o painel <ArrowRight className="h-4 w-4" />
         </Link>
-        <Link to="/" className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-slate-300 bg-white text-slate-700 font-semibold hover:bg-slate-50">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-slate-300 bg-white text-slate-700 font-semibold hover:bg-slate-50"
+        >
           Voltar ao site
         </Link>
       </div>
@@ -892,16 +1189,32 @@ function Header({ title, subtitle }: { title: string; subtitle?: string }) {
   );
 }
 
-function Footer({ onBack, onNext, nextLabel = "Continuar" }: { onBack?: () => void; onNext?: () => void; nextLabel?: string }) {
+function Footer({
+  onBack,
+  onNext,
+  nextLabel = "Continuar",
+}: {
+  onBack?: () => void;
+  onNext?: () => void;
+  nextLabel?: string;
+}) {
   return (
     <div className="mt-10 flex items-center justify-between gap-3">
       {onBack ? (
-        <button onClick={onBack} className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm text-slate-600 hover:text-slate-900 hover:bg-white transition">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm text-slate-600 hover:text-slate-900 hover:bg-white transition"
+        >
           <ArrowLeft className="h-4 w-4" /> Voltar
         </button>
-      ) : <span />}
+      ) : (
+        <span />
+      )}
       {onNext && (
-        <button onClick={onNext} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-primary text-primary-foreground font-semibold shadow-glow hover:scale-[1.02] transition">
+        <button
+          onClick={onNext}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-primary text-primary-foreground font-semibold shadow-glow hover:scale-[1.02] transition"
+        >
           {nextLabel} <ArrowRight className="h-4 w-4" />
         </button>
       )}
@@ -916,11 +1229,18 @@ function Summary({ children }: { children?: React.ReactNode }) {
   return (
     <aside
       className="rounded-2xl border border-slate-200/80 bg-white/80 backdrop-blur-xl shadow-glow-soft p-6 h-fit sticky top-24"
-      style={{ backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(248,250,252,0.85) 100%)" }}
+      style={{
+        backgroundImage:
+          "linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(248,250,252,0.85) 100%)",
+      }}
     >
       <div className="flex items-center justify-between mb-3">
-        <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Resumo do pedido</div>
-        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary">{c.label}</span>
+        <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">
+          Resumo do pedido
+        </div>
+        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+          {c.label}
+        </span>
       </div>
       <div className="space-y-2 text-sm mb-4 max-h-48 overflow-y-auto pr-1">
         {cart.items.map((it) => {
@@ -932,8 +1252,12 @@ function Summary({ children }: { children?: React.ReactNode }) {
             <div key={it.productId} className="flex justify-between gap-2">
               <span className="text-slate-700 truncate">
                 {p.name} ×{it.qty}
-                {annual && <span className="ml-1 text-[10px] font-semibold text-emerald-700">/ano</span>}
-                {it.domain && !annual && <span className="block text-[11px] text-slate-400 truncate">{it.domain}</span>}
+                {annual && (
+                  <span className="ml-1 text-[10px] font-semibold text-emerald-700">/ano</span>
+                )}
+                {it.domain && !annual && (
+                  <span className="block text-[11px] text-slate-400 truncate">{it.domain}</span>
+                )}
               </span>
               <span className="font-semibold text-slate-900 shrink-0">{brl(total, currency)}</span>
             </div>
@@ -942,25 +1266,47 @@ function Summary({ children }: { children?: React.ReactNode }) {
       </div>
       <div className="border-t border-slate-200 pt-3 space-y-1.5 text-sm">
         <Row label="Subtotal" value={brl(cart.totals.subtotal, currency)} />
-        {cart.totals.discount > 0 && <Row label="Desconto" value={`- ${brl(cart.totals.discount, currency)}`} highlight />}
+        {cart.totals.discount > 0 && (
+          <Row label="Desconto" value={`- ${brl(cart.totals.discount, currency)}`} highlight />
+        )}
         <div className="flex justify-between items-baseline pt-2 mt-1 border-t border-slate-200">
           <span className="text-sm font-semibold text-slate-700">Total</span>
-          <span className="text-2xl font-extrabold text-gradient-primary tracking-tight">{brl(cart.totals.total, currency)}</span>
+          <span className="text-2xl font-extrabold text-gradient-primary tracking-tight">
+            {brl(cart.totals.total, currency)}
+          </span>
         </div>
       </div>
       {children}
       <div className="mt-5 pt-4 border-t border-slate-100 space-y-1.5 text-[11px] text-slate-500">
-        <div className="flex items-center gap-1.5"><Lock className="h-3 w-3 text-emerald-600" /> Pagamento seguro · SSL 256-bit</div>
-        <div className="flex items-center gap-1.5"><ShieldCheck className="h-3 w-3 text-emerald-600" /> Processado pelo Mercado Pago</div>
-        <div className="flex items-center gap-1.5"><BadgeCheck className="h-3 w-3 text-sky-600" /> Cancele quando quiser</div>
+        <div className="flex items-center gap-1.5">
+          <Lock className="h-3 w-3 text-emerald-600" /> Pagamento seguro · SSL 256-bit
+        </div>
+        <div className="flex items-center gap-1.5">
+          <ShieldCheck className="h-3 w-3 text-emerald-600" /> Processado pelo Mercado Pago
+        </div>
+        <div className="flex items-center gap-1.5">
+          <BadgeCheck className="h-3 w-3 text-sky-600" /> Cancele quando quiser
+        </div>
       </div>
     </aside>
   );
 }
 
-function Row({ label, value, bold, highlight }: { label: string; value: string; bold?: boolean; highlight?: boolean }) {
+function Row({
+  label,
+  value,
+  bold,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  bold?: boolean;
+  highlight?: boolean;
+}) {
   return (
-    <div className={`flex justify-between ${bold ? "text-base font-bold text-slate-900" : ""} ${highlight ? "text-emerald-600" : ""}`}>
+    <div
+      className={`flex justify-between ${bold ? "text-base font-bold text-slate-900" : ""} ${highlight ? "text-emerald-600" : ""}`}
+    >
       <span className={bold ? "" : "text-slate-500"}>{label}</span>
       <span>{value}</span>
     </div>

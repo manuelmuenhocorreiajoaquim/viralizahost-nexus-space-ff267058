@@ -81,8 +81,22 @@ export const createCheckoutOrder = createServerFn({ method: "POST" })
       const unitPrice = Number(Number(item.price).toFixed(2));
       const itemTotal = Number(Number(item.total ?? unitPrice * quantity).toFixed(2));
       const title = String(item.domain || item.name || item.id).trim();
-      if (!title || !Number.isInteger(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || unitPrice <= 0 || !Number.isFinite(itemTotal) || itemTotal <= 0) {
-        console.error("[checkout] invalid order item", { item, title, quantity, unitPrice, itemTotal });
+      if (
+        !title ||
+        !Number.isInteger(quantity) ||
+        quantity <= 0 ||
+        !Number.isFinite(unitPrice) ||
+        unitPrice <= 0 ||
+        !Number.isFinite(itemTotal) ||
+        itemTotal <= 0
+      ) {
+        console.error("[checkout] invalid order item", {
+          item,
+          title,
+          quantity,
+          unitPrice,
+          itemTotal,
+        });
         throw new Error("Item inválido no carrinho.");
       }
       return {
@@ -140,11 +154,21 @@ export const createPixPayment = createServerFn({ method: "POST" })
     }
 
     const mpItems = (orderItems ?? []).map((item) => {
-      const title = String(item.domain || item.product_name || "").trim().slice(0, 120);
+      const title = String(item.domain || item.product_name || "")
+        .trim()
+        .slice(0, 120);
       const quantity = Math.max(1, Math.trunc(Number(item.quantity)));
       const unitPrice = Number(Number(item.unit_price).toFixed(2));
       const total = Number(Number(item.total).toFixed(2));
-      if (!title || !Number.isInteger(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || unitPrice <= 0 || !Number.isFinite(total) || total <= 0) {
+      if (
+        !title ||
+        !Number.isInteger(quantity) ||
+        quantity <= 0 ||
+        !Number.isFinite(unitPrice) ||
+        unitPrice <= 0 ||
+        !Number.isFinite(total) ||
+        total <= 0
+      ) {
         console.error("[pix] invalid MP item", { item, title, quantity, unitPrice, total });
         throw new Error("Item inválido no carrinho.");
       }
@@ -157,15 +181,29 @@ export const createPixPayment = createServerFn({ method: "POST" })
       };
     });
     if (mpItems.length === 0) throw new Error("Item inválido no carrinho.");
-    const itemsAmount = Number(mpItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0).toFixed(2));
+    const itemsAmount = Number(
+      mpItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0).toFixed(2),
+    );
     const orderAmount = Number(Number(order.total).toFixed(2));
-    const amount = Number((Number.isFinite(itemsAmount) && itemsAmount > 0 ? itemsAmount : orderAmount).toFixed(2));
+    const amount = Number(
+      (Number.isFinite(itemsAmount) && itemsAmount > 0 ? itemsAmount : orderAmount).toFixed(2),
+    );
     if (!Number.isFinite(amount) || amount <= 0) throw new Error("Valor do pedido inválido");
     if (Math.abs(amount - orderAmount) > 0.01) {
-      console.warn("[pix] order total mismatch, syncing from items", { orderId: order.id, orderAmount, itemsAmount });
+      console.warn("[pix] order total mismatch, syncing from items", {
+        orderId: order.id,
+        orderAmount,
+        itemsAmount,
+      });
       await supabaseAdmin.from("orders").update({ total: amount }).eq("id", order.id);
     }
-    console.log("[pix] creating payment", { orderId: order.id, amount, itemCount: mpItems.length, items: mpItems, userId: order.user_id ?? null });
+    console.log("[pix] creating payment", {
+      orderId: order.id,
+      amount,
+      itemCount: mpItems.length,
+      items: mpItems,
+      userId: order.user_id ?? null,
+    });
 
     // If a pending PIX already exists for this order, reuse it (avoids
     // duplicate charges if the user retries).
@@ -196,7 +234,9 @@ export const createPixPayment = createServerFn({ method: "POST" })
         qrCodeBase64: existing.qr_code_base64 ?? "",
         copyPasteCode: existing.pix_copy_paste ?? existing.qr_code,
         pixCopyPaste: existing.pix_copy_paste ?? existing.qr_code,
-        ticketUrl: (existing.raw_response as any)?.point_of_interaction?.transaction_data?.ticket_url ?? null,
+        ticketUrl:
+          (existing.raw_response as any)?.point_of_interaction?.transaction_data?.ticket_url ??
+          null,
         expiresAt: existing.expires_at,
         status: existing.status,
       };
@@ -223,7 +263,11 @@ export const createPixPayment = createServerFn({ method: "POST" })
         items: mpItems,
       });
     } catch (err: any) {
-      console.error("[pix] provider error", { message: err?.message, status: err?.status, data: err?.data });
+      console.error("[pix] provider error", {
+        message: err?.message,
+        status: err?.status,
+        data: err?.data,
+      });
       throw new Error(err?.message ?? "Falha ao gerar PIX no provedor");
     }
     console.log("[pix] provider response", {
@@ -300,7 +344,8 @@ export const getPaymentStatus = createServerFn({ method: "POST" })
     const authHeader = getRequestHeader("authorization");
     if (payment.user_id && authHeader?.startsWith("Bearer ")) {
       const { data: userRes } = await supabaseAdmin.auth.getUser(authHeader.replace("Bearer ", ""));
-      if (userRes?.user?.id && payment.user_id !== userRes.user.id) throw new Error("Acesso negado");
+      if (userRes?.user?.id && payment.user_id !== userRes.user.id)
+        throw new Error("Acesso negado");
     }
 
     // If still pending, ask MP for the latest snapshot to short-circuit

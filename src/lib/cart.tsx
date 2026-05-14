@@ -1,5 +1,18 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { CATALOG, type CycleId, type Product, findCycle, findProduct, monthlyPrice, cyclePeriodTotal, isAnnualProduct, productUnitPrice, productPeriodTotal, productSubtotalRef, registerDomainProduct } from "./catalog";
+import {
+  CATALOG,
+  type CycleId,
+  type Product,
+  findCycle,
+  findProduct,
+  monthlyPrice,
+  cyclePeriodTotal,
+  isAnnualProduct,
+  productUnitPrice,
+  productPeriodTotal,
+  productSubtotalRef,
+  registerDomainProduct,
+} from "./catalog";
 
 export type CartItem = {
   productId: string;
@@ -14,7 +27,10 @@ export type CartItem = {
 type Ctx = {
   items: CartItem[];
   cycle: CycleId;
-  add: (productId: string, snapshot?: Partial<Omit<CartItem, "productId" | "qty">> & { qty?: number }) => void;
+  add: (
+    productId: string,
+    snapshot?: Partial<Omit<CartItem, "productId" | "qty">> & { qty?: number },
+  ) => void;
   remove: (productId: string) => void;
   setQty: (productId: string, qty: number) => void;
   setDomain: (productId: string, domain: string) => void;
@@ -44,12 +60,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
               domain: typeof item.domain === "string" ? item.domain : undefined,
               name: typeof item.name === "string" ? item.name : undefined,
               type: typeof item.type === "string" ? item.type : undefined,
-              priceBRL: Number.isFinite(Number(item.priceBRL ?? item.price)) ? Number(item.priceBRL ?? item.price) : undefined,
-              billing: item.billing === "annual" || item.billing === "monthly" ? item.billing : undefined,
+              priceBRL: Number.isFinite(Number(item.priceBRL ?? item.price))
+                ? Number(item.priceBRL ?? item.price)
+                : undefined,
+              billing:
+                item.billing === "annual" || item.billing === "monthly" ? item.billing : undefined,
             }))
             .filter((item: CartItem) => item.productId && Number.isFinite(item.qty) && item.qty > 0)
             .map((item: CartItem) => {
-              if (item.productId.startsWith("domain:") && item.priceBRL && !findProduct(item.productId)) {
+              if (
+                item.productId.startsWith("domain:") &&
+                item.priceBRL &&
+                !findProduct(item.productId)
+              ) {
                 const domain = item.domain ?? item.name ?? item.productId.replace(/^domain:/, "");
                 registerDomainProduct(domain, item.priceBRL);
               }
@@ -68,17 +91,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, [items, cycle]);
 
-  const add = (productId: string, snapshot?: Partial<Omit<CartItem, "productId" | "qty">> & { qty?: number }) => {
+  const add = (
+    productId: string,
+    snapshot?: Partial<Omit<CartItem, "productId" | "qty">> & { qty?: number },
+  ) => {
     setItems((prev) => {
       const existing = prev.find((i) => i.productId === productId);
       const qty = Math.max(1, Math.trunc(Number(snapshot?.qty ?? 1)) || 1);
-      if (existing) return prev.map((i) => (i.productId === productId ? { ...i, ...snapshot, qty: i.qty + qty } : i));
+      if (existing)
+        return prev.map((i) =>
+          i.productId === productId ? { ...i, ...snapshot, qty: i.qty + qty } : i,
+        );
       return [...prev, { productId, qty, ...snapshot }];
     });
   };
   const remove = (productId: string) => setItems((p) => p.filter((i) => i.productId !== productId));
   const setQty = (productId: string, qty: number) =>
-    setItems((p) => p.map((i) => (i.productId === productId ? { ...i, qty: Math.max(1, qty) } : i)));
+    setItems((p) =>
+      p.map((i) => (i.productId === productId ? { ...i, qty: Math.max(1, qty) } : i)),
+    );
   const setDomain = (productId: string, domain: string) =>
     setItems((p) => p.map((i) => (i.productId === productId ? { ...i, domain } : i)));
   const setCycle = (c: CycleId) => setCycleState(c);
@@ -95,13 +126,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
       total += productPeriodTotal(p, c) * it.qty;
     }
     const discount = Math.round((subtotal - total) * 100) / 100;
-    return { subtotal: Math.round(subtotal * 100) / 100, discount, total: Math.round(total * 100) / 100 };
+    return {
+      subtotal: Math.round(subtotal * 100) / 100,
+      discount,
+      total: Math.round(total * 100) / 100,
+    };
   }, [items, cycle]);
 
   const count = items.reduce((s, i) => s + i.qty, 0);
 
   return (
-    <CartContext.Provider value={{ items, cycle, add, remove, setQty, setDomain, setCycle, clear, count, totals }}>
+    <CartContext.Provider
+      value={{ items, cycle, add, remove, setQty, setDomain, setCycle, clear, count, totals }}
+    >
       {children}
     </CartContext.Provider>
   );

@@ -1,8 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
-import { Copy, CheckCircle2, Loader2, ShieldCheck, Clock, QrCode, RefreshCw, AlertCircle } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Copy,
+  CheckCircle2,
+  Loader2,
+  ShieldCheck,
+  Clock,
+  QrCode,
+  RefreshCw,
+  AlertCircle,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { createPixPayment, getPaymentStatus } from "@/lib/payments.functions";
 import { toast } from "sonner";
 
@@ -27,12 +42,21 @@ function PixBrandIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
       <path fill="#32BCAD" d="M32 6.8 57.2 32 32 57.2 6.8 32 32 6.8Z" />
-      <path fill="#fff" d="M22.1 24.2c2.7-2.7 7.1-2.7 9.8 0l2.1 2.1 2.1-2.1c2.7-2.7 7.1-2.7 9.8 0l5.5 5.5-3.7 3.7-5.5-5.5a1.8 1.8 0 0 0-2.5 0l-3.9 3.9a2.6 2.6 0 0 1-3.6 0l-3.9-3.9a1.8 1.8 0 0 0-2.5 0l-5.5 5.5-3.7-3.7 5.5-5.5Zm-5.5 10.1 3.7-3.7 5.5 5.5a1.8 1.8 0 0 0 2.5 0l3.9-3.9a2.6 2.6 0 0 1 3.6 0l3.9 3.9a1.8 1.8 0 0 0 2.5 0l5.5-5.5 3.7 3.7-5.5 5.5c-2.7 2.7-7.1 2.7-9.8 0L34 37.7l-2.1 2.1c-2.7 2.7-7.1 2.7-9.8 0l-5.5-5.5Z" />
+      <path
+        fill="#fff"
+        d="M22.1 24.2c2.7-2.7 7.1-2.7 9.8 0l2.1 2.1 2.1-2.1c2.7-2.7 7.1-2.7 9.8 0l5.5 5.5-3.7 3.7-5.5-5.5a1.8 1.8 0 0 0-2.5 0l-3.9 3.9a2.6 2.6 0 0 1-3.6 0l-3.9-3.9a1.8 1.8 0 0 0-2.5 0l-5.5 5.5-3.7-3.7 5.5-5.5Zm-5.5 10.1 3.7-3.7 5.5 5.5a1.8 1.8 0 0 0 2.5 0l3.9-3.9a2.6 2.6 0 0 1 3.6 0l3.9 3.9a1.8 1.8 0 0 0 2.5 0l5.5-5.5 3.7 3.7-5.5 5.5c-2.7 2.7-7.1 2.7-9.8 0L34 37.7l-2.1 2.1c-2.7 2.7-7.1 2.7-9.8 0l-5.5-5.5Z"
+      />
     </svg>
   );
 }
 
-export default function PixPaymentDialog({ open, onOpenChange, orderId, customerEmail, onApproved }: Props) {
+export default function PixPaymentDialog({
+  open,
+  onOpenChange,
+  orderId,
+  customerEmail,
+  onApproved,
+}: Props) {
   const createFn = useServerFn(createPixPayment);
   const statusFn = useServerFn(getPaymentStatus);
 
@@ -59,7 +83,9 @@ export default function PixPaymentDialog({ open, onOpenChange, orderId, customer
     setPix(null);
     setStatus("pending");
     setLoading(true);
-    createFn({ data: { orderId, customerEmail, description: `Pedido ViralizaHost ${orderId.slice(0, 8)}` } })
+    createFn({
+      data: { orderId, customerEmail, description: `Pedido ViralizaHost ${orderId.slice(0, 8)}` },
+    })
       .then((res: any) => {
         console.log("payment response", res);
         if (!res?.success || !res?.paymentId) {
@@ -85,9 +111,10 @@ export default function PixPaymentDialog({ open, onOpenChange, orderId, customer
       })
       .catch((e: any) => {
         console.error("[pix] createPixPayment error", e);
-        const msg = typeof e?.message === "string" && e.message.length < 240
-          ? e.message
-          : "Não foi possível gerar o PIX. Verifique os dados e tente novamente.";
+        const msg =
+          typeof e?.message === "string" && e.message.length < 240
+            ? e.message
+            : "Não foi possível gerar o PIX. Verifique os dados e tente novamente.";
         setError(msg);
       })
       .finally(() => setLoading(false));
@@ -179,7 +206,9 @@ export default function PixPaymentDialog({ open, onOpenChange, orderId, customer
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_10%,rgba(255,255,255,0.24),transparent_32%)]" />
           <DialogHeader>
             <DialogTitle className="relative flex items-center gap-3 text-white">
-              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white shadow-xl"><PixBrandIcon className="h-7 w-7" /></span>
+              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white shadow-xl">
+                <PixBrandIcon className="h-7 w-7" />
+              </span>
               Pague com PIX
             </DialogTitle>
             <DialogDescription className="relative text-blue-100">
@@ -229,7 +258,9 @@ export default function PixPaymentDialog({ open, onOpenChange, orderId, customer
                     className="h-64 w-64 object-contain"
                   />
                 ) : (
-                  <div className="h-64 w-64 grid place-items-center text-xs text-slate-400">QR indisponível</div>
+                  <div className="h-64 w-64 grid place-items-center text-xs text-slate-400">
+                    QR indisponível
+                  </div>
                 )}
               </div>
 
@@ -242,7 +273,10 @@ export default function PixPaymentDialog({ open, onOpenChange, orderId, customer
                     <span className="text-red-600 font-semibold">Recusado</span>
                   ) : (
                     <>
-                      Expira em <span className="font-mono font-semibold text-slate-900">{mm}:{ss}</span>
+                      Expira em{" "}
+                      <span className="font-mono font-semibold text-slate-900">
+                        {mm}:{ss}
+                      </span>
                     </>
                   )}
                 </div>
@@ -276,14 +310,24 @@ export default function PixPaymentDialog({ open, onOpenChange, orderId, customer
                 disabled={checking || status !== "pending"}
                 className="w-full rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700 inline-flex items-center justify-center gap-2 transition hover:bg-blue-100 disabled:opacity-60"
               >
-                {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                {checking ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
                 Já paguei, verificar agora
               </button>
 
               <div className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 text-xs text-slate-600 space-y-1">
-                <p><strong>1.</strong> Abra o app do seu banco.</p>
-                <p><strong>2.</strong> Escolha pagar com PIX → ler QR Code ou colar código.</p>
-                <p><strong>3.</strong> Confirme — a aprovação é automática.</p>
+                <p>
+                  <strong>1.</strong> Abra o app do seu banco.
+                </p>
+                <p>
+                  <strong>2.</strong> Escolha pagar com PIX → ler QR Code ou colar código.
+                </p>
+                <p>
+                  <strong>3.</strong> Confirme — a aprovação é automática.
+                </p>
               </div>
 
               <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400">

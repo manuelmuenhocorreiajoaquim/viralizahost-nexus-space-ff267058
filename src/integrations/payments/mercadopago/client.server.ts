@@ -14,9 +14,7 @@ const MP_API = "https://api.mercadopago.com";
 function resolveAccessToken(): string {
   const mode = (process.env.MP_MODE ?? "test").toLowerCase();
   const token =
-    mode === "live"
-      ? process.env.MP_ACCESS_TOKEN_LIVE
-      : process.env.MP_ACCESS_TOKEN_TEST;
+    mode === "live" ? process.env.MP_ACCESS_TOKEN_LIVE : process.env.MP_ACCESS_TOKEN_TEST;
   if (!token) {
     throw new Error(
       `Mercado Pago access token missing for mode "${mode}". Configure MP_ACCESS_TOKEN_${mode.toUpperCase()}.`,
@@ -64,8 +62,7 @@ async function mpFetch(path: string, init: RequestInit = {}): Promise<any> {
     data = { raw: text };
   }
   if (!res.ok) {
-    const msg =
-      data?.message || data?.error || `Mercado Pago error ${res.status}`;
+    const msg = data?.message || data?.error || `Mercado Pago error ${res.status}`;
     const err = new Error(msg);
     (err as any).status = res.status;
     (err as any).data = data;
@@ -85,7 +82,9 @@ export const mercadopago: PaymentProvider = {
 
     const sanitizedItems = (input.items ?? [])
       .map((item) => ({
-        title: String(item.title ?? "").trim().slice(0, 120),
+        title: String(item.title ?? "")
+          .trim()
+          .slice(0, 120),
         quantity: Math.max(1, Math.trunc(Number(item.quantity))),
         unit_price: Number(Number(item.unit_price).toFixed(2)),
         currency_id: "BRL" as const,
@@ -145,9 +144,7 @@ export const mercadopago: PaymentProvider = {
   },
 
   async getPaymentStatus(providerPaymentId: string): Promise<PaymentSnapshot> {
-    const data = await mpFetch(
-      `/v1/payments/${encodeURIComponent(providerPaymentId)}`,
-    );
+    const data = await mpFetch(`/v1/payments/${encodeURIComponent(providerPaymentId)}`);
     if (!data?.id) {
       console.error("[mercadopago] status invalid response", data);
       throw new Error("Mercado Pago não retornou o ID do pagamento.");
