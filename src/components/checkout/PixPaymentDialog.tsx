@@ -109,7 +109,7 @@ export default function PixPaymentDialog({
           qrCode: res.qrCode ?? "",
           qrCodeBase64: res.qrCodeBase64 ?? "",
           pixCopyPaste: res.copyPasteCode ?? res.pixCopyPaste ?? res.qrCode ?? "",
-          expiresAt: res.expiresAt,
+          expiresAt: res.expiresAt ?? new Date(Date.now() + 30 * 60_000).toISOString(),
           amount: Number(res.amount) || 0,
         });
         if (res.status === "approved") {
