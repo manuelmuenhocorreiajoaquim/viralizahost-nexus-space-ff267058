@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
             // Ensure profile has must_change_password = true (handle_new_user trigger creates row)
             await admin
               .from("profiles")
-              .upsert({ id: userId, must_change_password: true, full_name: a.owner ?? username }, { onConflict: "id" });
+              .upsert({ id: userId, must_change_password: true, full_name: username }, { onConflict: "id" });
           }
 
           // Upsert cpanel_account
