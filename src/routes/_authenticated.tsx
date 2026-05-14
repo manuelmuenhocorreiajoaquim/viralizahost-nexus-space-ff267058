@@ -79,6 +79,20 @@ function AuthLayout() {
     },
   });
 
+  const { data: primaryAccount } = useQuery({
+    queryKey: ["primary-cpanel", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("cpanel_accounts")
+        .select("username,domain,status,plan_name,package")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+  });
+
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   useEffect(() => {
     if (profile?.must_change_password && pathname !== "/change-password") {
@@ -94,7 +108,20 @@ function AuthLayout() {
     );
   }
 
-  const displayName = profile?.full_name || user.email?.split("@")[0] || "Cliente";
+  // Prefer the cPanel username (e.g. "fundacao") over legacy profile.full_name (often "root")
+  const legacy = !profile?.full_name || profile.full_name === "root";
+  const displayName = (legacy ? primaryAccount?.username : profile?.full_name)
+    || primaryAccount?.username
+    || user.email?.split("@")[0]
+    || "Cliente";
+  const planLabel = primaryAccount?.plan_name ?? primaryAccount?.package ?? null;
+  const accountStatus = primaryAccount?.status ?? null;
+  const statusTone =
+    accountStatus === "active"
+      ? "bg-emerald-500"
+      : accountStatus === "suspended"
+        ? "bg-red-500"
+        : "bg-slate-400";
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex">
