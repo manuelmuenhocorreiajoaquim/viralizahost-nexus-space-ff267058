@@ -629,21 +629,27 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
       }
       const items = cart.items.map((it) => {
         const p = findProduct(it.productId);
-        if (!p?.id || !p.name || !p.type) throw new Error("Item inválido no carrinho.");
-        const quantity = Number(it.qty);
-        const price = Number(lineUnit(it.productId, cart.cycle).toFixed(2));
+        const fallbackName = it.domain ?? it.name ?? it.productId.replace(/^domain:/, "");
+        const name = String(p?.name ?? fallbackName).trim();
+        const type = p?.type ?? it.type;
+        if (!it.productId || !name || !type) throw new Error("Item inválido no carrinho.");
+        const quantity = Math.max(1, Math.trunc(Number(it.qty)) || 1);
+        const snapshotPrice = Number(it.priceBRL);
+        const price = Number((p ? lineUnit(it.productId, cart.cycle) : snapshotPrice).toFixed(2));
         const itemTotal = Number(lineTotal(it.productId, cart.cycle, quantity).toFixed(2));
-        if (!Number.isFinite(price) || price < 0 || !Number.isFinite(quantity) || quantity <= 0) {
+        const safeTotal = Number((itemTotal > 0 ? itemTotal : price * quantity).toFixed(2));
+        if (!Number.isFinite(price) || price <= 0 || !Number.isInteger(quantity) || quantity <= 0 || !Number.isFinite(safeTotal) || safeTotal <= 0) {
+          console.error("[checkout] invalid cart item", { item: it, product: p, name, type, quantity, price, itemTotal: safeTotal });
           throw new Error("Item inválido no carrinho.");
         }
         return {
-          id: p.id,
-          name: p.name,
-          type: p.type,
+          id: p?.id ?? it.productId,
+          name,
+          type,
           price,
           quantity,
           domain: it.domain ?? null,
-          total: itemTotal,
+          total: safeTotal,
         };
       });
 
