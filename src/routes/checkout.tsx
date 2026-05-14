@@ -261,65 +261,126 @@ function CycleStep({ onNext }: { onNext: () => void }) {
         title="Escolha sua assinatura"
         subtitle="Quanto maior o ciclo, maior o desconto. Sem fidelidade obrigatória. Domínios são cobrados anualmente."
       />
-      <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
-        {CYCLES.map((c) => {
+      <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-5">
+        {CYCLES.map((c, idx) => {
           const monthly = refBase * (1 - c.discountPct / 100);
           const total = cyclePeriodTotal(refBase, c);
           const save = cycleSavings(refBase, c);
           const active = cart.cycle === c.id;
           const pct = Math.round((c.discountPct / maxDiscount) * 100);
+          const isBest = c.id === "annual";
           return (
             <motion.button
               key={c.id}
-              whileHover={{ y: -4 }}
+              type="button"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: idx * 0.05, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{ y: -6 }}
+              whileTap={{ scale: 0.985 }}
               onClick={() => cart.setCycle(c.id)}
-              className={`text-left rounded-2xl p-5 border transition-all relative bg-white/90 backdrop-blur ${
+              className={`group relative text-left rounded-2xl p-5 lg:p-6 border overflow-hidden transition-all duration-300 will-change-transform ${
                 active
-                  ? "border-primary shadow-glow ring-2 ring-primary/25 -translate-y-0.5"
-                  : "border-slate-200 shadow-card hover:shadow-glow-soft hover:border-primary/30"
+                  ? "border-primary/70 bg-white shadow-[0_20px_60px_-20px_oklch(0.62_0.22_255/0.55)] ring-2 ring-primary/30"
+                  : "border-slate-200/80 bg-white/85 backdrop-blur-xl shadow-card hover:shadow-glow-soft hover:border-primary/40"
               }`}
             >
+              {/* Active gradient wash */}
+              <div
+                className={`pointer-events-none absolute inset-0 transition-opacity duration-500 ${
+                  active ? "opacity-100" : "opacity-0"
+                }`}
+                style={{
+                  background:
+                    "linear-gradient(160deg, oklch(0.62 0.22 255 / 0.10) 0%, transparent 55%, oklch(0.5 0.24 265 / 0.08) 100%)",
+                }}
+              />
+              {/* Hover sheen */}
+              <div className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                   style={{ background: "radial-gradient(600px circle at var(--x,50%) 0%, oklch(0.62 0.22 255 / 0.08), transparent 40%)" }} />
+
+              {isBest && !active && (
+                <div className="absolute top-3 left-3 px-2 py-0.5 rounded-md bg-slate-900 text-white text-[9px] font-bold uppercase tracking-wider shadow">
+                  Mais popular
+                </div>
+              )}
+
               {c.badge && (
-                <div className="absolute -top-2 right-4 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-indigo-600 to-blue-500 text-[10px] font-bold text-white shadow-lg">
+                <div className="absolute -top-2.5 right-4 px-3 py-1 rounded-full text-[10px] font-bold text-white shadow-lg tracking-wide"
+                     style={{ background: "linear-gradient(135deg,#4f46e5 0%,#2563eb 50%,#0ea5e9 100%)", boxShadow: "0 8px 22px -6px rgba(37,99,235,.55)" }}>
                   {c.badge}
                 </div>
               )}
-              <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">
-                {c.label}
-              </div>
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-2xl font-bold text-gradient-primary">
-                  {brl(monthly, currency)}
-                </span>
-                <span className="text-xs text-slate-500">/mês</span>
-              </div>
-              <div className="mt-3 space-y-1 text-xs text-slate-600">
-                <div>
-                  Total:{" "}
-                  <span className="font-semibold text-slate-900">{brl(total, currency)}</span>
-                </div>
-                {save > 0 ? (
-                  <div className="text-emerald-600 font-medium">
-                    Economize {brl(save, currency)}
+
+              <div className="relative">
+                <div className="flex items-center justify-between">
+                  <div className="text-[11px] uppercase tracking-[0.14em] text-slate-500 font-semibold">
+                    {c.label}
                   </div>
-                ) : (
-                  <div className="text-slate-400">Sem desconto</div>
-                )}
-              </div>
-              <div className="mt-3 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600"
-                  initial={false}
-                  animate={{ width: `${pct}%` }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                />
-              </div>
-              <div className="mt-1 text-[10px] text-slate-400">{c.discountPct}% de desconto</div>
-              {active && (
-                <div className="mt-3 flex items-center gap-1 text-xs text-primary font-semibold">
-                  <Check className="h-3 w-3" /> Selecionado
+                  {active && (
+                    <motion.span
+                      initial={{ scale: 0.6, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold"
+                    >
+                      <Check className="h-3 w-3" /> Selecionado
+                    </motion.span>
+                  )}
                 </div>
-              )}
+
+                <div className="mt-4 flex items-baseline gap-1.5">
+                  <span className="text-[11px] font-semibold text-slate-400">
+                    {currency === "AKZ" ? "Kz" : "R$"}
+                  </span>
+                  <span className="text-[34px] leading-none font-extrabold tracking-tight text-slate-900 tabular-nums">
+                    {brl(monthly, currency).replace(/^[^\d]+/, "")}
+                  </span>
+                  <span className="text-xs text-slate-500 font-medium">/mês</span>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-slate-100 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Total</span>
+                    <span className="font-semibold text-slate-900 tabular-nums">{brl(total, currency)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Economia</span>
+                    {save > 0 ? (
+                      <span className="font-semibold text-emerald-600 tabular-nums">
+                        {brl(save, currency)}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <div className="relative h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <motion.div
+                      className="absolute inset-y-0 left-0 rounded-full"
+                      style={{
+                        background: active
+                          ? "linear-gradient(90deg, oklch(0.62 0.22 255), oklch(0.5 0.24 265))"
+                          : "linear-gradient(90deg, #34d399, #059669)",
+                        boxShadow: active
+                          ? "0 0 12px oklch(0.62 0.22 255 / 0.55)"
+                          : "0 0 8px rgba(16,185,129,.35)",
+                      }}
+                      initial={false}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                    />
+                    <div className="absolute inset-0 shimmer-bg opacity-40" />
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                    <span>Desconto</span>
+                    <span className={active ? "text-primary font-bold" : ""}>
+                      {c.discountPct}%
+                    </span>
+                  </div>
+                </div>
+              </div>
             </motion.button>
           );
         })}
@@ -1258,14 +1319,21 @@ function Footer({
         <span />
       )}
       {onNext && (
-        <div className="flex flex-col items-end gap-1">
-          <button
+        <div className="flex flex-col items-end gap-1.5">
+          <motion.button
+            whileHover={{ scale: nextDisabled ? 1 : 1.03 }}
+            whileTap={{ scale: nextDisabled ? 1 : 0.97 }}
             onClick={onNext}
             disabled={nextDisabled}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-primary text-primary-foreground font-semibold shadow-glow hover:scale-[1.02] transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            className="group relative inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-gradient-primary text-primary-foreground font-semibold text-sm shadow-glow transition disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
           >
-            {nextLabel} <ArrowRight className="h-4 w-4" />
-          </button>
+            <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                  style={{ background: "radial-gradient(120px circle at 50% 0%, rgba(255,255,255,.35), transparent 60%)" }} />
+            <span className="absolute -inset-1 rounded-full opacity-60 blur-xl -z-10"
+                  style={{ background: "linear-gradient(135deg, oklch(0.62 0.22 255 / .7), oklch(0.5 0.24 265 / .7))" }} />
+            <span className="relative">{nextLabel}</span>
+            <ArrowRight className="relative h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </motion.button>
           {nextDisabled && nextHint && (
             <span className="text-xs text-amber-600 font-medium">{nextHint}</span>
           )}
