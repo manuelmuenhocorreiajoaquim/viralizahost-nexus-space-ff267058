@@ -13,10 +13,10 @@ const OrderItemSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   type: z.string().min(1),
-  price: z.number().finite().nonnegative(),
+  price: z.number().finite().positive(),
   quantity: z.number().int().positive(),
   domain: z.string().optional().nullable(),
-  total: z.number().finite().nonnegative().optional(),
+  total: z.number().finite().positive().optional(),
 });
 
 const CreateCheckoutOrderSchema = z.object({
@@ -75,18 +75,28 @@ export const createCheckoutOrder = createServerFn({ method: "POST" })
     }
     if (!order?.id) throw new Error("Não foi possível criar o pedido.");
 
-    const items = data.items.map((item) => ({
-      order_id: order.id,
-      product_id: item.id,
-      product_type: item.type,
-      product_name: item.name,
-      cycle: data.cycle,
-      unit_price: Number(item.price.toFixed(2)),
-      quantity: item.quantity,
-      total: Number((item.total ?? item.price * item.quantity).toFixed(2)),
-      domain: item.domain ?? null,
-      metadata: {},
-    }));
+    const items = data.items.map((item) => {
+      const quantity = Math.trunc(Number(item.quantity));
+      const unitPrice = Number(Number(item.price).toFixed(2));
+      const itemTotal = Number(Number(item.total ?? unitPrice * quantity).toFixed(2));
+      const title = String(item.domain || item.name || item.id).trim();
+      if (!title || !Number.isInteger(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || unitPrice <= 0 || !Number.isFinite(itemTotal) || itemTotal <= 0) {
+        console.error("[checkout] invalid order item", { item, title, quantity, unitPrice, itemTotal });
+        throw new Error("Item inválido no carrinho.");
+      }
+      return {
+        order_id: order.id,
+        product_id: item.id,
+        product_type: item.type,
+        product_name: title,
+        cycle: data.cycle,
+        unit_price: unitPrice,
+        quantity,
+        total: itemTotal,
+        domain: item.domain ?? null,
+        metadata: { billing: item.type === "domain" ? "annual" : "cycle" },
+      };
+    });
 
     const { error: itemsErr } = await supabaseAdmin.from("order_items").insert(items);
     if (itemsErr) {
