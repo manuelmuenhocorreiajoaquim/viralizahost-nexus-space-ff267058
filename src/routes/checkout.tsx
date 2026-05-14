@@ -1134,7 +1134,7 @@ function PaymentStep({
   const { user } = useAuth();
   const { currency } = useCurrency();
   const createOrderFn = useServerFn(createCheckoutOrder);
-  const [method, setMethod] = useState<"pix" | "card" | "boleto" | "paypal">("pix");
+  const [method, setMethod] = useState<"pix" | "card" | "boleto" | "paypal" | "bank_bic">("pix");
   const [loading, setLoading] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
   const [pendingEmail, setPendingEmail] = useState<string | undefined>();
@@ -1144,6 +1144,7 @@ function PaymentStep({
   const [cardOpen, setCardOpen] = useState(false);
   const [boletoOpen, setBoletoOpen] = useState(false);
   const [paypalOpen, setPaypalOpen] = useState(false);
+  const [bankOpen, setBankOpen] = useState(false);
 
   const submit = async () => {
     if (cart.items.length === 0) {
