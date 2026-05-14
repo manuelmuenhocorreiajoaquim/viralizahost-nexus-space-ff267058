@@ -164,12 +164,42 @@ function Stepper({ current }: { current: StepId }) {
 function CycleStep({ onNext }: { onNext: () => void }) {
   const cart = useCart();
   const { currency } = useCurrency();
-  const refBase = cart.items[0] ? findProduct(cart.items[0].productId)?.basePriceBRL ?? 50 : 50;
+  const recurringItems = cart.items.filter((i) => {
+    const p = findProduct(i.productId);
+    return p && !isAnnualProduct(p);
+  });
+
+  // Cart contains only annual products (domains) — skip cycle step.
+  if (cart.items.length > 0 && recurringItems.length === 0) {
+    return (
+      <div>
+        <Header title="Registro anual de domínio" subtitle="Domínios são cobrados anualmente — sem ciclo de assinatura." />
+        <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-blue-50 p-6 max-w-xl shadow-card">
+          <div className="flex items-start gap-4">
+            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 grid place-items-center text-white shadow-md">
+              <Globe className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="font-semibold text-slate-900">Apenas domínios no carrinho</div>
+              <p className="text-sm text-slate-600 mt-1">
+                Você pode prosseguir direto para a finalização. O preço do domínio é fixo por ano.
+              </p>
+            </div>
+          </div>
+        </div>
+        <Footer onNext={onNext} nextLabel="Continuar" />
+      </div>
+    );
+  }
+
+  const refBase = recurringItems[0]
+    ? findProduct(recurringItems[0].productId)?.basePriceBRL ?? 50
+    : (cart.items[0] ? findProduct(cart.items[0].productId)?.basePriceBRL ?? 50 : 50);
   const maxDiscount = Math.max(...CYCLES.map((c) => c.discountPct), 1);
 
   return (
     <div>
-      <Header title="Escolha sua assinatura" subtitle="Quanto maior o ciclo, maior o desconto. Sem fidelidade obrigatória." />
+      <Header title="Escolha sua assinatura" subtitle="Quanto maior o ciclo, maior o desconto. Sem fidelidade obrigatória. Domínios são cobrados anualmente." />
       <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
         {CYCLES.map((c) => {
           const monthly = refBase * (1 - c.discountPct / 100);
@@ -206,7 +236,6 @@ function CycleStep({ onNext }: { onNext: () => void }) {
                   <div className="text-slate-400">Sem desconto</div>
                 )}
               </div>
-              {/* Savings progress bar */}
               <div className="mt-3 h-1.5 rounded-full bg-slate-100 overflow-hidden">
                 <motion.div
                   className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600"
