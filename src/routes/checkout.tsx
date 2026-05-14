@@ -543,11 +543,14 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
   const domainItemsOnly = cart.items.filter((i) => findProduct(i.productId)?.type === "domain");
   const hasDomainInCart = domainItemsOnly.length > 0;
 
-  // An item is "satisfied" if it has its own domain OR there's a domain product in the cart.
-  const allSatisfied = itemsNeedingDomain.every(
+  // Apenas e-mail profissional EXIGE domínio. Hospedagem/VPS é opcional.
+  const itemsRequiringDomain = itemsNeedingDomain.filter(
+    (i) => findProduct(i.productId)?.type === "email",
+  );
+  const allSatisfied = itemsRequiringDomain.every(
     (i) => Boolean(i.domain && i.domain.trim().length > 2) || hasDomainInCart,
   );
-  const nextDisabled = itemsNeedingDomain.length > 0 && !allSatisfied;
+  const nextDisabled = itemsRequiringDomain.length > 0 && !allSatisfied;
 
   if (itemsNeedingDomain.length === 0 && domainItemsOnly.length === 0) {
     return (
