@@ -813,16 +813,25 @@ function Summary({ children }: { children?: React.ReactNode }) {
   const { currency } = useCurrency();
   const c = findCycle(cart.cycle);
   return (
-    <aside className="rounded-2xl border border-slate-200 bg-white shadow-card p-6 h-fit sticky top-24">
-      <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">Resumo · {c.label}</div>
-      <div className="space-y-2 text-sm mb-4 max-h-48 overflow-y-auto">
+    <aside
+      className="rounded-2xl border border-slate-200/80 bg-white/80 backdrop-blur-xl shadow-glow-soft p-6 h-fit sticky top-24"
+      style={{ backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(248,250,252,0.85) 100%)" }}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Resumo do pedido</div>
+        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary">{c.label}</span>
+      </div>
+      <div className="space-y-2 text-sm mb-4 max-h-48 overflow-y-auto pr-1">
         {cart.items.map((it) => {
           const p = findProduct(it.productId);
           if (!p) return null;
           const total = lineMonthly(it.productId, cart.cycle) * c.months * it.qty;
           return (
             <div key={it.productId} className="flex justify-between gap-2">
-              <span className="text-slate-700 truncate">{p.name} ×{it.qty}</span>
+              <span className="text-slate-700 truncate">
+                {p.name} ×{it.qty}
+                {it.domain && <span className="block text-[11px] text-slate-400 truncate">{it.domain}</span>}
+              </span>
               <span className="font-semibold text-slate-900 shrink-0">{brl(total, currency)}</span>
             </div>
           );
@@ -831,9 +840,17 @@ function Summary({ children }: { children?: React.ReactNode }) {
       <div className="border-t border-slate-200 pt-3 space-y-1.5 text-sm">
         <Row label="Subtotal" value={brl(cart.totals.subtotal, currency)} />
         {cart.totals.discount > 0 && <Row label="Desconto" value={`- ${brl(cart.totals.discount, currency)}`} highlight />}
-        <Row label="Total" value={brl(cart.totals.total, currency)} bold />
+        <div className="flex justify-between items-baseline pt-2 mt-1 border-t border-slate-200">
+          <span className="text-sm font-semibold text-slate-700">Total</span>
+          <span className="text-2xl font-extrabold text-gradient-primary tracking-tight">{brl(cart.totals.total, currency)}</span>
+        </div>
       </div>
       {children}
+      <div className="mt-5 pt-4 border-t border-slate-100 space-y-1.5 text-[11px] text-slate-500">
+        <div className="flex items-center gap-1.5"><Lock className="h-3 w-3 text-emerald-600" /> Pagamento seguro · SSL 256-bit</div>
+        <div className="flex items-center gap-1.5"><ShieldCheck className="h-3 w-3 text-emerald-600" /> Processado pelo Mercado Pago</div>
+        <div className="flex items-center gap-1.5"><BadgeCheck className="h-3 w-3 text-sky-600" /> Cancele quando quiser</div>
+      </div>
     </aside>
   );
 }
