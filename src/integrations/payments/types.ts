@@ -42,6 +42,47 @@ export type CreatePixOutput = {
   raw: unknown;
 };
 
+export type PayerIdentification = { type: "CPF" | "CNPJ"; number: string };
+
+export type CreateCardInput = {
+  orderId: string;
+  amount: number;
+  payerEmail: string;
+  description: string;
+  cardToken: string;
+  paymentMethodId: string;
+  installments: number;
+  issuerId?: string;
+  payerName?: string;
+  identification?: PayerIdentification;
+};
+
+export type CreateCardOutput = {
+  providerPaymentId: string;
+  status: PaymentStatus;
+  statusDetail?: string | null;
+  raw: unknown;
+};
+
+export type CreateBoletoInput = {
+  orderId: string;
+  amount: number;
+  payerEmail: string;
+  description: string;
+  payerFirstName: string;
+  payerLastName: string;
+  identification: PayerIdentification;
+};
+
+export type CreateBoletoOutput = {
+  providerPaymentId: string;
+  status: PaymentStatus;
+  ticketUrl: string;
+  barcode: string;
+  expiresAt: string;
+  raw: unknown;
+};
+
 export type PaymentSnapshot = {
   providerPaymentId: string;
   status: PaymentStatus;
@@ -52,5 +93,8 @@ export type PaymentSnapshot = {
 export interface PaymentProvider {
   id: ProviderId;
   createPixPayment(input: CreatePixInput): Promise<CreatePixOutput>;
+  createCardPayment(input: CreateCardInput): Promise<CreateCardOutput>;
+  createBoletoPayment(input: CreateBoletoInput): Promise<CreateBoletoOutput>;
   getPaymentStatus(providerPaymentId: string): Promise<PaymentSnapshot>;
 }
+
