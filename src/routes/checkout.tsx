@@ -1230,6 +1230,7 @@ function PaymentStep({
       if (method === "pix") setPixOpen(true);
       else if (method === "card") setCardOpen(true);
       else if (method === "boleto") setBoletoOpen(true);
+      else if (method === "bank_bic") setBankOpen(true);
       else setPaypalOpen(true);
     } catch (e: any) {
       console.error("[checkout] submit error", e);
