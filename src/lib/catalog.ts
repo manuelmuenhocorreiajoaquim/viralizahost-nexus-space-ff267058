@@ -30,6 +30,22 @@ export function isAnnualProduct(p: Product): boolean {
   return p.billing === "annual" || p.type === "domain";
 }
 
+/** One-off / project-based services billed as a single delivery (no monthly cycle). */
+const ONE_TIME_TYPES: ReadonlyArray<ProductType> = ["ai", "traffic", "design", "audiovisual"];
+export function isOneTimeService(p: Product): boolean {
+  return ONE_TIME_TYPES.includes(p.type);
+}
+
+/** Whether the product needs a domain to be configured during checkout. */
+export function productRequiresDomain(p: Product): boolean {
+  return Boolean(p.needsDomain) || p.type === "domain";
+}
+
+/** Whether the product participates in the cycle (monthly/semestral/annual...) selector. */
+export function productNeedsCycle(p: Product): boolean {
+  return !isAnnualProduct(p) && !isOneTimeService(p);
+}
+
 export const CATALOG: Product[] = [
   // Hospedagem
   { id: "host-start", type: "hosting", name: "Starter Host", basePriceBRL: 19, needsDomain: true, emailUpsell: true },
@@ -92,21 +108,21 @@ export function registerDomainProduct(domain: string, priceBRLAnnual: number): P
   return product;
 }
 
-/** Unit price shown for an item (per month for recurring, per year for annual). */
+/** Unit price shown for an item (per month for recurring, per year for annual, per project for one-time). */
 export function productUnitPrice(product: Product, cycle: Cycle): number {
-  if (isAnnualProduct(product)) return product.basePriceBRL;
+  if (isAnnualProduct(product) || isOneTimeService(product)) return product.basePriceBRL;
   return monthlyPrice(product.basePriceBRL, cycle);
 }
 
 /** Total billed for one quantity unit over the chosen cycle. */
 export function productPeriodTotal(product: Product, cycle: Cycle): number {
-  if (isAnnualProduct(product)) return product.basePriceBRL;
+  if (isAnnualProduct(product) || isOneTimeService(product)) return product.basePriceBRL;
   return cyclePeriodTotal(product.basePriceBRL, cycle);
 }
 
 /** Reference subtotal (no cycle discount) for one unit, used to compute discount display. */
 export function productSubtotalRef(product: Product, cycle: Cycle): number {
-  if (isAnnualProduct(product)) return product.basePriceBRL;
+  if (isAnnualProduct(product) || isOneTimeService(product)) return product.basePriceBRL;
   return Math.round(product.basePriceBRL * cycle.months * 100) / 100;
 }
 

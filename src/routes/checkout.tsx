@@ -37,7 +37,11 @@ import {
   findProduct,
   cyclePeriodTotal,
   cycleSavings,
+  productRequiresDomain,
+  productNeedsCycle,
+  isOneTimeService,
   type CycleId,
+  type Product,
 } from "@/lib/catalog";
 import { useCurrency, formatPrice } from "@/lib/currency";
 import { useAuth } from "@/lib/use-auth";
@@ -79,6 +83,28 @@ const STEPS = [
 ] as const;
 type StepId = (typeof STEPS)[number]["id"];
 
+/** Compute which steps are relevant for the current cart contents. */
+function computeActiveSteps(items: Array<{ productId: string }>): StepId[] {
+  const products = items
+    .map((i) => findProduct(i.productId))
+    .filter((p): p is Product => Boolean(p));
+  const hasCycleItem = products.some(productNeedsCycle);
+  const hasDomainItem =
+    products.some(productRequiresDomain) || products.some((p) => p.type === "domain");
+  // Email upsell only makes sense if a hosting product is present and no email plan yet.
+  const hasHosting = products.some((p) => p.type === "hosting");
+  const hasEmail = products.some((p) => p.type === "email");
+  const showEmailStep = hasHosting && !hasEmail;
+
+  const out: StepId[] = [];
+  if (hasCycleItem) out.push("cycle");
+  out.push("cart");
+  if (hasDomainItem) out.push("domain");
+  if (showEmailStep) out.push("email");
+  out.push("auth", "payment", "done");
+  return out;
+}
+
 const searchSchema = z.object({
   step: z.enum(["cycle", "cart", "domain", "email", "auth", "payment", "done"]).optional(),
   product: z.string().optional(),
@@ -113,17 +139,42 @@ function CheckoutPage() {
   const search = useSearch({ from: "/checkout" });
   const navigate = useNavigate();
   const cart = useCart();
-  const step: StepId = search.step ?? "cycle";
+
+  const activeSteps = useMemo(() => computeActiveSteps(cart.items), [cart.items]);
+  const initialStep: StepId = activeSteps[0] ?? "cart";
+  const requestedStep: StepId = search.step ?? initialStep;
+  // If user lands on a step that no longer applies (e.g. domain skipped), fall back.
+  const step: StepId =
+    requestedStep === "done"
+      ? "done"
+      : activeSteps.includes(requestedStep)
+        ? requestedStep
+        : initialStep;
 
   useEffect(() => {
     if (search.product && !cart.items.some((i) => i.productId === search.product)) {
       cart.add(search.product);
-      navigate({ to: "/checkout", search: { step: "cycle" }, replace: true });
+      navigate({ to: "/checkout", search: { step: undefined }, replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const goto = (s: StepId) => navigate({ to: "/checkout", search: { step: s } });
+  // Keep URL in sync if the step is no longer valid for the current cart.
+  useEffect(() => {
+    if (search.step && search.step !== "done" && !activeSteps.includes(search.step)) {
+      navigate({ to: "/checkout", search: { step: initialStep }, replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSteps.join("|")]);
+
+  const goto = (s: StepId) =>
+    navigate({ to: "/checkout", search: { step: s, order: search.order } });
+
+  const idx = activeSteps.indexOf(step);
+  const next = (): StepId => activeSteps[Math.min(idx + 1, activeSteps.length - 1)] ?? step;
+  const prev = (): StepId => activeSteps[Math.max(idx - 1, 0)] ?? step;
+  const goNext = () => goto(next());
+  const goBack = () => goto(prev());
 
   return (
     <div
@@ -148,7 +199,7 @@ function CheckoutPage() {
         </div>
       </header>
 
-      <Stepper current={step} />
+      <Stepper current={step} activeSteps={activeSteps} />
 
       <main className="max-w-6xl mx-auto px-4 lg:px-8 py-10">
         <AnimatePresence mode="wait">
@@ -159,22 +210,14 @@ function CheckoutPage() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.28, ease: "easeOut" }}
           >
-            {step === "cycle" && <CycleStep onNext={() => goto("cart")} />}
-            {step === "cart" && (
-              <CartStep onBack={() => goto("cycle")} onNext={() => goto("domain")} />
-            )}
-            {step === "domain" && (
-              <DomainStep onBack={() => goto("cart")} onNext={() => goto("email")} />
-            )}
-            {step === "email" && (
-              <EmailStep onBack={() => goto("domain")} onNext={() => goto("auth")} />
-            )}
-            {step === "auth" && (
-              <AuthStep onBack={() => goto("email")} onNext={() => goto("payment")} />
-            )}
+            {step === "cycle" && <CycleStep onNext={goNext} />}
+            {step === "cart" && <CartStep onBack={goBack} onNext={goNext} />}
+            {step === "domain" && <DomainStep onBack={goBack} onNext={goNext} />}
+            {step === "email" && <EmailStep onBack={goBack} onNext={goNext} />}
+            {step === "auth" && <AuthStep onBack={goBack} onNext={goNext} />}
             {step === "payment" && (
               <PaymentStep
-                onBack={() => goto("auth")}
+                onBack={goBack}
                 onDone={(orderId) =>
                   navigate({ to: "/checkout", search: { step: "done", order: orderId } })
                 }
@@ -188,9 +231,10 @@ function CheckoutPage() {
   );
 }
 
-function Stepper({ current }: { current: StepId }) {
-  const idx = STEPS.findIndex((s) => s.id === current);
-  const progress = (idx / (STEPS.length - 1)) * 100;
+function Stepper({ current, activeSteps }: { current: StepId; activeSteps: StepId[] }) {
+  const steps = STEPS.filter((s) => activeSteps.includes(s.id));
+  const idx = steps.findIndex((s) => s.id === current);
+  const progress = steps.length > 1 ? (idx / (steps.length - 1)) * 100 : 0;
   return (
     <div className="border-b border-slate-200/70 bg-white/50 backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-4 lg:px-8 py-5">
@@ -204,7 +248,7 @@ function Stepper({ current }: { current: StepId }) {
           />
         </div>
         <ol className="flex items-center gap-2 min-w-max overflow-x-auto">
-          {STEPS.map((s, i) => {
+          {steps.map((s, i) => {
             const done = i < idx;
             const active = i === idx;
             const Icon = s.icon;
@@ -228,7 +272,7 @@ function Stepper({ current }: { current: StepId }) {
                     {i + 1}. {s.label}
                   </span>
                 </div>
-                {i < STEPS.length - 1 && <ChevronRight className="h-3 w-3 text-slate-300" />}
+                {i < steps.length - 1 && <ChevronRight className="h-3 w-3 text-slate-300" />}
               </li>
             );
           })}
@@ -446,11 +490,14 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
             const p = findProduct(it.productId);
             if (!p) return null;
             const annual = isAnnualProduct(p);
+            const oneTime = isOneTimeService(p);
             const total = lineTotal(it.productId, cart.cycle, it.qty);
             const unit = lineUnit(it.productId, cart.cycle);
-            const subLabel = annual
-              ? `${p.type} · ${brl(unit, currency)}/ano`
-              : `${p.type} · ${brl(unit, currency)}/mês`;
+            const subLabel = oneTime
+              ? `${p.type} · ${brl(unit, currency)} · projeto`
+              : annual
+                ? `${p.type} · ${brl(unit, currency)}/ano`
+                : `${p.type} · ${brl(unit, currency)}/mês`;
             return (
               <div
                 key={it.productId}
