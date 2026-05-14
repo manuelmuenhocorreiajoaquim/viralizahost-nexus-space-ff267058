@@ -39,7 +39,8 @@ function Dashboard() {
       (await supabase.from("invoices").select("*").eq("status", "pending").limit(3)).data ?? [],
   });
 
-  const name = profile?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "Cliente";
+  const rawName = profile?.full_name && profile.full_name !== "root" ? profile.full_name : cpanel?.[0]?.username;
+  const name = (rawName || user?.email?.split("@")[0] || "Cliente").split(" ")[0];
 
   const quick = [
     { label: "Criar site", icon: Globe, to: "/sites" },
