@@ -104,6 +104,13 @@ Deno.serve(async (req) => {
             await admin
               .from("profiles")
               .upsert({ id: userId, must_change_password: true, full_name: username }, { onConflict: "id" });
+          } else {
+            // Existing user — refresh full_name if it's still the legacy "root" placeholder
+            await admin
+              .from("profiles")
+              .update({ full_name: username })
+              .eq("id", userId)
+              .or("full_name.is.null,full_name.eq.root,full_name.eq.");
           }
 
           // Upsert cpanel_account
