@@ -1490,6 +1490,14 @@ function PaymentStep({
         orderId={pendingOrderId}
         onApproved={onApproved}
       />
+      <BankTransferDialog
+        open={bankOpen}
+        onOpenChange={setBankOpen}
+        orderId={pendingOrderId}
+        customerEmail={pendingEmail}
+        amount={pendingAmount}
+        onApproved={onApproved}
+      />
     </div>
   );
 }
