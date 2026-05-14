@@ -1281,20 +1281,20 @@ function PaymentStep({
                 label: "Cartão de crédito",
                 desc: "Checkout com Visa, Mastercard e Elo",
                 icon: <CardBrands />,
-                meta: <span className="text-xs font-bold text-slate-500">Em breve</span>,
-                available: false,
+                meta: <span className="text-xs font-bold text-blue-700">Disponível</span>,
+                available: true,
               },
               {
                 id: "boleto" as const,
                 label: "Boleto bancário",
-                desc: "Compensação tradicional em 1–2 dias úteis",
+                desc: "Compensação em 1–2 dias úteis",
                 icon: (
                   <div className="grid h-11 w-11 place-items-center rounded-xl bg-white ring-1 ring-slate-200">
                     <FileText className="h-6 w-6 text-slate-700" />
                   </div>
                 ),
-                meta: <span className="text-xs font-bold text-slate-500">Em breve</span>,
-                available: false,
+                meta: <span className="text-xs font-bold text-slate-700">Disponível</span>,
+                available: true,
               },
             ].map((m) => {
               const selected = method === m.id;
