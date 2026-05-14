@@ -1432,6 +1432,8 @@ function PaymentStep({
               <CreditCard className="h-5 w-5" />
             ) : method === "boleto" ? (
               <FileText className="h-5 w-5" />
+            ) : method === "bank_bic" ? (
+              <img src={bicLogoImg} alt="" className="h-5 w-5 object-contain" />
             ) : (
               <span className="text-[13px] font-black tracking-tight">
                 <span>Pay</span>
@@ -1446,7 +1448,9 @@ function PaymentStep({
                   ? "Pagar com Cartão"
                   : method === "boleto"
                     ? "Gerar Boleto"
-                    : "Pagar com PayPal"}
+                    : method === "bank_bic"
+                      ? "Pagar via Banco BIC"
+                      : "Pagar com PayPal"}
             {!loading && <ArrowRight className="h-4 w-4" />}
           </motion.button>
           <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
