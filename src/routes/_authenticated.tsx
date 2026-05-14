@@ -79,6 +79,20 @@ function AuthLayout() {
     },
   });
 
+  const { data: primaryAccount } = useQuery({
+    queryKey: ["primary-cpanel", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("cpanel_accounts")
+        .select("username,domain,status,plan_name,package")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+  });
+
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   useEffect(() => {
     if (profile?.must_change_password && pathname !== "/change-password") {
@@ -94,7 +108,20 @@ function AuthLayout() {
     );
   }
 
-  const displayName = profile?.full_name || user.email?.split("@")[0] || "Cliente";
+  // Prefer the cPanel username (e.g. "fundacao") over legacy profile.full_name (often "root")
+  const legacy = !profile?.full_name || profile.full_name === "root";
+  const displayName = (legacy ? primaryAccount?.username : profile?.full_name)
+    || primaryAccount?.username
+    || user.email?.split("@")[0]
+    || "Cliente";
+  const planLabel = primaryAccount?.plan_name ?? primaryAccount?.package ?? null;
+  const accountStatus = primaryAccount?.status ?? null;
+  const statusTone =
+    accountStatus === "active"
+      ? "bg-emerald-500"
+      : accountStatus === "suspended"
+        ? "bg-red-500"
+        : "bg-slate-400";
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex">
@@ -164,15 +191,31 @@ function AuthLayout() {
             <Link to="/support" className="p-2 rounded-lg hover:bg-slate-100">
               <LifeBuoy className="h-5 w-5 text-slate-600" />
             </Link>
-            <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-slate-200">
-              <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold">
-                {displayName.charAt(0).toUpperCase()}
+            <Link
+              to="/account"
+              className="hidden sm:flex items-center gap-3 pl-3 pr-2 py-1.5 ml-1 rounded-xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50 hover:border-blue-400 hover:shadow-glow-soft transition-all"
+            >
+              <div className="relative">
+                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-500 text-white flex items-center justify-center text-sm font-semibold shadow-lg ring-2 ring-white">
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+                <span
+                  className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-white ${statusTone}`}
+                  title={accountStatus ?? "—"}
+                />
               </div>
-              <div className="text-sm">
-                <div className="font-medium leading-tight">{displayName}</div>
-                <div className="text-xs text-slate-500 leading-tight">{user.email}</div>
+              <div className="text-sm leading-tight pr-1">
+                <div className="font-semibold text-slate-900 flex items-center gap-1.5">
+                  {displayName}
+                  {planLabel && (
+                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+                      {planLabel}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-slate-500 truncate max-w-[180px]">{user.email}</div>
               </div>
-            </div>
+            </Link>
           </div>
         </header>
         <main key={pathname} className="flex-1 p-4 lg:p-8 animate-page-in">

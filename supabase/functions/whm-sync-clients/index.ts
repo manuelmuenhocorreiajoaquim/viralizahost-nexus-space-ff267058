@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
               email,
               password: DEFAULT_PASSWORD,
               email_confirm: true,
-              user_metadata: { full_name: a.owner ?? username, source: "whm_sync" },
+              user_metadata: { full_name: username, cpanel_username: username, source: "whm_sync" },
             });
             if (cErr || !created.user) throw cErr ?? new Error("Failed to create user");
             userId = created.user.id;
@@ -103,7 +103,14 @@ Deno.serve(async (req) => {
             // Ensure profile has must_change_password = true (handle_new_user trigger creates row)
             await admin
               .from("profiles")
-              .upsert({ id: userId, must_change_password: true, full_name: a.owner ?? username }, { onConflict: "id" });
+              .upsert({ id: userId, must_change_password: true, full_name: username }, { onConflict: "id" });
+          } else {
+            // Existing user — refresh full_name if it's still the legacy "root" placeholder
+            await admin
+              .from("profiles")
+              .update({ full_name: username })
+              .eq("id", userId)
+              .or("full_name.is.null,full_name.eq.root,full_name.eq.");
           }
 
           // Upsert cpanel_account
