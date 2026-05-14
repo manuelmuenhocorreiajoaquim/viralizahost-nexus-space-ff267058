@@ -1319,14 +1319,21 @@ function Footer({
         <span />
       )}
       {onNext && (
-        <div className="flex flex-col items-end gap-1">
-          <button
+        <div className="flex flex-col items-end gap-1.5">
+          <motion.button
+            whileHover={{ scale: nextDisabled ? 1 : 1.03 }}
+            whileTap={{ scale: nextDisabled ? 1 : 0.97 }}
             onClick={onNext}
             disabled={nextDisabled}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-primary text-primary-foreground font-semibold shadow-glow hover:scale-[1.02] transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            className="group relative inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-gradient-primary text-primary-foreground font-semibold text-sm shadow-glow transition disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
           >
-            {nextLabel} <ArrowRight className="h-4 w-4" />
-          </button>
+            <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                  style={{ background: "radial-gradient(120px circle at 50% 0%, rgba(255,255,255,.35), transparent 60%)" }} />
+            <span className="absolute -inset-1 rounded-full opacity-60 blur-xl -z-10"
+                  style={{ background: "linear-gradient(135deg, oklch(0.62 0.22 255 / .7), oklch(0.5 0.24 265 / .7))" }} />
+            <span className="relative">{nextLabel}</span>
+            <ArrowRight className="relative h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </motion.button>
           {nextDisabled && nextHint && (
             <span className="text-xs text-amber-600 font-medium">{nextHint}</span>
           )}
