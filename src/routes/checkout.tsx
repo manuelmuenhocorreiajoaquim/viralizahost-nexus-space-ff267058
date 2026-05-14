@@ -1323,7 +1323,18 @@ function PaymentStep({
                 ),
                 available: true,
               },
-            ].map((m) => {
+              {
+                id: "bank_bic" as const,
+                label: "Transferência Bancária BIC",
+                desc: "Banco BIC Angola — envie o comprovativo após a transferência",
+                icon: (
+                  <div className="grid h-11 w-11 place-items-center overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
+                    <img src={bicLogoImg} alt="Banco BIC" className="h-11 w-11 object-contain" />
+                  </div>
+                ),
+                meta: <span className="text-xs font-bold text-red-700">Manual · Angola</span>,
+                available: true,
+              },
               const selected = method === m.id;
               return (
                 <motion.button
