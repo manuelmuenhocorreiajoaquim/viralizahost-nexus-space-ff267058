@@ -601,3 +601,134 @@ export const createBoletoPayment = createServerFn({ method: "POST" })
     };
   });
 
+
+/* ============================================================
+ * PAYPAL (Sandbox por padrão)
+ * ============================================================ */
+import {
+  createPayPalOrder as ppCreate,
+  capturePayPalOrder as ppCapture,
+  getPayPalPublicConfig,
+} from "@/integrations/payments/paypal/client.server";
+
+export const getPayPalConfig = createServerFn({ method: "GET" }).handler(async () => {
+  return getPayPalPublicConfig();
+});
+
+const CreatePayPalSchema = z.object({ orderId: z.string().uuid() });
+
+export const createPayPalOrder = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => CreatePayPalSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { order, amount, accountEmail } = await loadOrderForCharge(data.orderId);
+
+    // Reuse pending PayPal order if any.
+    const { data: existing } = await supabaseAdmin
+      .from("payments")
+      .select("*")
+      .eq("order_id", order.id)
+      .eq("provider", "paypal")
+      .in("status", ["pending", "in_process"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existing?.provider_payment_id) {
+      const raw = (existing.raw_response ?? {}) as Record<string, any>;
+      const approveUrl =
+        Array.isArray(raw?.links) && raw.links.find((l: any) => l.rel === "approve")?.href;
+      return {
+        success: true,
+        paymentId: existing.id,
+        providerOrderId: existing.provider_payment_id,
+        approveUrl: approveUrl ?? null,
+        status: existing.status,
+        amount,
+      };
+    }
+
+    const created = await ppCreate({
+      orderId: order.id,
+      amountBrl: amount,
+      description: `Pedido ViralizaHost ${order.id.slice(0, 8)}`,
+      payerEmail: accountEmail,
+    });
+
+    const { data: payment, error } = await supabaseAdmin
+      .from("payments")
+      .insert({
+        user_id: order.user_id ?? null,
+        order_id: order.id,
+        amount,
+        currency: "BRL",
+        method: "paypal",
+        provider: "paypal",
+        provider_payment_id: created.providerOrderId,
+        status: created.status,
+        raw_response: created.raw as any,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+
+    await supabaseAdmin
+      .from("orders")
+      .update({
+        payment_status: "pending",
+        payment_provider: "paypal",
+        payment_method: "paypal",
+      })
+      .eq("id", order.id);
+
+    return {
+      success: true,
+      paymentId: payment!.id,
+      providerOrderId: created.providerOrderId,
+      approveUrl: created.approveUrl,
+      status: created.status,
+      amount,
+    };
+  });
+
+const CapturePayPalSchema = z.object({
+  paymentId: z.string().uuid(),
+  providerOrderId: z.string().min(1).max(64),
+});
+
+export const capturePayPalOrder = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => CapturePayPalSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { data: payment, error } = await supabaseAdmin
+      .from("payments")
+      .select("*")
+      .eq("id", data.paymentId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!payment) throw new Error("Pagamento não encontrado");
+    if (payment.provider !== "paypal") throw new Error("Pagamento não é PayPal.");
+
+    const result = await ppCapture(data.providerOrderId);
+
+    await supabaseAdmin
+      .from("payments")
+      .update({
+        status: result.status,
+        paid_at: result.status === "approved" ? new Date().toISOString() : payment.paid_at,
+        raw_response: result.raw as any,
+      })
+      .eq("id", payment.id);
+
+    if (result.status === "approved" && payment.order_id) {
+      await supabaseAdmin
+        .from("orders")
+        .update({
+          payment_status: "approved",
+          status: "paid",
+          payment_provider: "paypal",
+          payment_method: "paypal",
+        })
+        .eq("id", payment.order_id);
+      await activateOrderAfterPayment(payment.order_id);
+    }
+
+    return { success: true, status: result.status, paymentId: payment.id };
+  });
