@@ -543,11 +543,14 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
   const domainItemsOnly = cart.items.filter((i) => findProduct(i.productId)?.type === "domain");
   const hasDomainInCart = domainItemsOnly.length > 0;
 
-  // An item is "satisfied" if it has its own domain OR there's a domain product in the cart.
-  const allSatisfied = itemsNeedingDomain.every(
+  // Apenas e-mail profissional EXIGE domínio. Hospedagem/VPS é opcional.
+  const itemsRequiringDomain = itemsNeedingDomain.filter(
+    (i) => findProduct(i.productId)?.type === "email",
+  );
+  const allSatisfied = itemsRequiringDomain.every(
     (i) => Boolean(i.domain && i.domain.trim().length > 2) || hasDomainInCart,
   );
-  const nextDisabled = itemsNeedingDomain.length > 0 && !allSatisfied;
+  const nextDisabled = itemsRequiringDomain.length > 0 && !allSatisfied;
 
   if (itemsNeedingDomain.length === 0 && domainItemsOnly.length === 0) {
     return (
@@ -616,6 +619,7 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
         <div className="space-y-4 max-w-3xl">
           {itemsNeedingDomain.map((it) => {
             const p = findProduct(it.productId)!;
+            const required = p.type === "email";
             return (
               <DomainPicker
                 key={it.productId}
@@ -624,6 +628,7 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
                 onChange={(v) => cart.setDomain(it.productId, v)}
                 hasDomainInCart={hasDomainInCart}
                 domainInCart={domainItemsOnly[0]?.domain ?? domainItemsOnly[0]?.name}
+                required={required}
               />
             );
           })}
@@ -645,14 +650,16 @@ function DomainPicker({
   onChange,
   hasDomainInCart,
   domainInCart,
+  required = true,
 }: {
   name: string;
   value: string;
   onChange: (v: string) => void;
   hasDomainInCart?: boolean;
   domainInCart?: string;
+  required?: boolean;
 }) {
-  type Mode = "new" | "existing" | "use-cart";
+  type Mode = "new" | "existing" | "use-cart" | "skip";
   const initialMode: Mode =
     hasDomainInCart && !value ? "use-cart" : value ? "existing" : "new";
   const [mode, setMode] = useState<Mode>(initialMode);
@@ -748,7 +755,7 @@ function DomainPicker({
         Para
       </div>
       <div className="font-semibold mb-4 text-slate-900">{name}</div>
-      <div className="grid sm:grid-cols-3 gap-2 mb-4">
+      <div className={`grid gap-2 mb-4 ${!required || hasDomainInCart ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
         {hasDomainInCart && (
           <button
             type="button"
@@ -784,9 +791,27 @@ function DomainPicker({
         >
           Já tenho
         </button>
+        {!required && !hasDomainInCart && (
+          <button
+            type="button"
+            onClick={() => setMode("skip")}
+            className={`p-3 rounded-xl border text-sm font-medium transition ${
+              mode === "skip"
+                ? "border-primary bg-primary/5 text-primary shadow-glow-soft"
+                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+            }`}
+          >
+            Continuar sem domínio
+          </button>
+        )}
       </div>
 
-      {mode === "use-cart" && domainInCart ? (
+      {mode === "skip" ? (
+        <div className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 text-sm text-slate-700">
+          <Check className="h-4 w-4 inline mr-1 text-emerald-600" />
+          Você pode adicionar um domínio depois, no painel. O serviço será provisionado com um endereço temporário.
+        </div>
+      ) : mode === "use-cart" && domainInCart ? (
         <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800 font-medium">
           <Check className="h-4 w-4 inline mr-1" /> Vinculado a <strong>{domainInCart}</strong>
         </div>
