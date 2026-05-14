@@ -24,6 +24,8 @@ import {
   ShieldCheck,
   BadgeCheck,
   Zap,
+  Search,
+  AlertTriangle,
 } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
