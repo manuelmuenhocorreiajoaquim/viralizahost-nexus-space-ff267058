@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
-import { Copy, CheckCircle2, Loader2, ShieldCheck, Clock, QrCode } from "lucide-react";
+import { Copy, CheckCircle2, Loader2, ShieldCheck, Clock, QrCode, RefreshCw, AlertCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { createPixPayment, getPaymentStatus } from "@/lib/payments.functions";
 import { toast } from "sonner";
@@ -23,6 +23,15 @@ type PixData = {
   amount: number;
 };
 
+function PixBrandIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
+      <path fill="#32BCAD" d="M32 6.8 57.2 32 32 57.2 6.8 32 32 6.8Z" />
+      <path fill="#fff" d="M22.1 24.2c2.7-2.7 7.1-2.7 9.8 0l2.1 2.1 2.1-2.1c2.7-2.7 7.1-2.7 9.8 0l5.5 5.5-3.7 3.7-5.5-5.5a1.8 1.8 0 0 0-2.5 0l-3.9 3.9a2.6 2.6 0 0 1-3.6 0l-3.9-3.9a1.8 1.8 0 0 0-2.5 0l-5.5 5.5-3.7-3.7 5.5-5.5Zm-5.5 10.1 3.7-3.7 5.5 5.5a1.8 1.8 0 0 0 2.5 0l3.9-3.9a2.6 2.6 0 0 1 3.6 0l3.9 3.9a1.8 1.8 0 0 0 2.5 0l5.5-5.5 3.7 3.7-5.5 5.5c-2.7 2.7-7.1 2.7-9.8 0L34 37.7l-2.1 2.1c-2.7 2.7-7.1 2.7-9.8 0l-5.5-5.5Z" />
+    </svg>
+  );
+}
+
 export default function PixPaymentDialog({ open, onOpenChange, orderId, customerEmail, onApproved }: Props) {
   const createFn = useServerFn(createPixPayment);
   const statusFn = useServerFn(getPaymentStatus);
@@ -32,6 +41,7 @@ export default function PixPaymentDialog({ open, onOpenChange, orderId, customer
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<"pending" | "approved" | "rejected" | "expired">("pending");
   const [copied, setCopied] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const pollRef = useRef<number | null>(null);
 
