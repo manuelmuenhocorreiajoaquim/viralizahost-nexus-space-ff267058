@@ -129,11 +129,42 @@ export const createPixPayment = createServerFn({ method: "POST" })
       throw new Error(orderErr.message);
     }
     if (!order) throw new Error("Pedido não encontrado");
-    const amount = Number(Number(order.total).toFixed(2));
-    if (!Number.isFinite(amount) || amount <= 0) {
-      throw new Error("Valor do pedido inválido");
+    const { data: orderItems, error: itemsErr } = await supabaseAdmin
+      .from("order_items")
+      .select("product_name, product_type, unit_price, quantity, total, domain")
+      .eq("order_id", order.id);
+    if (itemsErr) {
+      console.error("[pix] order items lookup error", itemsErr);
+      throw new Error(itemsErr.message);
     }
-    console.log("[pix] creating payment", { orderId: order.id, amount, userId: order.user_id ?? null });
+
+    const mpItems = (orderItems ?? []).map((item) => {
+      const title = String(item.domain || item.product_name || "").trim().slice(0, 120);
+      const quantity = Math.max(1, Math.trunc(Number(item.quantity)));
+      const unitPrice = Number(Number(item.unit_price).toFixed(2));
+      const total = Number(Number(item.total).toFixed(2));
+      if (!title || !Number.isInteger(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || unitPrice <= 0 || !Number.isFinite(total) || total <= 0) {
+        console.error("[pix] invalid MP item", { item, title, quantity, unitPrice, total });
+        throw new Error("Item inválido no carrinho.");
+      }
+      return {
+        title,
+        quantity,
+        unit_price: unitPrice,
+        currency_id: "BRL" as const,
+        description: item.product_type === "domain" ? `Registro anual do domínio ${title}` : title,
+      };
+    });
+    if (mpItems.length === 0) throw new Error("Item inválido no carrinho.");
+    const itemsAmount = Number(mpItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0).toFixed(2));
+    const orderAmount = Number(Number(order.total).toFixed(2));
+    const amount = Number((Number.isFinite(itemsAmount) && itemsAmount > 0 ? itemsAmount : orderAmount).toFixed(2));
+    if (!Number.isFinite(amount) || amount <= 0) throw new Error("Valor do pedido inválido");
+    if (Math.abs(amount - orderAmount) > 0.01) {
+      console.warn("[pix] order total mismatch, syncing from items", { orderId: order.id, orderAmount, itemsAmount });
+      await supabaseAdmin.from("orders").update({ total: amount }).eq("id", order.id);
+    }
+    console.log("[pix] creating payment", { orderId: order.id, amount, itemCount: mpItems.length, items: mpItems, userId: order.user_id ?? null });
 
     // If a pending PIX already exists for this order, reuse it (avoids
     // duplicate charges if the user retries).
@@ -188,6 +219,7 @@ export const createPixPayment = createServerFn({ method: "POST" })
         payerEmail,
         description: data.description ?? `Pedido ViralizaHost ${order.id.slice(0, 8)}`,
         expiresInMinutes: 30,
+        items: mpItems,
       });
     } catch (err: any) {
       console.error("[pix] provider error", { message: err?.message, status: err?.status, data: err?.data });
