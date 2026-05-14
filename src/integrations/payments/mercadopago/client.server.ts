@@ -160,6 +160,80 @@ export const mercadopago: PaymentProvider = {
     };
   },
 
+  async createCardPayment(input) {
+    const body: Record<string, unknown> = {
+      transaction_amount: Number(input.amount.toFixed(2)),
+      description: input.description,
+      token: input.cardToken,
+      installments: Math.max(1, Math.trunc(input.installments)),
+      payment_method_id: input.paymentMethodId,
+      external_reference: input.orderId,
+      notification_url: process.env.MP_NOTIFICATION_URL || undefined,
+      metadata: { order_id: input.orderId },
+      payer: {
+        email: input.payerEmail,
+        first_name: input.payerName?.split(" ")[0],
+        last_name: input.payerName?.split(" ").slice(1).join(" ") || undefined,
+        identification: input.identification
+          ? { type: input.identification.type, number: input.identification.number }
+          : undefined,
+      },
+    };
+    if (input.issuerId) body.issuer_id = input.issuerId;
+
+    const idemKey = `${input.orderId}-card-${Date.now()}`;
+    const data = await mpFetch("/v1/payments", {
+      method: "POST",
+      headers: { "X-Idempotency-Key": idemKey },
+      body: JSON.stringify(body),
+    });
+    if (!data?.id) throw new Error("Mercado Pago não retornou o ID do pagamento.");
+    return {
+      providerPaymentId: String(data.id),
+      status: mapStatus(data.status),
+      statusDetail: (data as { status_detail?: string }).status_detail ?? null,
+      raw: data,
+    };
+  },
+
+  async createBoletoPayment(input) {
+    const expires = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+    const body = {
+      transaction_amount: Number(input.amount.toFixed(2)),
+      description: input.description,
+      payment_method_id: "bolbradesco",
+      external_reference: input.orderId,
+      date_of_expiration: expires.toISOString().replace("Z", "-00:00"),
+      notification_url: process.env.MP_NOTIFICATION_URL || undefined,
+      metadata: { order_id: input.orderId },
+      payer: {
+        email: input.payerEmail,
+        first_name: input.payerFirstName,
+        last_name: input.payerLastName,
+        identification: { type: input.identification.type, number: input.identification.number },
+      },
+    };
+    const idemKey = `${input.orderId}-boleto-${Date.now()}`;
+    const data = await mpFetch("/v1/payments", {
+      method: "POST",
+      headers: { "X-Idempotency-Key": idemKey },
+      body: JSON.stringify(body),
+    });
+    if (!data?.id) throw new Error("Mercado Pago não retornou o ID do pagamento.");
+    const tx = (data as { transaction_details?: { external_resource_url?: string } })
+      .transaction_details;
+    const barcode =
+      (data as { barcode?: { content?: string } }).barcode?.content ?? "";
+    return {
+      providerPaymentId: String(data.id),
+      status: mapStatus(data.status),
+      ticketUrl: tx?.external_resource_url ?? "",
+      barcode,
+      expiresAt: expires.toISOString(),
+      raw: data,
+    };
+  },
+
   async getPaymentStatus(providerPaymentId: string): Promise<PaymentSnapshot> {
     const data = await mpFetch(`/v1/payments/${encodeURIComponent(providerPaymentId)}`);
     if (!data?.id) {
@@ -173,6 +247,7 @@ export const mercadopago: PaymentProvider = {
       raw: data,
     };
   },
+
 };
 
 export function getProvider() {
