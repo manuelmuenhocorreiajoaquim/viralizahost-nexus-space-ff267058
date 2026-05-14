@@ -86,7 +86,7 @@ function PlanCard({ p, i }: { p: Plan; i: number }) {
             </ul>
             <Link
               to="/checkout"
-              search={p.productId ? { step: "cycle" as const, product: p.productId } : { step: "cycle" as const }}
+              search={p.productId ? { product: p.productId } : {}}
               className={`group flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl font-semibold transition ${
                 p.popular
                   ? "bg-gradient-primary text-primary-foreground shadow-glow hover:scale-[1.02]"
