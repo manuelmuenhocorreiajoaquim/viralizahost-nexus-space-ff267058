@@ -11,6 +11,23 @@ import type {
 
 const MP_API = "https://api.mercadopago.com";
 
+type MercadoPagoResponse = {
+  id?: string | number;
+  status?: string | null;
+  message?: string;
+  error?: string;
+  date_approved?: string | null;
+  point_of_interaction?: {
+    transaction_data?: {
+      qr_code?: string;
+      qr_code_base64?: string;
+    };
+  };
+  raw?: string;
+};
+
+type MercadoPagoError = Error & { status?: number; data?: MercadoPagoResponse | null };
+
 function resolveAccessToken(): string {
   const mode = (process.env.MP_MODE ?? "test").toLowerCase();
   const token =
@@ -46,7 +63,7 @@ function mapStatus(s: string | undefined | null): PaymentStatus {
   }
 }
 
-async function mpFetch(path: string, init: RequestInit = {}): Promise<any> {
+async function mpFetch(path: string, init: RequestInit = {}): Promise<MercadoPagoResponse> {
   const token = resolveAccessToken();
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Bearer ${token}`);
@@ -55,17 +72,17 @@ async function mpFetch(path: string, init: RequestInit = {}): Promise<any> {
   }
   const res = await fetch(`${MP_API}${path}`, { ...init, headers });
   const text = await res.text();
-  let data: any = null;
+  let data: MercadoPagoResponse | null = null;
   try {
-    data = text ? JSON.parse(text) : null;
+    data = text ? (JSON.parse(text) as MercadoPagoResponse) : null;
   } catch {
     data = { raw: text };
   }
   if (!res.ok) {
     const msg = data?.message || data?.error || `Mercado Pago error ${res.status}`;
-    const err = new Error(msg);
-    (err as any).status = res.status;
-    (err as any).data = data;
+    const err: MercadoPagoError = new Error(msg);
+    err.status = res.status;
+    err.data = data;
     throw err;
   }
   return data;
