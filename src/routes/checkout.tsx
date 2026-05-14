@@ -346,6 +346,7 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
 /* ====================== STEP 3 — DOMAIN ====================== */
 function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
   const cart = useCart();
+  const { currency } = useCurrency();
   const hostingItems = cart.items.filter((i) => findProduct(i.productId)?.needsDomain);
 
   const domainItemsOnly = cart.items.filter((i) => findProduct(i.productId)?.type === "domain");
