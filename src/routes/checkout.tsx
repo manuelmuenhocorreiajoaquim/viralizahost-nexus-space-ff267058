@@ -10,7 +10,7 @@ import {
 import { z } from "zod";
 import { toast } from "sonner";
 import logo from "@/assets/viraliza-checkout-logo.png";
-import { useCart, lineMonthly, CATALOG } from "@/lib/cart";
+import { useCart, lineMonthly, lineTotal, lineUnit, CATALOG, isAnnualProduct } from "@/lib/cart";
 import { CYCLES, findCycle, findProduct, cyclePeriodTotal, cycleSavings, type CycleId } from "@/lib/catalog";
 import { useCurrency, formatPrice } from "@/lib/currency";
 import { useAuth } from "@/lib/use-auth";
