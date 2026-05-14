@@ -109,13 +109,17 @@ function buildCandidateDomains(base: string): string[] {
 }
 
 function fallbackPrice(domain: string): number {
-  return FALLBACK_PRICES_BRL[tldOf(domain)] ?? 79;
+  return OFFICIAL_PRICES_BRL[tldOf(domain)] ?? DEFAULT_PRICE_BRL;
 }
 
-function priceToBRL(raw: unknown, domain: string): number {
-  const parsed = Number(String(raw ?? "").replace(/[^0-9.]/g, ""));
-  if (!Number.isFinite(parsed) || parsed <= 0) return fallbackPrice(domain);
-  return Math.max(1, Math.round(parsed * USD_TO_BRL));
+// Preço OFICIAL ViralizaHost — sempre vem da tabela interna, nunca da API.
+function officialPrice(domain: string): number {
+  return OFFICIAL_PRICES_BRL[tldOf(domain)] ?? DEFAULT_PRICE_BRL;
+}
+
+function priceToBRL(_raw: unknown, domain: string): number {
+  // Ignora preço da API; sempre retorna preço oficial da tabela ViralizaHost.
+  return officialPrice(domain);
 }
 
 function makeFallbackResults(domains: string[], base: string, source: ProviderSource): DomainResult[] {
