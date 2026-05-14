@@ -4,17 +4,22 @@ import { Copy, CheckCircle2, Upload, Loader2, Banknote, ShieldCheck, FileText, I
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { submitBankBicReceipt } from "@/lib/payments.functions";
 import bicLogo from "@/assets/banco-bic-logo.png";
+import bicCardRef from "@/assets/bic-card-ref.jpeg";
 
 const BANK = {
   name: "Banco BIC",
   holder: "VIRALIZA FACIL ANGOLA, LDA",
   account: "A006.0051.0000.2477.5179.1014.1",
 };
+
+// BRL → AOA (Kwanza). Mock rate; swap for live API later.
+export const BRL_TO_AOA = 170;
+export const formatAOA = (n: number) =>
+  `Kz ${n.toLocaleString("pt-AO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const ACCEPT = "image/png,image/jpeg,image/jpg,application/pdf";
 const MAX_BYTES = 8 * 1024 * 1024;
@@ -41,6 +46,8 @@ export default function BankTransferDialog({
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const amountAOA = amount * BRL_TO_AOA;
 
   const copyAccount = async () => {
     try {
@@ -117,46 +124,93 @@ export default function BankTransferDialog({
           <div className="py-10 text-center">
             <CheckCircle2 className="mx-auto h-14 w-14 text-emerald-500" />
             <div className="mt-3 text-lg font-bold text-slate-900">Comprovativo enviado!</div>
-            <div className="text-sm text-slate-500">Pedido em <strong>aguardando validação</strong>. Você receberá um email após a aprovação.</div>
+            <div className="text-sm text-slate-500">
+              Pedido em <strong>aguardando validação</strong>. Você receberá um email após a aprovação.
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Bank card */}
-            <div className="overflow-hidden rounded-2xl border border-red-200 bg-gradient-to-br from-red-600 via-red-500 to-rose-600 p-5 text-white shadow-[0_18px_40px_rgba(220,38,38,0.35)]">
-              <div className="flex items-start gap-3">
-                <img src={bicLogo} alt="Banco BIC" className="h-14 w-14 rounded-xl bg-white/10 p-1 ring-1 ring-white/30" />
-                <div className="flex-1">
-                  <div className="text-[11px] uppercase tracking-widest opacity-80">Banco</div>
-                  <div className="text-lg font-black">{BANK.name}</div>
-                </div>
-                <div className="rounded-lg bg-white/15 px-2 py-1 text-[10px] font-bold uppercase tracking-wider">
-                  Angola
-                </div>
-              </div>
-              <div className="mt-4 space-y-2 text-sm">
-                <div>
-                  <div className="text-[11px] uppercase tracking-widest opacity-75">Titular</div>
-                  <div className="font-semibold">{BANK.holder}</div>
-                </div>
-                <div>
-                  <div className="text-[11px] uppercase tracking-widest opacity-75">IBAN / Conta</div>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 rounded-md bg-white/15 px-2 py-1.5 font-mono text-[13px] tracking-tight">
-                      {BANK.account}
-                    </code>
-                    <button
-                      type="button"
-                      onClick={copyAccount}
-                      className="inline-flex items-center gap-1 rounded-md bg-white px-2.5 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-50"
-                    >
-                      {copied ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                      {copied ? "Copiado" : "Copiar"}
-                    </button>
+            {/* Premium BIC card */}
+            <div className="relative">
+              {/* Outer red glow */}
+              <div className="absolute -inset-2 rounded-[28px] bg-red-600/40 blur-2xl" />
+              <div
+                className="relative aspect-[1.62/1] w-full overflow-hidden rounded-[22px] text-white shadow-[0_30px_60px_-15px_rgba(220,38,38,0.55)] ring-1 ring-white/10"
+                style={{
+                  backgroundImage: `
+                    radial-gradient(120% 80% at 0% 0%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 45%),
+                    radial-gradient(80% 60% at 100% 100%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 50%),
+                    linear-gradient(135deg, #b91c1c 0%, #dc2626 40%, #ef4444 70%, #b91c1c 100%)
+                  `,
+                }}
+              >
+                {/* Faint Angola map background */}
+                <img
+                  src={bicCardRef}
+                  alt=""
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-25 mix-blend-screen"
+                />
+                {/* Glass sheen sweep */}
+                <div className="pointer-events-none absolute -inset-x-10 -top-10 h-32 rotate-[-8deg] bg-gradient-to-r from-transparent via-white/25 to-transparent blur-2xl" />
+                {/* Bottom soft reflection */}
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/30 to-transparent" />
+
+                {/* Content */}
+                <div className="relative flex h-full flex-col justify-between p-5">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <img
+                        src={bicLogo}
+                        alt="Banco BIC"
+                        className="h-11 w-11 rounded-xl bg-white/15 p-1 ring-1 ring-white/30 backdrop-blur-sm"
+                      />
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.2em] opacity-80">Banco</div>
+                        <div className="text-lg font-black leading-tight">{BANK.name}</div>
+                      </div>
+                    </div>
+                    <span className="rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest ring-1 ring-white/25 backdrop-blur-sm">
+                      Angola
+                    </span>
                   </div>
-                </div>
-                <div className="flex items-center justify-between rounded-lg bg-white/10 px-3 py-2 text-sm">
-                  <span className="opacity-80">Valor a transferir</span>
-                  <span className="font-black tabular-nums">R$ {amount.toFixed(2)}</span>
+
+                  {/* Amount hero */}
+                  <div className="text-center">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.25em] opacity-80">
+                      Valor a transferir
+                    </div>
+                    <div className="mt-1 text-3xl font-black tabular-nums drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)] sm:text-4xl">
+                      {formatAOA(amountAOA)}
+                    </div>
+                    <div className="mt-1 text-[11px] opacity-80">
+                      Pagamento em moeda local (Kwanza) · ≈ R$ {amount.toFixed(2)}
+                    </div>
+                  </div>
+
+                  {/* Holder + IBAN */}
+                  <div className="space-y-2">
+                    <div>
+                      <div className="text-[9px] uppercase tracking-[0.25em] opacity-75">Titular</div>
+                      <div className="text-sm font-semibold">{BANK.holder}</div>
+                    </div>
+                    <div>
+                      <div className="text-[9px] uppercase tracking-[0.25em] opacity-75">IBAN / Conta</div>
+                      <div className="mt-1 flex items-center gap-2">
+                        <code className="flex-1 truncate rounded-md bg-white/15 px-2 py-1.5 font-mono text-[12px] tracking-tight ring-1 ring-white/20 backdrop-blur-sm">
+                          {BANK.account}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={copyAccount}
+                          className="inline-flex items-center gap-1 rounded-md bg-white px-2.5 py-1.5 text-xs font-bold text-red-700 shadow-sm transition hover:bg-red-50"
+                        >
+                          {copied ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                          {copied ? "Copiado" : "Copiar"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
