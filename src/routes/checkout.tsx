@@ -619,6 +619,7 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
         <div className="space-y-4 max-w-3xl">
           {itemsNeedingDomain.map((it) => {
             const p = findProduct(it.productId)!;
+            const required = p.type === "email";
             return (
               <DomainPicker
                 key={it.productId}
@@ -627,6 +628,7 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
                 onChange={(v) => cart.setDomain(it.productId, v)}
                 hasDomainInCart={hasDomainInCart}
                 domainInCart={domainItemsOnly[0]?.domain ?? domainItemsOnly[0]?.name}
+                required={required}
               />
             );
           })}
