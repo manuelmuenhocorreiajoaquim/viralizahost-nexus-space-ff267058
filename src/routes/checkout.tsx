@@ -596,12 +596,12 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
       if (!user?.id && !customer.email) {
         throw new Error("Informe um email válido na etapa Identificação.");
       }
-      const c = findCycle(cart.cycle);
       const items = cart.items.map((it) => {
         const p = findProduct(it.productId);
         if (!p?.id || !p.name || !p.type) throw new Error("Item inválido no carrinho.");
         const quantity = Number(it.qty);
-        const price = Number(lineMonthly(it.productId, cart.cycle).toFixed(2));
+        const price = Number(lineUnit(it.productId, cart.cycle).toFixed(2));
+        const itemTotal = Number(lineTotal(it.productId, cart.cycle, quantity).toFixed(2));
         if (!Number.isFinite(price) || price < 0 || !Number.isFinite(quantity) || quantity <= 0) {
           throw new Error("Item inválido no carrinho.");
         }
@@ -612,7 +612,7 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
           price,
           quantity,
           domain: it.domain ?? null,
-          total: Number((price * c.months * quantity).toFixed(2)),
+          total: itemTotal,
         };
       });
 
