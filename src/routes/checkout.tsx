@@ -1412,8 +1412,13 @@ function PaymentStep({
               <PixBrandIcon className="h-5 w-5" />
             ) : method === "card" ? (
               <CreditCard className="h-5 w-5" />
-            ) : (
+            ) : method === "boleto" ? (
               <FileText className="h-5 w-5" />
+            ) : (
+              <span className="text-[13px] font-black tracking-tight">
+                <span>Pay</span>
+                <span className="opacity-80">Pal</span>
+              </span>
             )}
             {loading
               ? "Processando…"
@@ -1421,7 +1426,9 @@ function PaymentStep({
                 ? "Gerar PIX"
                 : method === "card"
                   ? "Pagar com Cartão"
-                  : "Gerar Boleto"}
+                  : method === "boleto"
+                    ? "Gerar Boleto"
+                    : "Pagar com PayPal"}
             {!loading && <ArrowRight className="h-4 w-4" />}
           </motion.button>
           <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
@@ -1453,6 +1460,12 @@ function PaymentStep({
         orderId={pendingOrderId}
         customerEmail={pendingEmail}
         customerName={pendingName}
+        onApproved={onApproved}
+      />
+      <PayPalPaymentDialog
+        open={paypalOpen}
+        onOpenChange={setPaypalOpen}
+        orderId={pendingOrderId}
         onApproved={onApproved}
       />
     </div>
