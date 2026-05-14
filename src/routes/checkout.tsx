@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
-import logo from "@/assets/viralizahost-logo.png";
+import logo from "@/assets/viraliza-checkout-logo.png";
 import { useCart, lineMonthly, CATALOG } from "@/lib/cart";
 import { CYCLES, findCycle, findProduct, cyclePeriodTotal, cycleSavings, type CycleId } from "@/lib/catalog";
 import { useCurrency, formatPrice } from "@/lib/currency";
@@ -536,7 +536,10 @@ function PaymentStep({ onBack, onDone }: { onBack: () => void; onDone: (orderId:
       setPixOpen(true);
     } catch (e: any) {
       console.error("[checkout] submit error", e);
-      toast.error("Não foi possível gerar o PIX. Verifique os dados e tente novamente.");
+      const msg = typeof e?.message === "string" && e.message.length < 240
+        ? e.message
+        : "Não foi possível gerar o PIX. Verifique os dados e tente novamente.";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

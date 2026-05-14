@@ -75,7 +75,10 @@ export default function PixPaymentDialog({ open, onOpenChange, orderId, customer
       })
       .catch((e: any) => {
         console.error("[pix] createPixPayment error", e);
-        setError("Não foi possível gerar o PIX. Verifique os dados e tente novamente.");
+        const msg = typeof e?.message === "string" && e.message.length < 240
+          ? e.message
+          : "Não foi possível gerar o PIX. Verifique os dados e tente novamente.";
+        setError(msg);
       })
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
