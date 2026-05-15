@@ -14,11 +14,11 @@ const menu: MenuEntry[] = [
     { icon: Shield, title: "Proteção WHOIS", desc: "Privacidade total", to: "/dominios/protecao-whois" },
     { icon: ArrowRight, title: "Transferir Domínio", desc: "Migração grátis", to: "/dominios/transferir" },
   ]},
-  { label: "Hospedagem", icon: Server, items: [
-    { icon: Server, title: "Hospedagem Web", desc: "LiteSpeed + SSD" },
-    { icon: Cloud, title: "Cloud Hosting", desc: "Escalável e rápido" },
-    { icon: Mail, title: "Email Corporativo", desc: "Titan + IA" },
-    { icon: Shield, title: "Revenda WHM", desc: "Negócio próprio" },
+  { label: "Hospedagem", icon: Server, to: "/hospedagem/web", items: [
+    { icon: Server, title: "Hospedagem Web", desc: "LiteSpeed + SSD", to: "/hospedagem/web" },
+    { icon: Cloud, title: "Cloud Hosting", desc: "Escalável e rápido", to: "/hospedagem/cloud" },
+    { icon: Mail, title: "Email Corporativo", desc: "Titan + IA", to: "/hospedagem/email-corporativo" },
+    { icon: Shield, title: "Revenda WHM", desc: "Negócio próprio", to: "/hospedagem/revenda-whm" },
   ]},
   { label: "VPS & Cloud", icon: Cloud, items: [
     { icon: Zap, title: "VPS NVMe", desc: "Performance bruta" },
