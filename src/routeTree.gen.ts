@@ -16,6 +16,9 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as VpsCloudVpsNvmeRouteImport } from './routes/vps-cloud.vps-nvme'
+import { Route as VpsCloudServidorDedicadoRouteImport } from './routes/vps-cloud.servidor-dedicado'
+import { Route as VpsCloudCloudPrivadaRouteImport } from './routes/vps-cloud.cloud-privada'
 import { Route as HospedagemWebRouteImport } from './routes/hospedagem.web'
 import { Route as HospedagemRevendaWhmRouteImport } from './routes/hospedagem.revenda-whm'
 import { Route as HospedagemEmailCorporativoRouteImport } from './routes/hospedagem.email-corporativo'
@@ -76,6 +79,22 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VpsCloudVpsNvmeRoute = VpsCloudVpsNvmeRouteImport.update({
+  id: '/vps-cloud/vps-nvme',
+  path: '/vps-cloud/vps-nvme',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VpsCloudServidorDedicadoRoute =
+  VpsCloudServidorDedicadoRouteImport.update({
+    id: '/vps-cloud/servidor-dedicado',
+    path: '/vps-cloud/servidor-dedicado',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const VpsCloudCloudPrivadaRoute = VpsCloudCloudPrivadaRouteImport.update({
+  id: '/vps-cloud/cloud-privada',
+  path: '/vps-cloud/cloud-privada',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HospedagemWebRoute = HospedagemWebRouteImport.update({
@@ -251,6 +270,9 @@ export interface FileRoutesByFullPath {
   '/hospedagem/email-corporativo': typeof HospedagemEmailCorporativoRoute
   '/hospedagem/revenda-whm': typeof HospedagemRevendaWhmRoute
   '/hospedagem/web': typeof HospedagemWebRoute
+  '/vps-cloud/cloud-privada': typeof VpsCloudCloudPrivadaRoute
+  '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
+  '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/servers': typeof AuthenticatedAdminServersRoute
   '/api/public/payments/mercadopago/webhook': typeof ApiPublicPaymentsMercadopagoWebhookRoute
@@ -286,6 +308,9 @@ export interface FileRoutesByTo {
   '/hospedagem/email-corporativo': typeof HospedagemEmailCorporativoRoute
   '/hospedagem/revenda-whm': typeof HospedagemRevendaWhmRoute
   '/hospedagem/web': typeof HospedagemWebRoute
+  '/vps-cloud/cloud-privada': typeof VpsCloudCloudPrivadaRoute
+  '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
+  '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/servers': typeof AuthenticatedAdminServersRoute
   '/api/public/payments/mercadopago/webhook': typeof ApiPublicPaymentsMercadopagoWebhookRoute
@@ -323,6 +348,9 @@ export interface FileRoutesById {
   '/hospedagem/email-corporativo': typeof HospedagemEmailCorporativoRoute
   '/hospedagem/revenda-whm': typeof HospedagemRevendaWhmRoute
   '/hospedagem/web': typeof HospedagemWebRoute
+  '/vps-cloud/cloud-privada': typeof VpsCloudCloudPrivadaRoute
+  '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
+  '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
   '/_authenticated/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/_authenticated/admin/servers': typeof AuthenticatedAdminServersRoute
   '/api/public/payments/mercadopago/webhook': typeof ApiPublicPaymentsMercadopagoWebhookRoute
@@ -360,6 +388,9 @@ export interface FileRouteTypes {
     | '/hospedagem/email-corporativo'
     | '/hospedagem/revenda-whm'
     | '/hospedagem/web'
+    | '/vps-cloud/cloud-privada'
+    | '/vps-cloud/servidor-dedicado'
+    | '/vps-cloud/vps-nvme'
     | '/admin/payments'
     | '/admin/servers'
     | '/api/public/payments/mercadopago/webhook'
@@ -395,6 +426,9 @@ export interface FileRouteTypes {
     | '/hospedagem/email-corporativo'
     | '/hospedagem/revenda-whm'
     | '/hospedagem/web'
+    | '/vps-cloud/cloud-privada'
+    | '/vps-cloud/servidor-dedicado'
+    | '/vps-cloud/vps-nvme'
     | '/admin/payments'
     | '/admin/servers'
     | '/api/public/payments/mercadopago/webhook'
@@ -431,6 +465,9 @@ export interface FileRouteTypes {
     | '/hospedagem/email-corporativo'
     | '/hospedagem/revenda-whm'
     | '/hospedagem/web'
+    | '/vps-cloud/cloud-privada'
+    | '/vps-cloud/servidor-dedicado'
+    | '/vps-cloud/vps-nvme'
     | '/_authenticated/admin/payments'
     | '/_authenticated/admin/servers'
     | '/api/public/payments/mercadopago/webhook'
@@ -451,6 +488,9 @@ export interface RootRouteChildren {
   HospedagemEmailCorporativoRoute: typeof HospedagemEmailCorporativoRoute
   HospedagemRevendaWhmRoute: typeof HospedagemRevendaWhmRoute
   HospedagemWebRoute: typeof HospedagemWebRoute
+  VpsCloudCloudPrivadaRoute: typeof VpsCloudCloudPrivadaRoute
+  VpsCloudServidorDedicadoRoute: typeof VpsCloudServidorDedicadoRoute
+  VpsCloudVpsNvmeRoute: typeof VpsCloudVpsNvmeRoute
   ApiPublicPaymentsMercadopagoWebhookRoute: typeof ApiPublicPaymentsMercadopagoWebhookRoute
 }
 
@@ -503,6 +543,27 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vps-cloud/vps-nvme': {
+      id: '/vps-cloud/vps-nvme'
+      path: '/vps-cloud/vps-nvme'
+      fullPath: '/vps-cloud/vps-nvme'
+      preLoaderRoute: typeof VpsCloudVpsNvmeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vps-cloud/servidor-dedicado': {
+      id: '/vps-cloud/servidor-dedicado'
+      path: '/vps-cloud/servidor-dedicado'
+      fullPath: '/vps-cloud/servidor-dedicado'
+      preLoaderRoute: typeof VpsCloudServidorDedicadoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vps-cloud/cloud-privada': {
+      id: '/vps-cloud/cloud-privada'
+      path: '/vps-cloud/cloud-privada'
+      fullPath: '/vps-cloud/cloud-privada'
+      preLoaderRoute: typeof VpsCloudCloudPrivadaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/hospedagem/web': {
@@ -760,9 +821,22 @@ const rootRouteChildren: RootRouteChildren = {
   HospedagemEmailCorporativoRoute: HospedagemEmailCorporativoRoute,
   HospedagemRevendaWhmRoute: HospedagemRevendaWhmRoute,
   HospedagemWebRoute: HospedagemWebRoute,
+  VpsCloudCloudPrivadaRoute: VpsCloudCloudPrivadaRoute,
+  VpsCloudServidorDedicadoRoute: VpsCloudServidorDedicadoRoute,
+  VpsCloudVpsNvmeRoute: VpsCloudVpsNvmeRoute,
   ApiPublicPaymentsMercadopagoWebhookRoute:
     ApiPublicPaymentsMercadopagoWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

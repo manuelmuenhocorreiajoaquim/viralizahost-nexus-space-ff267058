@@ -20,10 +20,10 @@ const menu: MenuEntry[] = [
     { icon: Mail, title: "Email Corporativo", desc: "Titan + IA", to: "/hospedagem/email-corporativo" },
     { icon: Shield, title: "Revenda WHM", desc: "Negócio próprio", to: "/hospedagem/revenda-whm" },
   ]},
-  { label: "VPS & Cloud", icon: Cloud, items: [
-    { icon: Zap, title: "VPS NVMe", desc: "Performance bruta" },
-    { icon: Cloud, title: "Cloud Privada", desc: "Infra dedicada" },
-    { icon: Server, title: "Servidor Dedicado", desc: "Bare metal" },
+  { label: "VPS & Cloud", icon: Cloud, to: "/vps-cloud/vps-nvme", items: [
+    { icon: Zap, title: "VPS NVMe", desc: "Performance bruta", to: "/vps-cloud/vps-nvme" },
+    { icon: Cloud, title: "Cloud Privada", desc: "Infra dedicada", to: "/vps-cloud/cloud-privada" },
+    { icon: Server, title: "Servidor Dedicado", desc: "Bare metal", to: "/vps-cloud/servidor-dedicado" },
   ]},
   { label: "IA & Automação", icon: Bot, items: [
     { icon: Bot, title: "Chatbots IA", desc: "Atendimento 24/7" },
