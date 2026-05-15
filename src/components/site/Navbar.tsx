@@ -87,12 +87,28 @@ export default function Navbar() {
           </a>
 
           <nav className="hidden lg:flex items-center gap-0.5 mx-auto" onMouseLeave={() => setOpen(null)}>
-            {menu.map((m) => (
-              <div key={m.label} className="relative" onMouseEnter={() => setOpen(m.items ? m.label : null)}>
-                <button className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/90 hover:text-[#3BA9FF] transition-colors rounded-md whitespace-nowrap">
+            {menu.map((m) => {
+              const TriggerInner = (
+                <>
                   {m.label}
                   {m.items && <ChevronDown className="h-3 w-3 opacity-60" />}
-                </button>
+                </>
+              );
+              return (
+              <div key={m.label} className="relative" onMouseEnter={() => setOpen(m.items ? m.label : null)}>
+                {m.to ? (
+                  <Link
+                    to={m.to}
+                    onClick={() => setOpen(null)}
+                    className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/90 hover:text-[#3BA9FF] transition-colors rounded-md whitespace-nowrap"
+                  >
+                    {TriggerInner}
+                  </Link>
+                ) : (
+                  <button className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/90 hover:text-[#3BA9FF] transition-colors rounded-md whitespace-nowrap">
+                    {TriggerInner}
+                  </button>
+                )}
                 <AnimatePresence>
                   {open === m.label && m.items && (
                     <motion.div
@@ -103,23 +119,36 @@ export default function Navbar() {
                       className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[420px] glass rounded-2xl p-3 shadow-elegant text-foreground"
                     >
                       <div className="grid grid-cols-1 gap-1">
-                        {m.items.map((it) => (
-                          <a key={it.title} href="#" className="flex items-start gap-3 p-3 rounded-xl hover:bg-primary/10 transition group">
-                            <div className="h-10 w-10 rounded-lg bg-gradient-primary grid place-items-center shrink-0 shadow-glow">
-                              <it.icon className="h-5 w-5 text-primary-foreground" />
-                            </div>
-                            <div>
-                              <div className="text-sm font-semibold">{it.title}</div>
-                              <div className="text-xs text-muted-foreground">{it.desc}</div>
-                            </div>
-                          </a>
-                        ))}
+                        {m.items.map((it) => {
+                          const itemBody = (
+                            <>
+                              <div className="h-10 w-10 rounded-lg bg-gradient-primary grid place-items-center shrink-0 shadow-glow">
+                                <it.icon className="h-5 w-5 text-primary-foreground" />
+                              </div>
+                              <div>
+                                <div className="text-sm font-semibold">{it.title}</div>
+                                <div className="text-xs text-muted-foreground">{it.desc}</div>
+                              </div>
+                            </>
+                          );
+                          const cls = "flex items-start gap-3 p-3 rounded-xl hover:bg-primary/10 transition group";
+                          return it.to ? (
+                            <Link key={it.title} to={it.to} onClick={() => setOpen(null)} className={cls}>
+                              {itemBody}
+                            </Link>
+                          ) : (
+                            <a key={it.title} href="#" className={cls}>
+                              {itemBody}
+                            </a>
+                          );
+                        })}
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
-            ))}
+              );
+            })}
           </nav>
 
           <div className="hidden lg:flex items-center gap-3 shrink-0 relative">
