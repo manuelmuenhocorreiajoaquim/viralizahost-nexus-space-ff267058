@@ -16,6 +16,8 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DominiosRegistrarRouteImport } from './routes/dominios.registrar'
+import { Route as DominiosProtecaoWhoisRouteImport } from './routes/dominios.protecao-whois'
 import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
 import { Route as AuthenticatedSitesRouteImport } from './routes/_authenticated/sites'
 import { Route as AuthenticatedSecurityRouteImport } from './routes/_authenticated/security'
@@ -69,6 +71,16 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DominiosRegistrarRoute = DominiosRegistrarRouteImport.update({
+  id: '/dominios/registrar',
+  path: '/dominios/registrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DominiosProtecaoWhoisRoute = DominiosProtecaoWhoisRouteImport.update({
+  id: '/dominios/protecao-whois',
+  path: '/dominios/protecao-whois',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
@@ -201,6 +213,8 @@ export interface FileRoutesByFullPath {
   '/security': typeof AuthenticatedSecurityRoute
   '/sites': typeof AuthenticatedSitesRoute
   '/support': typeof AuthenticatedSupportRoute
+  '/dominios/protecao-whois': typeof DominiosProtecaoWhoisRoute
+  '/dominios/registrar': typeof DominiosRegistrarRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/servers': typeof AuthenticatedAdminServersRoute
   '/api/public/payments/mercadopago/webhook': typeof ApiPublicPaymentsMercadopagoWebhookRoute
@@ -229,6 +243,8 @@ export interface FileRoutesByTo {
   '/security': typeof AuthenticatedSecurityRoute
   '/sites': typeof AuthenticatedSitesRoute
   '/support': typeof AuthenticatedSupportRoute
+  '/dominios/protecao-whois': typeof DominiosProtecaoWhoisRoute
+  '/dominios/registrar': typeof DominiosRegistrarRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/servers': typeof AuthenticatedAdminServersRoute
   '/api/public/payments/mercadopago/webhook': typeof ApiPublicPaymentsMercadopagoWebhookRoute
@@ -259,6 +275,8 @@ export interface FileRoutesById {
   '/_authenticated/security': typeof AuthenticatedSecurityRoute
   '/_authenticated/sites': typeof AuthenticatedSitesRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
+  '/dominios/protecao-whois': typeof DominiosProtecaoWhoisRoute
+  '/dominios/registrar': typeof DominiosRegistrarRoute
   '/_authenticated/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/_authenticated/admin/servers': typeof AuthenticatedAdminServersRoute
   '/api/public/payments/mercadopago/webhook': typeof ApiPublicPaymentsMercadopagoWebhookRoute
@@ -289,6 +307,8 @@ export interface FileRouteTypes {
     | '/security'
     | '/sites'
     | '/support'
+    | '/dominios/protecao-whois'
+    | '/dominios/registrar'
     | '/admin/payments'
     | '/admin/servers'
     | '/api/public/payments/mercadopago/webhook'
@@ -317,6 +337,8 @@ export interface FileRouteTypes {
     | '/security'
     | '/sites'
     | '/support'
+    | '/dominios/protecao-whois'
+    | '/dominios/registrar'
     | '/admin/payments'
     | '/admin/servers'
     | '/api/public/payments/mercadopago/webhook'
@@ -346,6 +368,8 @@ export interface FileRouteTypes {
     | '/_authenticated/security'
     | '/_authenticated/sites'
     | '/_authenticated/support'
+    | '/dominios/protecao-whois'
+    | '/dominios/registrar'
     | '/_authenticated/admin/payments'
     | '/_authenticated/admin/servers'
     | '/api/public/payments/mercadopago/webhook'
@@ -359,6 +383,8 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  DominiosProtecaoWhoisRoute: typeof DominiosProtecaoWhoisRoute
+  DominiosRegistrarRoute: typeof DominiosRegistrarRoute
   ApiPublicPaymentsMercadopagoWebhookRoute: typeof ApiPublicPaymentsMercadopagoWebhookRoute
 }
 
@@ -411,6 +437,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dominios/registrar': {
+      id: '/dominios/registrar'
+      path: '/dominios/registrar'
+      fullPath: '/dominios/registrar'
+      preLoaderRoute: typeof DominiosRegistrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dominios/protecao-whois': {
+      id: '/dominios/protecao-whois'
+      path: '/dominios/protecao-whois'
+      fullPath: '/dominios/protecao-whois'
+      preLoaderRoute: typeof DominiosProtecaoWhoisRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/support': {
@@ -612,9 +652,21 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  DominiosProtecaoWhoisRoute: DominiosProtecaoWhoisRoute,
+  DominiosRegistrarRoute: DominiosRegistrarRoute,
   ApiPublicPaymentsMercadopagoWebhookRoute:
     ApiPublicPaymentsMercadopagoWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
