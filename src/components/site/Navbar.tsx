@@ -25,6 +25,12 @@ const menu: MenuEntry[] = [
     { icon: Cloud, title: "Cloud Privada", desc: "Infra dedicada", to: "/vps-cloud/cloud-privada" },
     { icon: Server, title: "Servidor Dedicado", desc: "Bare metal", to: "/vps-cloud/servidor-dedicado" },
   ]},
+  { label: "Certificados SSL", icon: Lock, to: "/certificados-ssl", items: [
+    { icon: Lock, title: "SSL Básico", desc: "DV · HTTPS ativo", to: "/certificados-ssl" },
+    { icon: ShieldCheck, title: "SSL Business", desc: "OV · empresas", to: "/certificados-ssl" },
+    { icon: Globe, title: "SSL Wildcard", desc: "Subdomínios *.dom", to: "/certificados-ssl" },
+    { icon: Award, title: "SSL Enterprise", desc: "EV · dedicado", to: "/certificados-ssl" },
+  ]},
   { label: "IA & Automação", icon: Bot, to: "/ia-automacao/chatbots-ia", items: [
     { icon: Bot, title: "Chatbots IA", desc: "Atendimento 24/7", to: "/ia-automacao/chatbots-ia" },
     { icon: Cpu, title: "Automação n8n", desc: "Workflows ilimitados", to: "/ia-automacao/automacao-n8n" },
@@ -38,7 +44,6 @@ const menu: MenuEntry[] = [
   ]},
   { label: "Design", icon: Palette, to: "/design" },
   { label: "Audiovisual", icon: Film, to: "/audiovisual" },
-  { label: "Empresa", icon: Building2 },
   { label: "Contacto", icon: Phone, to: "/contacto" },
 ];
 
