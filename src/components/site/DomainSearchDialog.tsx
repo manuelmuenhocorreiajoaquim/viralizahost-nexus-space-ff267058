@@ -170,7 +170,9 @@ export default function DomainSearchDialog({
       qty: 1,
     });
     setDomain(product.id, r.domain);
-    setCycle("annual");
+    // NÃO alterar o ciclo global aqui: o domínio é cobrado sempre anual
+    // (billing: "annual"), mas outros itens (e-mail, hospedagem) devem manter
+    // o ciclo escolhido pelo cliente.
     toast.success(`${r.domain} adicionado ao carrinho`);
     onOpenChange(false);
     navigate({ to: "/checkout", search: { step: "cart" } });
