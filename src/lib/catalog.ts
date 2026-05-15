@@ -73,6 +73,14 @@ export const CATALOG: Product[] = [
   { id: "ai-start", type: "ai", name: "IA Start", basePriceBRL: 350 },
   { id: "ai-pro", type: "ai", name: "IA Pro", basePriceBRL: 890 },
   { id: "ai-enterprise", type: "ai", name: "IA Enterprise", basePriceBRL: 2400 },
+  // Automação n8n
+  { id: "ai-n8n-start", type: "ai", name: "n8n Start", basePriceBRL: 490 },
+  { id: "ai-n8n-pro", type: "ai", name: "n8n Pro", basePriceBRL: 1290 },
+  { id: "ai-n8n-enterprise", type: "ai", name: "n8n Enterprise", basePriceBRL: 2890 },
+  // IA WhatsApp
+  { id: "ai-wa-start", type: "ai", name: "IA WhatsApp Start", basePriceBRL: 390 },
+  { id: "ai-wa-vendas", type: "ai", name: "IA WhatsApp Vendas", basePriceBRL: 990 },
+  { id: "ai-wa-premium", type: "ai", name: "IA WhatsApp Premium", basePriceBRL: 1990 },
   // Tráfego pago
   { id: "traf-start", type: "traffic", name: "Tráfego Start", basePriceBRL: 350 },
   { id: "traf-meta", type: "traffic", name: "Meta Ads Starter", basePriceBRL: 500 },

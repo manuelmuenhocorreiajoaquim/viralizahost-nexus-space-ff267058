@@ -19,6 +19,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as VpsCloudVpsNvmeRouteImport } from './routes/vps-cloud.vps-nvme'
 import { Route as VpsCloudServidorDedicadoRouteImport } from './routes/vps-cloud.servidor-dedicado'
 import { Route as VpsCloudCloudPrivadaRouteImport } from './routes/vps-cloud.cloud-privada'
+import { Route as IaAutomacaoIaWhatsappRouteImport } from './routes/ia-automacao.ia-whatsapp'
+import { Route as IaAutomacaoChatbotsIaRouteImport } from './routes/ia-automacao.chatbots-ia'
+import { Route as IaAutomacaoAutomacaoN8nRouteImport } from './routes/ia-automacao.automacao-n8n'
 import { Route as HospedagemWebRouteImport } from './routes/hospedagem.web'
 import { Route as HospedagemRevendaWhmRouteImport } from './routes/hospedagem.revenda-whm'
 import { Route as HospedagemEmailCorporativoRouteImport } from './routes/hospedagem.email-corporativo'
@@ -95,6 +98,21 @@ const VpsCloudServidorDedicadoRoute =
 const VpsCloudCloudPrivadaRoute = VpsCloudCloudPrivadaRouteImport.update({
   id: '/vps-cloud/cloud-privada',
   path: '/vps-cloud/cloud-privada',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IaAutomacaoIaWhatsappRoute = IaAutomacaoIaWhatsappRouteImport.update({
+  id: '/ia-automacao/ia-whatsapp',
+  path: '/ia-automacao/ia-whatsapp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IaAutomacaoChatbotsIaRoute = IaAutomacaoChatbotsIaRouteImport.update({
+  id: '/ia-automacao/chatbots-ia',
+  path: '/ia-automacao/chatbots-ia',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IaAutomacaoAutomacaoN8nRoute = IaAutomacaoAutomacaoN8nRouteImport.update({
+  id: '/ia-automacao/automacao-n8n',
+  path: '/ia-automacao/automacao-n8n',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HospedagemWebRoute = HospedagemWebRouteImport.update({
@@ -270,6 +288,9 @@ export interface FileRoutesByFullPath {
   '/hospedagem/email-corporativo': typeof HospedagemEmailCorporativoRoute
   '/hospedagem/revenda-whm': typeof HospedagemRevendaWhmRoute
   '/hospedagem/web': typeof HospedagemWebRoute
+  '/ia-automacao/automacao-n8n': typeof IaAutomacaoAutomacaoN8nRoute
+  '/ia-automacao/chatbots-ia': typeof IaAutomacaoChatbotsIaRoute
+  '/ia-automacao/ia-whatsapp': typeof IaAutomacaoIaWhatsappRoute
   '/vps-cloud/cloud-privada': typeof VpsCloudCloudPrivadaRoute
   '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
   '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
@@ -308,6 +329,9 @@ export interface FileRoutesByTo {
   '/hospedagem/email-corporativo': typeof HospedagemEmailCorporativoRoute
   '/hospedagem/revenda-whm': typeof HospedagemRevendaWhmRoute
   '/hospedagem/web': typeof HospedagemWebRoute
+  '/ia-automacao/automacao-n8n': typeof IaAutomacaoAutomacaoN8nRoute
+  '/ia-automacao/chatbots-ia': typeof IaAutomacaoChatbotsIaRoute
+  '/ia-automacao/ia-whatsapp': typeof IaAutomacaoIaWhatsappRoute
   '/vps-cloud/cloud-privada': typeof VpsCloudCloudPrivadaRoute
   '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
   '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
@@ -348,6 +372,9 @@ export interface FileRoutesById {
   '/hospedagem/email-corporativo': typeof HospedagemEmailCorporativoRoute
   '/hospedagem/revenda-whm': typeof HospedagemRevendaWhmRoute
   '/hospedagem/web': typeof HospedagemWebRoute
+  '/ia-automacao/automacao-n8n': typeof IaAutomacaoAutomacaoN8nRoute
+  '/ia-automacao/chatbots-ia': typeof IaAutomacaoChatbotsIaRoute
+  '/ia-automacao/ia-whatsapp': typeof IaAutomacaoIaWhatsappRoute
   '/vps-cloud/cloud-privada': typeof VpsCloudCloudPrivadaRoute
   '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
   '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
@@ -388,6 +415,9 @@ export interface FileRouteTypes {
     | '/hospedagem/email-corporativo'
     | '/hospedagem/revenda-whm'
     | '/hospedagem/web'
+    | '/ia-automacao/automacao-n8n'
+    | '/ia-automacao/chatbots-ia'
+    | '/ia-automacao/ia-whatsapp'
     | '/vps-cloud/cloud-privada'
     | '/vps-cloud/servidor-dedicado'
     | '/vps-cloud/vps-nvme'
@@ -426,6 +456,9 @@ export interface FileRouteTypes {
     | '/hospedagem/email-corporativo'
     | '/hospedagem/revenda-whm'
     | '/hospedagem/web'
+    | '/ia-automacao/automacao-n8n'
+    | '/ia-automacao/chatbots-ia'
+    | '/ia-automacao/ia-whatsapp'
     | '/vps-cloud/cloud-privada'
     | '/vps-cloud/servidor-dedicado'
     | '/vps-cloud/vps-nvme'
@@ -465,6 +498,9 @@ export interface FileRouteTypes {
     | '/hospedagem/email-corporativo'
     | '/hospedagem/revenda-whm'
     | '/hospedagem/web'
+    | '/ia-automacao/automacao-n8n'
+    | '/ia-automacao/chatbots-ia'
+    | '/ia-automacao/ia-whatsapp'
     | '/vps-cloud/cloud-privada'
     | '/vps-cloud/servidor-dedicado'
     | '/vps-cloud/vps-nvme'
@@ -488,6 +524,9 @@ export interface RootRouteChildren {
   HospedagemEmailCorporativoRoute: typeof HospedagemEmailCorporativoRoute
   HospedagemRevendaWhmRoute: typeof HospedagemRevendaWhmRoute
   HospedagemWebRoute: typeof HospedagemWebRoute
+  IaAutomacaoAutomacaoN8nRoute: typeof IaAutomacaoAutomacaoN8nRoute
+  IaAutomacaoChatbotsIaRoute: typeof IaAutomacaoChatbotsIaRoute
+  IaAutomacaoIaWhatsappRoute: typeof IaAutomacaoIaWhatsappRoute
   VpsCloudCloudPrivadaRoute: typeof VpsCloudCloudPrivadaRoute
   VpsCloudServidorDedicadoRoute: typeof VpsCloudServidorDedicadoRoute
   VpsCloudVpsNvmeRoute: typeof VpsCloudVpsNvmeRoute
@@ -564,6 +603,27 @@ declare module '@tanstack/react-router' {
       path: '/vps-cloud/cloud-privada'
       fullPath: '/vps-cloud/cloud-privada'
       preLoaderRoute: typeof VpsCloudCloudPrivadaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ia-automacao/ia-whatsapp': {
+      id: '/ia-automacao/ia-whatsapp'
+      path: '/ia-automacao/ia-whatsapp'
+      fullPath: '/ia-automacao/ia-whatsapp'
+      preLoaderRoute: typeof IaAutomacaoIaWhatsappRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ia-automacao/chatbots-ia': {
+      id: '/ia-automacao/chatbots-ia'
+      path: '/ia-automacao/chatbots-ia'
+      fullPath: '/ia-automacao/chatbots-ia'
+      preLoaderRoute: typeof IaAutomacaoChatbotsIaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ia-automacao/automacao-n8n': {
+      id: '/ia-automacao/automacao-n8n'
+      path: '/ia-automacao/automacao-n8n'
+      fullPath: '/ia-automacao/automacao-n8n'
+      preLoaderRoute: typeof IaAutomacaoAutomacaoN8nRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/hospedagem/web': {
@@ -821,6 +881,9 @@ const rootRouteChildren: RootRouteChildren = {
   HospedagemEmailCorporativoRoute: HospedagemEmailCorporativoRoute,
   HospedagemRevendaWhmRoute: HospedagemRevendaWhmRoute,
   HospedagemWebRoute: HospedagemWebRoute,
+  IaAutomacaoAutomacaoN8nRoute: IaAutomacaoAutomacaoN8nRoute,
+  IaAutomacaoChatbotsIaRoute: IaAutomacaoChatbotsIaRoute,
+  IaAutomacaoIaWhatsappRoute: IaAutomacaoIaWhatsappRoute,
   VpsCloudCloudPrivadaRoute: VpsCloudCloudPrivadaRoute,
   VpsCloudServidorDedicadoRoute: VpsCloudServidorDedicadoRoute,
   VpsCloudVpsNvmeRoute: VpsCloudVpsNvmeRoute,
