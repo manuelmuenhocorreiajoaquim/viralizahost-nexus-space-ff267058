@@ -58,6 +58,10 @@ export const CATALOG: Product[] = [
   { id: "vps-1", type: "vps", name: "VPS NVMe 1", basePriceBRL: 79 },
   { id: "vps-2", type: "vps", name: "VPS NVMe 2", basePriceBRL: 149 },
   { id: "vps-3", type: "vps", name: "VPS NVMe 3", basePriceBRL: 299 },
+  { id: "cloud-privada", type: "vps", name: "Cloud Privada", basePriceBRL: 1290 },
+  { id: "dedicado-start", type: "vps", name: "Dedicado Start", basePriceBRL: 690 },
+  { id: "dedicado-pro", type: "vps", name: "Dedicado Pro", basePriceBRL: 1290 },
+  { id: "dedicado-enterprise", type: "vps", name: "Dedicado Enterprise", basePriceBRL: 2490 },
   // Email — preços alinhados à vitrine (todos exigem domínio)
   { id: "email-starter", type: "email", name: "E-mail Starter", basePriceBRL: 29, needsDomain: true },
   { id: "email-business", type: "email", name: "E-mail Business", basePriceBRL: 59, needsDomain: true },
