@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "@tanstack/react-router";
 import { Menu, X, Globe, Server, Cloud, Cpu, Megaphone, Palette, Film, Building2, Phone, ArrowRight, MessageCircle, ChevronDown, Mail, Shield, Zap, Bot, BarChart3 } from "lucide-react";
 import logo from "@/assets/viralizahost-logo.png";
 import { useCurrency, type Currency } from "@/lib/currency";
 
-const menu = [
-  { label: "Domínios", icon: Globe, items: [
-    { icon: Globe, title: "Registar Domínio", desc: ".com, .ao, .pt, .net" },
-    { icon: Shield, title: "Proteção WHOIS", desc: "Privacidade total" },
-    { icon: ArrowRight, title: "Transferir Domínio", desc: "Migração grátis" },
+type MenuItem = { icon: React.ComponentType<{ className?: string }>; title: string; desc: string; to?: string };
+type MenuEntry = { label: string; icon: React.ComponentType<{ className?: string }>; to?: string; items?: MenuItem[] };
+
+const menu: MenuEntry[] = [
+  { label: "Domínios", icon: Globe, to: "/dominios/registrar", items: [
+    { icon: Globe, title: "Registar Domínio", desc: ".com, .ao, .pt, .net", to: "/dominios/registrar" },
+    { icon: Shield, title: "Proteção WHOIS", desc: "Privacidade total", to: "/dominios/protecao-whois" },
+    { icon: ArrowRight, title: "Transferir Domínio", desc: "Migração grátis", to: "/dominios/transferir" },
   ]},
   { label: "Hospedagem", icon: Server, items: [
     { icon: Server, title: "Hospedagem Web", desc: "LiteSpeed + SSD" },
@@ -83,12 +87,28 @@ export default function Navbar() {
           </a>
 
           <nav className="hidden lg:flex items-center gap-0.5 mx-auto" onMouseLeave={() => setOpen(null)}>
-            {menu.map((m) => (
-              <div key={m.label} className="relative" onMouseEnter={() => setOpen(m.items ? m.label : null)}>
-                <button className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/90 hover:text-[#3BA9FF] transition-colors rounded-md whitespace-nowrap">
+            {menu.map((m) => {
+              const TriggerInner = (
+                <>
                   {m.label}
                   {m.items && <ChevronDown className="h-3 w-3 opacity-60" />}
-                </button>
+                </>
+              );
+              return (
+              <div key={m.label} className="relative" onMouseEnter={() => setOpen(m.items ? m.label : null)}>
+                {m.to ? (
+                  <Link
+                    to={m.to}
+                    onClick={() => setOpen(null)}
+                    className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/90 hover:text-[#3BA9FF] transition-colors rounded-md whitespace-nowrap"
+                  >
+                    {TriggerInner}
+                  </Link>
+                ) : (
+                  <button className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/90 hover:text-[#3BA9FF] transition-colors rounded-md whitespace-nowrap">
+                    {TriggerInner}
+                  </button>
+                )}
                 <AnimatePresence>
                   {open === m.label && m.items && (
                     <motion.div
@@ -99,23 +119,36 @@ export default function Navbar() {
                       className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[420px] glass rounded-2xl p-3 shadow-elegant text-foreground"
                     >
                       <div className="grid grid-cols-1 gap-1">
-                        {m.items.map((it) => (
-                          <a key={it.title} href="#" className="flex items-start gap-3 p-3 rounded-xl hover:bg-primary/10 transition group">
-                            <div className="h-10 w-10 rounded-lg bg-gradient-primary grid place-items-center shrink-0 shadow-glow">
-                              <it.icon className="h-5 w-5 text-primary-foreground" />
-                            </div>
-                            <div>
-                              <div className="text-sm font-semibold">{it.title}</div>
-                              <div className="text-xs text-muted-foreground">{it.desc}</div>
-                            </div>
-                          </a>
-                        ))}
+                        {m.items.map((it) => {
+                          const itemBody = (
+                            <>
+                              <div className="h-10 w-10 rounded-lg bg-gradient-primary grid place-items-center shrink-0 shadow-glow">
+                                <it.icon className="h-5 w-5 text-primary-foreground" />
+                              </div>
+                              <div>
+                                <div className="text-sm font-semibold">{it.title}</div>
+                                <div className="text-xs text-muted-foreground">{it.desc}</div>
+                              </div>
+                            </>
+                          );
+                          const cls = "flex items-start gap-3 p-3 rounded-xl hover:bg-primary/10 transition group";
+                          return it.to ? (
+                            <Link key={it.title} to={it.to} onClick={() => setOpen(null)} className={cls}>
+                              {itemBody}
+                            </Link>
+                          ) : (
+                            <a key={it.title} href="#" className={cls}>
+                              {itemBody}
+                            </a>
+                          );
+                        })}
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
-            ))}
+              );
+            })}
           </nav>
 
           <div className="hidden lg:flex items-center gap-3 shrink-0 relative">
@@ -180,10 +213,38 @@ export default function Navbar() {
           >
             <div className="px-4 py-4 space-y-1">
               {menu.map((m) => (
-                <a key={m.label} href="#" className="flex items-center gap-3 px-3 py-3 rounded-lg text-white hover:bg-white/10 hover:text-[#3BA9FF] transition">
-                  <m.icon className="h-4 w-4 text-[#3BA9FF]" />
-                  <span className="text-sm font-medium">{m.label}</span>
-                </a>
+                <div key={m.label}>
+                  {m.to ? (
+                    <Link
+                      to={m.to}
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-3 px-3 py-3 rounded-lg text-white hover:bg-white/10 hover:text-[#3BA9FF] transition"
+                    >
+                      <m.icon className="h-4 w-4 text-[#3BA9FF]" />
+                      <span className="text-sm font-medium">{m.label}</span>
+                    </Link>
+                  ) : (
+                    <div className="flex items-center gap-3 px-3 py-3 rounded-lg text-white/90">
+                      <m.icon className="h-4 w-4 text-[#3BA9FF]" />
+                      <span className="text-sm font-medium">{m.label}</span>
+                    </div>
+                  )}
+                  {m.items && (
+                    <div className="ml-7 mb-2 space-y-1">
+                      {m.items.filter((it) => it.to).map((it) => (
+                        <Link
+                          key={it.title}
+                          to={it.to!}
+                          onClick={() => setMobileOpen(false)}
+                          className="flex items-center gap-2 px-3 py-2 rounded-md text-white/80 text-xs hover:bg-white/10 hover:text-[#3BA9FF] transition"
+                        >
+                          <it.icon className="h-3.5 w-3.5 text-[#3BA9FF]" />
+                          {it.title}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
               <div className="flex items-center gap-2 px-3 py-3">
                 {currencies.map((c) => (

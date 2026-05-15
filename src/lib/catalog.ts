@@ -47,6 +47,8 @@ export function productNeedsCycle(p: Product): boolean {
 }
 
 export const CATALOG: Product[] = [
+  // Domain add-ons
+  { id: "whois-protection", type: "domain", name: "Proteção WHOIS", basePriceBRL: 29, billing: "annual" },
   // Hospedagem
   { id: "host-start", type: "hosting", name: "Starter Host", basePriceBRL: 19, needsDomain: true, emailUpsell: true },
   { id: "host-business", type: "hosting", name: "Business Cloud", basePriceBRL: 79, needsDomain: true, emailUpsell: true },
