@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "@tanstack/react-router";
 import { Menu, X, Globe, Server, Cloud, Cpu, Megaphone, Palette, Film, Building2, Phone, ArrowRight, MessageCircle, ChevronDown, Mail, Shield, Zap, Bot, BarChart3 } from "lucide-react";
 import logo from "@/assets/viralizahost-logo.png";
 import { useCurrency, type Currency } from "@/lib/currency";
 
-const menu = [
-  { label: "Domínios", icon: Globe, items: [
-    { icon: Globe, title: "Registar Domínio", desc: ".com, .ao, .pt, .net" },
-    { icon: Shield, title: "Proteção WHOIS", desc: "Privacidade total" },
-    { icon: ArrowRight, title: "Transferir Domínio", desc: "Migração grátis" },
+type MenuItem = { icon: React.ComponentType<{ className?: string }>; title: string; desc: string; to?: string };
+type MenuEntry = { label: string; icon: React.ComponentType<{ className?: string }>; to?: string; items?: MenuItem[] };
+
+const menu: MenuEntry[] = [
+  { label: "Domínios", icon: Globe, to: "/dominios/registrar", items: [
+    { icon: Globe, title: "Registar Domínio", desc: ".com, .ao, .pt, .net", to: "/dominios/registrar" },
+    { icon: Shield, title: "Proteção WHOIS", desc: "Privacidade total", to: "/dominios/protecao-whois" },
+    { icon: ArrowRight, title: "Transferir Domínio", desc: "Migração grátis", to: "/dominios/transferir" },
   ]},
   { label: "Hospedagem", icon: Server, items: [
     { icon: Server, title: "Hospedagem Web", desc: "LiteSpeed + SSD" },
