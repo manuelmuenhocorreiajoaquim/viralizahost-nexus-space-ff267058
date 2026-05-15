@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Palette, Sparkles, Layers, Image as ImageIcon, Star, Check, ArrowRight } from "lucide-react";
 import Navbar from "@/components/site/Navbar";
 import CTAFooter from "@/components/site/CTAFooter";
+import PortfolioShowcase, { ResultsStats } from "@/components/site/PortfolioShowcase";
 import { usePrice } from "@/lib/currency";
 
 export const Route = createFileRoute("/design")({
