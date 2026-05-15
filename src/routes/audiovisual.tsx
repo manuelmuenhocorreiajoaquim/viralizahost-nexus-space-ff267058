@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Film, Camera, Video, Clapperboard, Mic, Check, ArrowRight } from "lucide-react";
 import Navbar from "@/components/site/Navbar";
 import CTAFooter from "@/components/site/CTAFooter";
+import AudiovisualShowcase, { CreativeProcess, AudiovisualStats, EquipmentGallery } from "@/components/site/AudiovisualShowcase";
 import { usePrice } from "@/lib/currency";
 
 export const Route = createFileRoute("/audiovisual")({
