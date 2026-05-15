@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@tanstack/react-router";
-import { Menu, X, Globe, Server, Cloud, Cpu, Megaphone, Palette, Film, Building2, Phone, ArrowRight, MessageCircle, ChevronDown, Mail, Shield, Zap, Bot, BarChart3 } from "lucide-react";
+import { Menu, X, Globe, Server, Cloud, Cpu, Megaphone, Palette, Film, Building2, Phone, ArrowRight, MessageCircle, ChevronDown, Mail, Shield, Zap, Bot, BarChart3, Brain } from "lucide-react";
 import logo from "@/assets/viralizahost-logo.png";
 import { useCurrency, type Currency } from "@/lib/currency";
 
@@ -29,6 +29,7 @@ const menu: MenuEntry[] = [
     { icon: Bot, title: "Chatbots IA", desc: "Atendimento 24/7", to: "/ia-automacao/chatbots-ia" },
     { icon: Cpu, title: "Automação n8n", desc: "Workflows ilimitados", to: "/ia-automacao/automacao-n8n" },
     { icon: MessageCircle, title: "IA WhatsApp", desc: "Vendas automáticas", to: "/ia-automacao/ia-whatsapp" },
+    { icon: Brain, title: "OpenClaw", desc: "Agentes & integrações IA", to: "/ia-automacao/openclaw" },
   ]},
   { label: "Marketing", icon: Megaphone, to: "/marketing/trafego-pago", items: [
     { icon: BarChart3, title: "Tráfego Pago", desc: "Meta & Google Ads", to: "/marketing/trafego-pago" },

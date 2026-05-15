@@ -25,6 +25,7 @@ import { Route as VpsCloudCloudPrivadaRouteImport } from './routes/vps-cloud.clo
 import { Route as MarketingTrafegoPagoRouteImport } from './routes/marketing.trafego-pago'
 import { Route as MarketingSeoPremiumRouteImport } from './routes/marketing.seo-premium'
 import { Route as MarketingGestaoSocialRouteImport } from './routes/marketing.gestao-social'
+import { Route as IaAutomacaoOpenclawRouteImport } from './routes/ia-automacao.openclaw'
 import { Route as IaAutomacaoIaWhatsappRouteImport } from './routes/ia-automacao.ia-whatsapp'
 import { Route as IaAutomacaoChatbotsIaRouteImport } from './routes/ia-automacao.chatbots-ia'
 import { Route as IaAutomacaoAutomacaoN8nRouteImport } from './routes/ia-automacao.automacao-n8n'
@@ -134,6 +135,11 @@ const MarketingSeoPremiumRoute = MarketingSeoPremiumRouteImport.update({
 const MarketingGestaoSocialRoute = MarketingGestaoSocialRouteImport.update({
   id: '/marketing/gestao-social',
   path: '/marketing/gestao-social',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IaAutomacaoOpenclawRoute = IaAutomacaoOpenclawRouteImport.update({
+  id: '/ia-automacao/openclaw',
+  path: '/ia-automacao/openclaw',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IaAutomacaoIaWhatsappRoute = IaAutomacaoIaWhatsappRouteImport.update({
@@ -330,6 +336,7 @@ export interface FileRoutesByFullPath {
   '/ia-automacao/automacao-n8n': typeof IaAutomacaoAutomacaoN8nRoute
   '/ia-automacao/chatbots-ia': typeof IaAutomacaoChatbotsIaRoute
   '/ia-automacao/ia-whatsapp': typeof IaAutomacaoIaWhatsappRoute
+  '/ia-automacao/openclaw': typeof IaAutomacaoOpenclawRoute
   '/marketing/gestao-social': typeof MarketingGestaoSocialRoute
   '/marketing/seo-premium': typeof MarketingSeoPremiumRoute
   '/marketing/trafego-pago': typeof MarketingTrafegoPagoRoute
@@ -377,6 +384,7 @@ export interface FileRoutesByTo {
   '/ia-automacao/automacao-n8n': typeof IaAutomacaoAutomacaoN8nRoute
   '/ia-automacao/chatbots-ia': typeof IaAutomacaoChatbotsIaRoute
   '/ia-automacao/ia-whatsapp': typeof IaAutomacaoIaWhatsappRoute
+  '/ia-automacao/openclaw': typeof IaAutomacaoOpenclawRoute
   '/marketing/gestao-social': typeof MarketingGestaoSocialRoute
   '/marketing/seo-premium': typeof MarketingSeoPremiumRoute
   '/marketing/trafego-pago': typeof MarketingTrafegoPagoRoute
@@ -426,6 +434,7 @@ export interface FileRoutesById {
   '/ia-automacao/automacao-n8n': typeof IaAutomacaoAutomacaoN8nRoute
   '/ia-automacao/chatbots-ia': typeof IaAutomacaoChatbotsIaRoute
   '/ia-automacao/ia-whatsapp': typeof IaAutomacaoIaWhatsappRoute
+  '/ia-automacao/openclaw': typeof IaAutomacaoOpenclawRoute
   '/marketing/gestao-social': typeof MarketingGestaoSocialRoute
   '/marketing/seo-premium': typeof MarketingSeoPremiumRoute
   '/marketing/trafego-pago': typeof MarketingTrafegoPagoRoute
@@ -475,6 +484,7 @@ export interface FileRouteTypes {
     | '/ia-automacao/automacao-n8n'
     | '/ia-automacao/chatbots-ia'
     | '/ia-automacao/ia-whatsapp'
+    | '/ia-automacao/openclaw'
     | '/marketing/gestao-social'
     | '/marketing/seo-premium'
     | '/marketing/trafego-pago'
@@ -522,6 +532,7 @@ export interface FileRouteTypes {
     | '/ia-automacao/automacao-n8n'
     | '/ia-automacao/chatbots-ia'
     | '/ia-automacao/ia-whatsapp'
+    | '/ia-automacao/openclaw'
     | '/marketing/gestao-social'
     | '/marketing/seo-premium'
     | '/marketing/trafego-pago'
@@ -570,6 +581,7 @@ export interface FileRouteTypes {
     | '/ia-automacao/automacao-n8n'
     | '/ia-automacao/chatbots-ia'
     | '/ia-automacao/ia-whatsapp'
+    | '/ia-automacao/openclaw'
     | '/marketing/gestao-social'
     | '/marketing/seo-premium'
     | '/marketing/trafego-pago'
@@ -602,6 +614,7 @@ export interface RootRouteChildren {
   IaAutomacaoAutomacaoN8nRoute: typeof IaAutomacaoAutomacaoN8nRoute
   IaAutomacaoChatbotsIaRoute: typeof IaAutomacaoChatbotsIaRoute
   IaAutomacaoIaWhatsappRoute: typeof IaAutomacaoIaWhatsappRoute
+  IaAutomacaoOpenclawRoute: typeof IaAutomacaoOpenclawRoute
   MarketingGestaoSocialRoute: typeof MarketingGestaoSocialRoute
   MarketingSeoPremiumRoute: typeof MarketingSeoPremiumRoute
   MarketingTrafegoPagoRoute: typeof MarketingTrafegoPagoRoute
@@ -723,6 +736,13 @@ declare module '@tanstack/react-router' {
       path: '/marketing/gestao-social'
       fullPath: '/marketing/gestao-social'
       preLoaderRoute: typeof MarketingGestaoSocialRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ia-automacao/openclaw': {
+      id: '/ia-automacao/openclaw'
+      path: '/ia-automacao/openclaw'
+      fullPath: '/ia-automacao/openclaw'
+      preLoaderRoute: typeof IaAutomacaoOpenclawRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ia-automacao/ia-whatsapp': {
@@ -1007,6 +1027,7 @@ const rootRouteChildren: RootRouteChildren = {
   IaAutomacaoAutomacaoN8nRoute: IaAutomacaoAutomacaoN8nRoute,
   IaAutomacaoChatbotsIaRoute: IaAutomacaoChatbotsIaRoute,
   IaAutomacaoIaWhatsappRoute: IaAutomacaoIaWhatsappRoute,
+  IaAutomacaoOpenclawRoute: IaAutomacaoOpenclawRoute,
   MarketingGestaoSocialRoute: MarketingGestaoSocialRoute,
   MarketingSeoPremiumRoute: MarketingSeoPremiumRoute,
   MarketingTrafegoPagoRoute: MarketingTrafegoPagoRoute,

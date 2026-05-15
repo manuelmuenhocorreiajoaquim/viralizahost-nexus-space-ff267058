@@ -77,6 +77,10 @@ export const CATALOG: Product[] = [
   { id: "ai-n8n-start", type: "ai", name: "n8n Start", basePriceBRL: 490 },
   { id: "ai-n8n-pro", type: "ai", name: "n8n Pro", basePriceBRL: 1290 },
   { id: "ai-n8n-enterprise", type: "ai", name: "n8n Enterprise", basePriceBRL: 2890 },
+  // OpenClaw
+  { id: "openclaw-starter", type: "ai", name: "OpenClaw Starter", basePriceBRL: 299 },
+  { id: "openclaw-business", type: "ai", name: "OpenClaw Business", basePriceBRL: 799 },
+  { id: "openclaw-premium", type: "ai", name: "OpenClaw Premium", basePriceBRL: 1499 },
   // IA WhatsApp
   { id: "ai-wa-start", type: "ai", name: "IA WhatsApp Start", basePriceBRL: 390 },
   { id: "ai-wa-vendas", type: "ai", name: "IA WhatsApp Vendas", basePriceBRL: 990 },
