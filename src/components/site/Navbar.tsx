@@ -83,8 +83,8 @@ export default function Navbar() {
         borderBottomColor: "rgba(255,255,255,0.08)",
       }}
     >
-      <div className="mx-auto max-w-[1440px] px-6 lg:px-16">
-        <div className="flex h-[82px] items-center justify-between gap-6">
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 xl:px-12">
+        <div className="flex h-[72px] xl:h-[82px] items-center justify-between gap-3">
           <Link
             to="/"
             onClick={() => {
@@ -98,11 +98,11 @@ export default function Navbar() {
             <img
               src={logo}
               alt="ViralizaHost"
-              className="h-[46px] lg:h-[50px] w-auto object-contain"
+              className="h-[42px] xl:h-[50px] w-auto object-contain"
             />
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-0.5 mx-auto" onMouseLeave={() => setOpen(null)}>
+          <nav className="hidden xl:flex items-center gap-0 mx-auto" onMouseLeave={() => setOpen(null)}>
             {menu.map((m) => {
               const TriggerInner = (
                 <>
@@ -116,12 +116,12 @@ export default function Navbar() {
                   <Link
                     to={m.to}
                     onClick={() => setOpen(null)}
-                    className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/90 hover:text-[#3BA9FF] transition-colors rounded-md whitespace-nowrap"
+                    className="flex items-center gap-1 px-2.5 py-2 text-[13px] font-medium text-white/90 hover:text-[#3BA9FF] transition-colors rounded-md whitespace-nowrap"
                   >
                     {TriggerInner}
                   </Link>
                 ) : (
-                  <button className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-white/90 hover:text-[#3BA9FF] transition-colors rounded-md whitespace-nowrap">
+                  <button className="flex items-center gap-1 px-2.5 py-2 text-[13px] font-medium text-white/90 hover:text-[#3BA9FF] transition-colors rounded-md whitespace-nowrap">
                     {TriggerInner}
                   </button>
                 )}
@@ -167,17 +167,17 @@ export default function Navbar() {
             })}
           </nav>
 
-          <div className="hidden lg:flex items-center gap-3 shrink-0 relative">
+          <div className="hidden xl:flex items-center gap-2 shrink-0 relative">
             <a
               href="/login"
-              className="px-3 py-2 rounded-full text-sm font-semibold text-white/90 hover:text-[#3BA9FF] transition"
+              className="px-2.5 py-2 rounded-full text-[13px] font-semibold text-white/90 hover:text-[#3BA9FF] transition whitespace-nowrap"
             >
               Área do Cliente
             </a>
             <button
               onClick={() => setCurrOpen((v) => !v)}
               onBlur={() => setTimeout(() => setCurrOpen(false), 150)}
-              className="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold bg-white/10 backdrop-blur-md border border-white/15 text-white hover:text-[#3BA9FF] hover:border-[#3BA9FF]/40 transition"
+              className="flex items-center gap-1.5 px-2.5 py-2 rounded-full text-[13px] font-semibold bg-white/10 backdrop-blur-md border border-white/15 text-white hover:text-[#3BA9FF] hover:border-[#3BA9FF]/40 transition whitespace-nowrap"
             >
               <span style={flagStyle} className="leading-none">{active.flag}</span>
               <span>{active.cc} · {active.label}</span>
@@ -213,7 +213,11 @@ export default function Navbar() {
             </AnimatePresence>
           </div>
 
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden p-2 text-white">
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="xl:hidden p-2 text-white"
+            aria-label="Abrir menu"
+          >
             {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
@@ -221,53 +225,107 @@ export default function Navbar() {
 
       <AnimatePresence>
         {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden bg-[oklch(0.15_0.02_255/0.95)] backdrop-blur-xl overflow-hidden border-t border-white/10"
-          >
-            <div className="px-4 py-4 space-y-1">
-              {menu.map((m) => (
-                <div key={m.label}>
-                  {m.to ? (
-                    <Link
-                      to={m.to}
-                      onClick={() => setMobileOpen(false)}
-                      className="flex items-center gap-3 px-3 py-3 rounded-lg text-white hover:bg-white/10 hover:text-[#3BA9FF] transition"
-                    >
-                      <m.icon className="h-4 w-4 text-[#3BA9FF]" />
-                      <span className="text-sm font-medium">{m.label}</span>
-                    </Link>
-                  ) : (
-                    <div className="flex items-center gap-3 px-3 py-3 rounded-lg text-white/90">
-                      <m.icon className="h-4 w-4 text-[#3BA9FF]" />
-                      <span className="text-sm font-medium">{m.label}</span>
-                    </div>
-                  )}
-                  {m.items && (
-                    <div className="ml-7 mb-2 space-y-1">
-                      {m.items.filter((it) => it.to).map((it) => (
-                        <Link
-                          key={it.title}
-                          to={it.to!}
-                          onClick={() => setMobileOpen(false)}
-                          className="flex items-center gap-2 px-3 py-2 rounded-md text-white/80 text-xs hover:bg-white/10 hover:text-[#3BA9FF] transition"
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setMobileOpen(false)}
+              className="xl:hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
+            />
+            <motion.aside
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "tween", duration: 0.3, ease: "easeOut" }}
+              className="xl:hidden fixed top-0 right-0 bottom-0 z-50 w-[88vw] max-w-[380px] bg-[#050C18] border-l border-white/10 shadow-2xl flex flex-col"
+            >
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+                <Link to="/" onClick={() => setMobileOpen(false)} className="flex items-center">
+                  <img src={logo} alt="ViralizaHost" className="h-9 w-auto object-contain" />
+                </Link>
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition"
+                  aria-label="Fechar menu"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+                {menu.map((m) => {
+                  const hasItems = !!m.items?.length;
+                  const isAccOpen = mobileAcc === m.label;
+                  return (
+                    <div key={m.label}>
+                      {hasItems ? (
+                        <button
+                          onClick={() => setMobileAcc(isAccOpen ? null : m.label)}
+                          className="w-full flex items-center justify-between gap-3 px-3 py-3 rounded-xl text-white hover:bg-white/10 transition"
                         >
-                          <it.icon className="h-3.5 w-3.5 text-[#3BA9FF]" />
-                          {it.title}
+                          <span className="flex items-center gap-3">
+                            <m.icon className="h-4 w-4 text-[#3BA9FF]" />
+                            <span className="text-sm font-medium">{m.label}</span>
+                          </span>
+                          <ChevronDown className={`h-4 w-4 text-white/60 transition-transform ${isAccOpen ? "rotate-180" : ""}`} />
+                        </button>
+                      ) : (
+                        <Link
+                          to={m.to!}
+                          onClick={() => setMobileOpen(false)}
+                          className="flex items-center gap-3 px-3 py-3 rounded-xl text-white hover:bg-white/10 hover:text-[#3BA9FF] transition"
+                        >
+                          <m.icon className="h-4 w-4 text-[#3BA9FF]" />
+                          <span className="text-sm font-medium">{m.label}</span>
                         </Link>
-                      ))}
+                      )}
+                      <AnimatePresence initial={false}>
+                        {hasItems && isAccOpen && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.22, ease: "easeOut" }}
+                            className="overflow-hidden"
+                          >
+                            <div className="ml-4 mt-1 mb-2 pl-3 border-l border-white/10 space-y-1">
+                              {m.items!.filter((it) => it.to).map((it) => (
+                                <Link
+                                  key={it.title}
+                                  to={it.to!}
+                                  onClick={() => setMobileOpen(false)}
+                                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-white/80 text-xs hover:bg-white/10 hover:text-[#3BA9FF] transition"
+                                >
+                                  <it.icon className="h-3.5 w-3.5 text-[#3BA9FF]" />
+                                  {it.title}
+                                </Link>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                  )}
-                </div>
-              ))}
-              <div className="flex items-center gap-2 px-3 py-3">
+                  );
+                })}
+
+                <a
+                  href="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 px-3 py-3 rounded-xl text-white hover:bg-white/10 hover:text-[#3BA9FF] transition"
+                >
+                  <Phone className="h-4 w-4 text-[#3BA9FF]" />
+                  <span className="text-sm font-medium">Área do Cliente</span>
+                </a>
+              </div>
+
+              <div className="px-4 py-4 border-t border-white/10 flex items-center gap-2 shrink-0">
                 {currencies.map((c) => (
                   <button
                     key={c.code}
                     onClick={() => setCurrency(c.code)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold border transition ${
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-full text-xs font-semibold border transition ${
                       c.code === currency
                         ? "bg-[#3BA9FF]/20 border-[#3BA9FF]/60 text-white"
                         : "bg-white/5 border-white/10 text-white/80"
@@ -277,8 +335,8 @@ export default function Navbar() {
                   </button>
                 ))}
               </div>
-            </div>
-          </motion.div>
+            </motion.aside>
+          </>
         )}
       </AnimatePresence>
     </header>
