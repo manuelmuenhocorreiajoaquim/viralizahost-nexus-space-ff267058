@@ -86,6 +86,14 @@ export const CATALOG: Product[] = [
   { id: "traf-meta", type: "traffic", name: "Meta Ads Starter", basePriceBRL: 500 },
   { id: "traf-perf", type: "traffic", name: "Performance Business", basePriceBRL: 1200 },
   { id: "traf-growth", type: "traffic", name: "Growth Premium", basePriceBRL: 2500 },
+  // Gestão Social
+  { id: "social-start", type: "traffic", name: "Social Start", basePriceBRL: 690 },
+  { id: "social-business", type: "traffic", name: "Social Business", basePriceBRL: 1490 },
+  { id: "social-premium", type: "traffic", name: "Social Premium", basePriceBRL: 2890 },
+  // SEO Premium
+  { id: "seo-start", type: "traffic", name: "SEO Start", basePriceBRL: 890 },
+  { id: "seo-pro", type: "traffic", name: "SEO Pro", basePriceBRL: 1890 },
+  { id: "seo-enterprise", type: "traffic", name: "SEO Enterprise", basePriceBRL: 3490 },
   // Design
   { id: "design-flyer", type: "design", name: "Flyer Digital", basePriceBRL: 80 },
   { id: "design-social-kit", type: "design", name: "Social Media Kit", basePriceBRL: 350 },

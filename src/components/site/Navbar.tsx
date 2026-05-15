@@ -30,10 +30,10 @@ const menu: MenuEntry[] = [
     { icon: Cpu, title: "Automação n8n", desc: "Workflows ilimitados", to: "/ia-automacao/automacao-n8n" },
     { icon: MessageCircle, title: "IA WhatsApp", desc: "Vendas automáticas", to: "/ia-automacao/ia-whatsapp" },
   ]},
-  { label: "Marketing", icon: Megaphone, items: [
-    { icon: BarChart3, title: "Tráfego Pago", desc: "Meta & Google Ads" },
-    { icon: Megaphone, title: "Gestão Social", desc: "Conteúdo premium" },
-    { icon: Globe, title: "SEO Premium", desc: "Top do Google" },
+  { label: "Marketing", icon: Megaphone, to: "/marketing/trafego-pago", items: [
+    { icon: BarChart3, title: "Tráfego Pago", desc: "Meta & Google Ads", to: "/marketing/trafego-pago" },
+    { icon: Megaphone, title: "Gestão Social", desc: "Conteúdo premium", to: "/marketing/gestao-social" },
+    { icon: Globe, title: "SEO Premium", desc: "Top do Google", to: "/marketing/seo-premium" },
   ]},
   { label: "Design", icon: Palette },
   { label: "Audiovisual", icon: Film },
