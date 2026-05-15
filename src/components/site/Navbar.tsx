@@ -35,10 +35,10 @@ const menu: MenuEntry[] = [
     { icon: Megaphone, title: "Gestão Social", desc: "Conteúdo premium", to: "/marketing/gestao-social" },
     { icon: Globe, title: "SEO Premium", desc: "Top do Google", to: "/marketing/seo-premium" },
   ]},
-  { label: "Design", icon: Palette },
-  { label: "Audiovisual", icon: Film },
+  { label: "Design", icon: Palette, to: "/design" },
+  { label: "Audiovisual", icon: Film, to: "/audiovisual" },
   { label: "Empresa", icon: Building2 },
-  { label: "Contacto", icon: Phone },
+  { label: "Contacto", icon: Phone, to: "/contacto" },
 ];
 
 export default function Navbar() {
