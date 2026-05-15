@@ -52,6 +52,7 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileAcc, setMobileAcc] = useState<string | null>(null);
   const [currOpen, setCurrOpen] = useState(false);
   const { currency, setCurrency } = useCurrency();
   const currencies: { code: Currency; flag: string; cc: string; label: string; country: string }[] = [
