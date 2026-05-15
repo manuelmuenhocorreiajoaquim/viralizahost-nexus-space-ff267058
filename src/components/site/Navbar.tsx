@@ -78,13 +78,22 @@ export default function Navbar() {
     >
       <div className="mx-auto max-w-[1440px] px-6 lg:px-16">
         <div className="flex h-[82px] items-center justify-between gap-6">
-          <a href="#" className="flex items-center shrink-0">
+          <Link
+            to="/"
+            onClick={() => {
+              setOpen(null);
+              setMobileOpen(false);
+              setCurrOpen(false);
+            }}
+            className="flex items-center shrink-0 cursor-pointer"
+            aria-label="Ir para a página inicial"
+          >
             <img
               src={logo}
               alt="ViralizaHost"
               className="h-[46px] lg:h-[50px] w-auto object-contain"
             />
-          </a>
+          </Link>
 
           <nav className="hidden lg:flex items-center gap-0.5 mx-auto" onMouseLeave={() => setOpen(null)}>
             {menu.map((m) => {
