@@ -49,6 +49,10 @@ export function productNeedsCycle(p: Product): boolean {
 export const CATALOG: Product[] = [
   // Domain add-ons
   { id: "whois-protection", type: "domain", name: "Proteção WHOIS", basePriceBRL: 29, billing: "annual" },
+  // Certificados SSL (preço anual fixo, sem domínio)
+  { id: "ssl-basico", type: "hosting", name: "SSL Básico", basePriceBRL: 99, billing: "annual" },
+  { id: "ssl-business", type: "hosting", name: "SSL Business", basePriceBRL: 199, billing: "annual" },
+  { id: "ssl-wildcard", type: "hosting", name: "SSL Wildcard", basePriceBRL: 399, billing: "annual" },
   // Hospedagem
   { id: "host-start", type: "hosting", name: "Starter Host", basePriceBRL: 19, needsDomain: true, emailUpsell: true },
   { id: "host-business", type: "hosting", name: "Business Cloud", basePriceBRL: 79, needsDomain: true, emailUpsell: true },
