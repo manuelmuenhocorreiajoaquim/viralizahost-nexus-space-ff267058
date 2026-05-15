@@ -16,6 +16,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DesignRouteImport } from './routes/design'
 import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as CertificadosSslRouteImport } from './routes/certificados-ssl'
 import { Route as AudiovisualRouteImport } from './routes/audiovisual'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
@@ -90,6 +91,11 @@ const ContactoRoute = ContactoRouteImport.update({
 const CheckoutRoute = CheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CertificadosSslRoute = CertificadosSslRouteImport.update({
+  id: '/certificados-ssl',
+  path: '/certificados-ssl',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AudiovisualRoute = AudiovisualRouteImport.update({
@@ -302,6 +308,7 @@ const ApiPublicPaymentsMercadopagoWebhookRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/audiovisual': typeof AudiovisualRoute
+  '/certificados-ssl': typeof CertificadosSslRoute
   '/checkout': typeof CheckoutRoute
   '/contacto': typeof ContactoRoute
   '/design': typeof DesignRoute
@@ -350,6 +357,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/audiovisual': typeof AudiovisualRoute
+  '/certificados-ssl': typeof CertificadosSslRoute
   '/checkout': typeof CheckoutRoute
   '/contacto': typeof ContactoRoute
   '/design': typeof DesignRoute
@@ -400,6 +408,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/audiovisual': typeof AudiovisualRoute
+  '/certificados-ssl': typeof CertificadosSslRoute
   '/checkout': typeof CheckoutRoute
   '/contacto': typeof ContactoRoute
   '/design': typeof DesignRoute
@@ -450,6 +459,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/audiovisual'
+    | '/certificados-ssl'
     | '/checkout'
     | '/contacto'
     | '/design'
@@ -498,6 +508,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/audiovisual'
+    | '/certificados-ssl'
     | '/checkout'
     | '/contacto'
     | '/design'
@@ -547,6 +558,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/audiovisual'
+    | '/certificados-ssl'
     | '/checkout'
     | '/contacto'
     | '/design'
@@ -597,6 +609,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AudiovisualRoute: typeof AudiovisualRoute
+  CertificadosSslRoute: typeof CertificadosSslRoute
   CheckoutRoute: typeof CheckoutRoute
   ContactoRoute: typeof ContactoRoute
   DesignRoute: typeof DesignRoute
@@ -673,6 +686,13 @@ declare module '@tanstack/react-router' {
       path: '/checkout'
       fullPath: '/checkout'
       preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/certificados-ssl': {
+      id: '/certificados-ssl'
+      path: '/certificados-ssl'
+      fullPath: '/certificados-ssl'
+      preLoaderRoute: typeof CertificadosSslRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/audiovisual': {
@@ -1010,6 +1030,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AudiovisualRoute: AudiovisualRoute,
+  CertificadosSslRoute: CertificadosSslRoute,
   CheckoutRoute: CheckoutRoute,
   ContactoRoute: ContactoRoute,
   DesignRoute: DesignRoute,
