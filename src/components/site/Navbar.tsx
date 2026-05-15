@@ -29,6 +29,7 @@ const menu: MenuEntry[] = [
     { icon: Bot, title: "Chatbots IA", desc: "Atendimento 24/7", to: "/ia-automacao/chatbots-ia" },
     { icon: Cpu, title: "Automação n8n", desc: "Workflows ilimitados", to: "/ia-automacao/automacao-n8n" },
     { icon: MessageCircle, title: "IA WhatsApp", desc: "Vendas automáticas", to: "/ia-automacao/ia-whatsapp" },
+    { icon: Brain, title: "OpenClaw", desc: "Agentes & integrações IA", to: "/ia-automacao/openclaw" },
   ]},
   { label: "Marketing", icon: Megaphone, to: "/marketing/trafego-pago", items: [
     { icon: BarChart3, title: "Tráfego Pago", desc: "Meta & Google Ads", to: "/marketing/trafego-pago" },
