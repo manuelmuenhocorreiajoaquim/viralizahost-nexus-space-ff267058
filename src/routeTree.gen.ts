@@ -19,6 +19,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as VpsCloudVpsNvmeRouteImport } from './routes/vps-cloud.vps-nvme'
 import { Route as VpsCloudServidorDedicadoRouteImport } from './routes/vps-cloud.servidor-dedicado'
 import { Route as VpsCloudCloudPrivadaRouteImport } from './routes/vps-cloud.cloud-privada'
+import { Route as MarketingTrafegoPagoRouteImport } from './routes/marketing.trafego-pago'
+import { Route as MarketingSeoPremiumRouteImport } from './routes/marketing.seo-premium'
+import { Route as MarketingGestaoSocialRouteImport } from './routes/marketing.gestao-social'
 import { Route as IaAutomacaoIaWhatsappRouteImport } from './routes/ia-automacao.ia-whatsapp'
 import { Route as IaAutomacaoChatbotsIaRouteImport } from './routes/ia-automacao.chatbots-ia'
 import { Route as IaAutomacaoAutomacaoN8nRouteImport } from './routes/ia-automacao.automacao-n8n'
@@ -98,6 +101,21 @@ const VpsCloudServidorDedicadoRoute =
 const VpsCloudCloudPrivadaRoute = VpsCloudCloudPrivadaRouteImport.update({
   id: '/vps-cloud/cloud-privada',
   path: '/vps-cloud/cloud-privada',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingTrafegoPagoRoute = MarketingTrafegoPagoRouteImport.update({
+  id: '/marketing/trafego-pago',
+  path: '/marketing/trafego-pago',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingSeoPremiumRoute = MarketingSeoPremiumRouteImport.update({
+  id: '/marketing/seo-premium',
+  path: '/marketing/seo-premium',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingGestaoSocialRoute = MarketingGestaoSocialRouteImport.update({
+  id: '/marketing/gestao-social',
+  path: '/marketing/gestao-social',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IaAutomacaoIaWhatsappRoute = IaAutomacaoIaWhatsappRouteImport.update({
@@ -291,6 +309,9 @@ export interface FileRoutesByFullPath {
   '/ia-automacao/automacao-n8n': typeof IaAutomacaoAutomacaoN8nRoute
   '/ia-automacao/chatbots-ia': typeof IaAutomacaoChatbotsIaRoute
   '/ia-automacao/ia-whatsapp': typeof IaAutomacaoIaWhatsappRoute
+  '/marketing/gestao-social': typeof MarketingGestaoSocialRoute
+  '/marketing/seo-premium': typeof MarketingSeoPremiumRoute
+  '/marketing/trafego-pago': typeof MarketingTrafegoPagoRoute
   '/vps-cloud/cloud-privada': typeof VpsCloudCloudPrivadaRoute
   '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
   '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
@@ -332,6 +353,9 @@ export interface FileRoutesByTo {
   '/ia-automacao/automacao-n8n': typeof IaAutomacaoAutomacaoN8nRoute
   '/ia-automacao/chatbots-ia': typeof IaAutomacaoChatbotsIaRoute
   '/ia-automacao/ia-whatsapp': typeof IaAutomacaoIaWhatsappRoute
+  '/marketing/gestao-social': typeof MarketingGestaoSocialRoute
+  '/marketing/seo-premium': typeof MarketingSeoPremiumRoute
+  '/marketing/trafego-pago': typeof MarketingTrafegoPagoRoute
   '/vps-cloud/cloud-privada': typeof VpsCloudCloudPrivadaRoute
   '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
   '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
@@ -375,6 +399,9 @@ export interface FileRoutesById {
   '/ia-automacao/automacao-n8n': typeof IaAutomacaoAutomacaoN8nRoute
   '/ia-automacao/chatbots-ia': typeof IaAutomacaoChatbotsIaRoute
   '/ia-automacao/ia-whatsapp': typeof IaAutomacaoIaWhatsappRoute
+  '/marketing/gestao-social': typeof MarketingGestaoSocialRoute
+  '/marketing/seo-premium': typeof MarketingSeoPremiumRoute
+  '/marketing/trafego-pago': typeof MarketingTrafegoPagoRoute
   '/vps-cloud/cloud-privada': typeof VpsCloudCloudPrivadaRoute
   '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
   '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
@@ -418,6 +445,9 @@ export interface FileRouteTypes {
     | '/ia-automacao/automacao-n8n'
     | '/ia-automacao/chatbots-ia'
     | '/ia-automacao/ia-whatsapp'
+    | '/marketing/gestao-social'
+    | '/marketing/seo-premium'
+    | '/marketing/trafego-pago'
     | '/vps-cloud/cloud-privada'
     | '/vps-cloud/servidor-dedicado'
     | '/vps-cloud/vps-nvme'
@@ -459,6 +489,9 @@ export interface FileRouteTypes {
     | '/ia-automacao/automacao-n8n'
     | '/ia-automacao/chatbots-ia'
     | '/ia-automacao/ia-whatsapp'
+    | '/marketing/gestao-social'
+    | '/marketing/seo-premium'
+    | '/marketing/trafego-pago'
     | '/vps-cloud/cloud-privada'
     | '/vps-cloud/servidor-dedicado'
     | '/vps-cloud/vps-nvme'
@@ -501,6 +534,9 @@ export interface FileRouteTypes {
     | '/ia-automacao/automacao-n8n'
     | '/ia-automacao/chatbots-ia'
     | '/ia-automacao/ia-whatsapp'
+    | '/marketing/gestao-social'
+    | '/marketing/seo-premium'
+    | '/marketing/trafego-pago'
     | '/vps-cloud/cloud-privada'
     | '/vps-cloud/servidor-dedicado'
     | '/vps-cloud/vps-nvme'
@@ -527,6 +563,9 @@ export interface RootRouteChildren {
   IaAutomacaoAutomacaoN8nRoute: typeof IaAutomacaoAutomacaoN8nRoute
   IaAutomacaoChatbotsIaRoute: typeof IaAutomacaoChatbotsIaRoute
   IaAutomacaoIaWhatsappRoute: typeof IaAutomacaoIaWhatsappRoute
+  MarketingGestaoSocialRoute: typeof MarketingGestaoSocialRoute
+  MarketingSeoPremiumRoute: typeof MarketingSeoPremiumRoute
+  MarketingTrafegoPagoRoute: typeof MarketingTrafegoPagoRoute
   VpsCloudCloudPrivadaRoute: typeof VpsCloudCloudPrivadaRoute
   VpsCloudServidorDedicadoRoute: typeof VpsCloudServidorDedicadoRoute
   VpsCloudVpsNvmeRoute: typeof VpsCloudVpsNvmeRoute
@@ -603,6 +642,27 @@ declare module '@tanstack/react-router' {
       path: '/vps-cloud/cloud-privada'
       fullPath: '/vps-cloud/cloud-privada'
       preLoaderRoute: typeof VpsCloudCloudPrivadaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketing/trafego-pago': {
+      id: '/marketing/trafego-pago'
+      path: '/marketing/trafego-pago'
+      fullPath: '/marketing/trafego-pago'
+      preLoaderRoute: typeof MarketingTrafegoPagoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketing/seo-premium': {
+      id: '/marketing/seo-premium'
+      path: '/marketing/seo-premium'
+      fullPath: '/marketing/seo-premium'
+      preLoaderRoute: typeof MarketingSeoPremiumRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketing/gestao-social': {
+      id: '/marketing/gestao-social'
+      path: '/marketing/gestao-social'
+      fullPath: '/marketing/gestao-social'
+      preLoaderRoute: typeof MarketingGestaoSocialRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ia-automacao/ia-whatsapp': {
@@ -884,6 +944,9 @@ const rootRouteChildren: RootRouteChildren = {
   IaAutomacaoAutomacaoN8nRoute: IaAutomacaoAutomacaoN8nRoute,
   IaAutomacaoChatbotsIaRoute: IaAutomacaoChatbotsIaRoute,
   IaAutomacaoIaWhatsappRoute: IaAutomacaoIaWhatsappRoute,
+  MarketingGestaoSocialRoute: MarketingGestaoSocialRoute,
+  MarketingSeoPremiumRoute: MarketingSeoPremiumRoute,
+  MarketingTrafegoPagoRoute: MarketingTrafegoPagoRoute,
   VpsCloudCloudPrivadaRoute: VpsCloudCloudPrivadaRoute,
   VpsCloudServidorDedicadoRoute: VpsCloudServidorDedicadoRoute,
   VpsCloudVpsNvmeRoute: VpsCloudVpsNvmeRoute,
