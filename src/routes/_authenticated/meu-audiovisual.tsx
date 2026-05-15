@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Video, Film, Camera, Mic, Scissors, Tv } from "lucide-react";
 import { CategoryBanner, FeatureCard } from "@/components/dashboard/CategoryBanner";
-export const Route = createFileRoute("/_authenticated/audiovisual")({
+export const Route = createFileRoute("/_authenticated/meu-audiovisual")({
   component: () => (
     <div className="max-w-6xl mx-auto">
       <CategoryBanner

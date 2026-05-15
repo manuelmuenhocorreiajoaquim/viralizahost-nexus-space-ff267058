@@ -13,7 +13,10 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as DesignRouteImport } from './routes/design'
+import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as AudiovisualRouteImport } from './routes/audiovisual'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VpsCloudVpsNvmeRouteImport } from './routes/vps-cloud.vps-nvme'
@@ -36,17 +39,17 @@ import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedSitesRouteImport } from './routes/_authenticated/sites'
 import { Route as AuthenticatedSecurityRouteImport } from './routes/_authenticated/security'
 import { Route as AuthenticatedReferralRouteImport } from './routes/_authenticated/referral'
+import { Route as AuthenticatedMeuDesignRouteImport } from './routes/_authenticated/meu-design'
+import { Route as AuthenticatedMeuAudiovisualRouteImport } from './routes/_authenticated/meu-audiovisual'
 import { Route as AuthenticatedMarketingRouteImport } from './routes/_authenticated/marketing'
 import { Route as AuthenticatedLinkbioRouteImport } from './routes/_authenticated/linkbio'
 import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticated/invoices'
 import { Route as AuthenticatedHostingRouteImport } from './routes/_authenticated/hosting'
 import { Route as AuthenticatedEmailsRouteImport } from './routes/_authenticated/emails'
 import { Route as AuthenticatedDomainsRouteImport } from './routes/_authenticated/domains'
-import { Route as AuthenticatedDesignRouteImport } from './routes/_authenticated/design'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCoursesRouteImport } from './routes/_authenticated/courses'
 import { Route as AuthenticatedChangePasswordRouteImport } from './routes/_authenticated/change-password'
-import { Route as AuthenticatedAudiovisualRouteImport } from './routes/_authenticated/audiovisual'
 import { Route as AuthenticatedAiRouteImport } from './routes/_authenticated/ai'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminServersRouteImport } from './routes/_authenticated/admin/servers'
@@ -73,9 +76,24 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DesignRoute = DesignRouteImport.update({
+  id: '/design',
+  path: '/design',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactoRoute = ContactoRouteImport.update({
+  id: '/contacto',
+  path: '/contacto',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CheckoutRoute = CheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AudiovisualRoute = AudiovisualRouteImport.update({
+  id: '/audiovisual',
+  path: '/audiovisual',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
@@ -189,6 +207,17 @@ const AuthenticatedReferralRoute = AuthenticatedReferralRouteImport.update({
   path: '/referral',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedMeuDesignRoute = AuthenticatedMeuDesignRouteImport.update({
+  id: '/meu-design',
+  path: '/meu-design',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedMeuAudiovisualRoute =
+  AuthenticatedMeuAudiovisualRouteImport.update({
+    id: '/meu-audiovisual',
+    path: '/meu-audiovisual',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMarketingRoute = AuthenticatedMarketingRouteImport.update({
   id: '/marketing',
   path: '/marketing',
@@ -219,11 +248,6 @@ const AuthenticatedDomainsRoute = AuthenticatedDomainsRouteImport.update({
   path: '/domains',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedDesignRoute = AuthenticatedDesignRouteImport.update({
-  id: '/design',
-  path: '/design',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -238,12 +262,6 @@ const AuthenticatedChangePasswordRoute =
   AuthenticatedChangePasswordRouteImport.update({
     id: '/change-password',
     path: '/change-password',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedAudiovisualRoute =
-  AuthenticatedAudiovisualRouteImport.update({
-    id: '/audiovisual',
-    path: '/audiovisual',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedAiRoute = AuthenticatedAiRouteImport.update({
@@ -277,24 +295,27 @@ const ApiPublicPaymentsMercadopagoWebhookRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/audiovisual': typeof AudiovisualRoute
   '/checkout': typeof CheckoutRoute
+  '/contacto': typeof ContactoRoute
+  '/design': typeof DesignRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/account': typeof AuthenticatedAccountRoute
   '/ai': typeof AuthenticatedAiRoute
-  '/audiovisual': typeof AuthenticatedAudiovisualRoute
   '/change-password': typeof AuthenticatedChangePasswordRoute
   '/courses': typeof AuthenticatedCoursesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/design': typeof AuthenticatedDesignRoute
   '/domains': typeof AuthenticatedDomainsRoute
   '/emails': typeof AuthenticatedEmailsRoute
   '/hosting': typeof AuthenticatedHostingRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/linkbio': typeof AuthenticatedLinkbioRoute
   '/marketing': typeof AuthenticatedMarketingRoute
+  '/meu-audiovisual': typeof AuthenticatedMeuAudiovisualRoute
+  '/meu-design': typeof AuthenticatedMeuDesignRoute
   '/referral': typeof AuthenticatedReferralRoute
   '/security': typeof AuthenticatedSecurityRoute
   '/sites': typeof AuthenticatedSitesRoute
@@ -321,24 +342,27 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/audiovisual': typeof AudiovisualRoute
   '/checkout': typeof CheckoutRoute
+  '/contacto': typeof ContactoRoute
+  '/design': typeof DesignRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/account': typeof AuthenticatedAccountRoute
   '/ai': typeof AuthenticatedAiRoute
-  '/audiovisual': typeof AuthenticatedAudiovisualRoute
   '/change-password': typeof AuthenticatedChangePasswordRoute
   '/courses': typeof AuthenticatedCoursesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/design': typeof AuthenticatedDesignRoute
   '/domains': typeof AuthenticatedDomainsRoute
   '/emails': typeof AuthenticatedEmailsRoute
   '/hosting': typeof AuthenticatedHostingRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/linkbio': typeof AuthenticatedLinkbioRoute
   '/marketing': typeof AuthenticatedMarketingRoute
+  '/meu-audiovisual': typeof AuthenticatedMeuAudiovisualRoute
+  '/meu-design': typeof AuthenticatedMeuDesignRoute
   '/referral': typeof AuthenticatedReferralRoute
   '/security': typeof AuthenticatedSecurityRoute
   '/sites': typeof AuthenticatedSitesRoute
@@ -367,24 +391,27 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/audiovisual': typeof AudiovisualRoute
   '/checkout': typeof CheckoutRoute
+  '/contacto': typeof ContactoRoute
+  '/design': typeof DesignRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/ai': typeof AuthenticatedAiRoute
-  '/_authenticated/audiovisual': typeof AuthenticatedAudiovisualRoute
   '/_authenticated/change-password': typeof AuthenticatedChangePasswordRoute
   '/_authenticated/courses': typeof AuthenticatedCoursesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/_authenticated/design': typeof AuthenticatedDesignRoute
   '/_authenticated/domains': typeof AuthenticatedDomainsRoute
   '/_authenticated/emails': typeof AuthenticatedEmailsRoute
   '/_authenticated/hosting': typeof AuthenticatedHostingRoute
   '/_authenticated/invoices': typeof AuthenticatedInvoicesRoute
   '/_authenticated/linkbio': typeof AuthenticatedLinkbioRoute
   '/_authenticated/marketing': typeof AuthenticatedMarketingRoute
+  '/_authenticated/meu-audiovisual': typeof AuthenticatedMeuAudiovisualRoute
+  '/_authenticated/meu-design': typeof AuthenticatedMeuDesignRoute
   '/_authenticated/referral': typeof AuthenticatedReferralRoute
   '/_authenticated/security': typeof AuthenticatedSecurityRoute
   '/_authenticated/sites': typeof AuthenticatedSitesRoute
@@ -413,24 +440,27 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/audiovisual'
     | '/checkout'
+    | '/contacto'
+    | '/design'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
     | '/signup'
     | '/account'
     | '/ai'
-    | '/audiovisual'
     | '/change-password'
     | '/courses'
     | '/dashboard'
-    | '/design'
     | '/domains'
     | '/emails'
     | '/hosting'
     | '/invoices'
     | '/linkbio'
     | '/marketing'
+    | '/meu-audiovisual'
+    | '/meu-design'
     | '/referral'
     | '/security'
     | '/sites'
@@ -457,24 +487,27 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/audiovisual'
     | '/checkout'
+    | '/contacto'
+    | '/design'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
     | '/signup'
     | '/account'
     | '/ai'
-    | '/audiovisual'
     | '/change-password'
     | '/courses'
     | '/dashboard'
-    | '/design'
     | '/domains'
     | '/emails'
     | '/hosting'
     | '/invoices'
     | '/linkbio'
     | '/marketing'
+    | '/meu-audiovisual'
+    | '/meu-design'
     | '/referral'
     | '/security'
     | '/sites'
@@ -502,24 +535,27 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/audiovisual'
     | '/checkout'
+    | '/contacto'
+    | '/design'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
     | '/signup'
     | '/_authenticated/account'
     | '/_authenticated/ai'
-    | '/_authenticated/audiovisual'
     | '/_authenticated/change-password'
     | '/_authenticated/courses'
     | '/_authenticated/dashboard'
-    | '/_authenticated/design'
     | '/_authenticated/domains'
     | '/_authenticated/emails'
     | '/_authenticated/hosting'
     | '/_authenticated/invoices'
     | '/_authenticated/linkbio'
     | '/_authenticated/marketing'
+    | '/_authenticated/meu-audiovisual'
+    | '/_authenticated/meu-design'
     | '/_authenticated/referral'
     | '/_authenticated/security'
     | '/_authenticated/sites'
@@ -548,7 +584,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  AudiovisualRoute: typeof AudiovisualRoute
   CheckoutRoute: typeof CheckoutRoute
+  ContactoRoute: typeof ContactoRoute
+  DesignRoute: typeof DesignRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -602,11 +641,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/design': {
+      id: '/design'
+      path: '/design'
+      fullPath: '/design'
+      preLoaderRoute: typeof DesignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contacto': {
+      id: '/contacto'
+      path: '/contacto'
+      fullPath: '/contacto'
+      preLoaderRoute: typeof ContactoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/checkout': {
       id: '/checkout'
       path: '/checkout'
       fullPath: '/checkout'
       preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audiovisual': {
+      id: '/audiovisual'
+      path: '/audiovisual'
+      fullPath: '/audiovisual'
+      preLoaderRoute: typeof AudiovisualRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -763,6 +823,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReferralRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/meu-design': {
+      id: '/_authenticated/meu-design'
+      path: '/meu-design'
+      fullPath: '/meu-design'
+      preLoaderRoute: typeof AuthenticatedMeuDesignRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/meu-audiovisual': {
+      id: '/_authenticated/meu-audiovisual'
+      path: '/meu-audiovisual'
+      fullPath: '/meu-audiovisual'
+      preLoaderRoute: typeof AuthenticatedMeuAudiovisualRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/marketing': {
       id: '/_authenticated/marketing'
       path: '/marketing'
@@ -805,13 +879,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDomainsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/design': {
-      id: '/_authenticated/design'
-      path: '/design'
-      fullPath: '/design'
-      preLoaderRoute: typeof AuthenticatedDesignRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -831,13 +898,6 @@ declare module '@tanstack/react-router' {
       path: '/change-password'
       fullPath: '/change-password'
       preLoaderRoute: typeof AuthenticatedChangePasswordRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/audiovisual': {
-      id: '/_authenticated/audiovisual'
-      path: '/audiovisual'
-      fullPath: '/audiovisual'
-      preLoaderRoute: typeof AuthenticatedAudiovisualRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/ai': {
@@ -881,17 +941,17 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
   AuthenticatedAiRoute: typeof AuthenticatedAiRoute
-  AuthenticatedAudiovisualRoute: typeof AuthenticatedAudiovisualRoute
   AuthenticatedChangePasswordRoute: typeof AuthenticatedChangePasswordRoute
   AuthenticatedCoursesRoute: typeof AuthenticatedCoursesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedDesignRoute: typeof AuthenticatedDesignRoute
   AuthenticatedDomainsRoute: typeof AuthenticatedDomainsRoute
   AuthenticatedEmailsRoute: typeof AuthenticatedEmailsRoute
   AuthenticatedHostingRoute: typeof AuthenticatedHostingRoute
   AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRoute
   AuthenticatedLinkbioRoute: typeof AuthenticatedLinkbioRoute
   AuthenticatedMarketingRoute: typeof AuthenticatedMarketingRoute
+  AuthenticatedMeuAudiovisualRoute: typeof AuthenticatedMeuAudiovisualRoute
+  AuthenticatedMeuDesignRoute: typeof AuthenticatedMeuDesignRoute
   AuthenticatedReferralRoute: typeof AuthenticatedReferralRoute
   AuthenticatedSecurityRoute: typeof AuthenticatedSecurityRoute
   AuthenticatedSitesRoute: typeof AuthenticatedSitesRoute
@@ -903,17 +963,17 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
   AuthenticatedAiRoute: AuthenticatedAiRoute,
-  AuthenticatedAudiovisualRoute: AuthenticatedAudiovisualRoute,
   AuthenticatedChangePasswordRoute: AuthenticatedChangePasswordRoute,
   AuthenticatedCoursesRoute: AuthenticatedCoursesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedDesignRoute: AuthenticatedDesignRoute,
   AuthenticatedDomainsRoute: AuthenticatedDomainsRoute,
   AuthenticatedEmailsRoute: AuthenticatedEmailsRoute,
   AuthenticatedHostingRoute: AuthenticatedHostingRoute,
   AuthenticatedInvoicesRoute: AuthenticatedInvoicesRoute,
   AuthenticatedLinkbioRoute: AuthenticatedLinkbioRoute,
   AuthenticatedMarketingRoute: AuthenticatedMarketingRoute,
+  AuthenticatedMeuAudiovisualRoute: AuthenticatedMeuAudiovisualRoute,
+  AuthenticatedMeuDesignRoute: AuthenticatedMeuDesignRoute,
   AuthenticatedReferralRoute: AuthenticatedReferralRoute,
   AuthenticatedSecurityRoute: AuthenticatedSecurityRoute,
   AuthenticatedSitesRoute: AuthenticatedSitesRoute,
@@ -929,7 +989,10 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  AudiovisualRoute: AudiovisualRoute,
   CheckoutRoute: CheckoutRoute,
+  ContactoRoute: ContactoRoute,
+  DesignRoute: DesignRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
@@ -956,3 +1019,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

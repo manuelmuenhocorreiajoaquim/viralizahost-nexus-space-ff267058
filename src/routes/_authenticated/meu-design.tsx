@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Palette, Image, Layers, Brush, Sparkles, Type } from "lucide-react";
 import { CategoryBanner, FeatureCard } from "@/components/dashboard/CategoryBanner";
-export const Route = createFileRoute("/_authenticated/design")({
+export const Route = createFileRoute("/_authenticated/meu-design")({
   component: () => (
     <div className="max-w-6xl mx-auto">
       <CategoryBanner
