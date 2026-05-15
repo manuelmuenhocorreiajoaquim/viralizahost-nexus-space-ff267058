@@ -25,10 +25,10 @@ const menu: MenuEntry[] = [
     { icon: Cloud, title: "Cloud Privada", desc: "Infra dedicada", to: "/vps-cloud/cloud-privada" },
     { icon: Server, title: "Servidor Dedicado", desc: "Bare metal", to: "/vps-cloud/servidor-dedicado" },
   ]},
-  { label: "IA & Automação", icon: Bot, items: [
-    { icon: Bot, title: "Chatbots IA", desc: "Atendimento 24/7" },
-    { icon: Cpu, title: "Automação n8n", desc: "Workflows ilimitados" },
-    { icon: MessageCircle, title: "IA WhatsApp", desc: "Vendas automáticas" },
+  { label: "IA & Automação", icon: Bot, to: "/ia-automacao/chatbots-ia", items: [
+    { icon: Bot, title: "Chatbots IA", desc: "Atendimento 24/7", to: "/ia-automacao/chatbots-ia" },
+    { icon: Cpu, title: "Automação n8n", desc: "Workflows ilimitados", to: "/ia-automacao/automacao-n8n" },
+    { icon: MessageCircle, title: "IA WhatsApp", desc: "Vendas automáticas", to: "/ia-automacao/ia-whatsapp" },
   ]},
   { label: "Marketing", icon: Megaphone, items: [
     { icon: BarChart3, title: "Tráfego Pago", desc: "Meta & Google Ads" },
