@@ -56,6 +56,10 @@ export default function AudiovisualPage() {
           </div>
         </div>
       </main>
+      <AudiovisualShowcase />
+      <CreativeProcess />
+      <AudiovisualStats />
+      <EquipmentGallery />
       <CTAFooter />
     </div>
   );
