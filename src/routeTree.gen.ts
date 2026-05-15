@@ -16,6 +16,10 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as HospedagemWebRouteImport } from './routes/hospedagem.web'
+import { Route as HospedagemRevendaWhmRouteImport } from './routes/hospedagem.revenda-whm'
+import { Route as HospedagemEmailCorporativoRouteImport } from './routes/hospedagem.email-corporativo'
+import { Route as HospedagemCloudRouteImport } from './routes/hospedagem.cloud'
 import { Route as DominiosTransferirRouteImport } from './routes/dominios.transferir'
 import { Route as DominiosRegistrarRouteImport } from './routes/dominios.registrar'
 import { Route as DominiosProtecaoWhoisRouteImport } from './routes/dominios.protecao-whois'
@@ -72,6 +76,27 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HospedagemWebRoute = HospedagemWebRouteImport.update({
+  id: '/hospedagem/web',
+  path: '/hospedagem/web',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HospedagemRevendaWhmRoute = HospedagemRevendaWhmRouteImport.update({
+  id: '/hospedagem/revenda-whm',
+  path: '/hospedagem/revenda-whm',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HospedagemEmailCorporativoRoute =
+  HospedagemEmailCorporativoRouteImport.update({
+    id: '/hospedagem/email-corporativo',
+    path: '/hospedagem/email-corporativo',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const HospedagemCloudRoute = HospedagemCloudRouteImport.update({
+  id: '/hospedagem/cloud',
+  path: '/hospedagem/cloud',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DominiosTransferirRoute = DominiosTransferirRouteImport.update({
@@ -222,6 +247,10 @@ export interface FileRoutesByFullPath {
   '/dominios/protecao-whois': typeof DominiosProtecaoWhoisRoute
   '/dominios/registrar': typeof DominiosRegistrarRoute
   '/dominios/transferir': typeof DominiosTransferirRoute
+  '/hospedagem/cloud': typeof HospedagemCloudRoute
+  '/hospedagem/email-corporativo': typeof HospedagemEmailCorporativoRoute
+  '/hospedagem/revenda-whm': typeof HospedagemRevendaWhmRoute
+  '/hospedagem/web': typeof HospedagemWebRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/servers': typeof AuthenticatedAdminServersRoute
   '/api/public/payments/mercadopago/webhook': typeof ApiPublicPaymentsMercadopagoWebhookRoute
@@ -253,6 +282,10 @@ export interface FileRoutesByTo {
   '/dominios/protecao-whois': typeof DominiosProtecaoWhoisRoute
   '/dominios/registrar': typeof DominiosRegistrarRoute
   '/dominios/transferir': typeof DominiosTransferirRoute
+  '/hospedagem/cloud': typeof HospedagemCloudRoute
+  '/hospedagem/email-corporativo': typeof HospedagemEmailCorporativoRoute
+  '/hospedagem/revenda-whm': typeof HospedagemRevendaWhmRoute
+  '/hospedagem/web': typeof HospedagemWebRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/servers': typeof AuthenticatedAdminServersRoute
   '/api/public/payments/mercadopago/webhook': typeof ApiPublicPaymentsMercadopagoWebhookRoute
@@ -286,6 +319,10 @@ export interface FileRoutesById {
   '/dominios/protecao-whois': typeof DominiosProtecaoWhoisRoute
   '/dominios/registrar': typeof DominiosRegistrarRoute
   '/dominios/transferir': typeof DominiosTransferirRoute
+  '/hospedagem/cloud': typeof HospedagemCloudRoute
+  '/hospedagem/email-corporativo': typeof HospedagemEmailCorporativoRoute
+  '/hospedagem/revenda-whm': typeof HospedagemRevendaWhmRoute
+  '/hospedagem/web': typeof HospedagemWebRoute
   '/_authenticated/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/_authenticated/admin/servers': typeof AuthenticatedAdminServersRoute
   '/api/public/payments/mercadopago/webhook': typeof ApiPublicPaymentsMercadopagoWebhookRoute
@@ -319,6 +356,10 @@ export interface FileRouteTypes {
     | '/dominios/protecao-whois'
     | '/dominios/registrar'
     | '/dominios/transferir'
+    | '/hospedagem/cloud'
+    | '/hospedagem/email-corporativo'
+    | '/hospedagem/revenda-whm'
+    | '/hospedagem/web'
     | '/admin/payments'
     | '/admin/servers'
     | '/api/public/payments/mercadopago/webhook'
@@ -350,6 +391,10 @@ export interface FileRouteTypes {
     | '/dominios/protecao-whois'
     | '/dominios/registrar'
     | '/dominios/transferir'
+    | '/hospedagem/cloud'
+    | '/hospedagem/email-corporativo'
+    | '/hospedagem/revenda-whm'
+    | '/hospedagem/web'
     | '/admin/payments'
     | '/admin/servers'
     | '/api/public/payments/mercadopago/webhook'
@@ -382,6 +427,10 @@ export interface FileRouteTypes {
     | '/dominios/protecao-whois'
     | '/dominios/registrar'
     | '/dominios/transferir'
+    | '/hospedagem/cloud'
+    | '/hospedagem/email-corporativo'
+    | '/hospedagem/revenda-whm'
+    | '/hospedagem/web'
     | '/_authenticated/admin/payments'
     | '/_authenticated/admin/servers'
     | '/api/public/payments/mercadopago/webhook'
@@ -398,6 +447,10 @@ export interface RootRouteChildren {
   DominiosProtecaoWhoisRoute: typeof DominiosProtecaoWhoisRoute
   DominiosRegistrarRoute: typeof DominiosRegistrarRoute
   DominiosTransferirRoute: typeof DominiosTransferirRoute
+  HospedagemCloudRoute: typeof HospedagemCloudRoute
+  HospedagemEmailCorporativoRoute: typeof HospedagemEmailCorporativoRoute
+  HospedagemRevendaWhmRoute: typeof HospedagemRevendaWhmRoute
+  HospedagemWebRoute: typeof HospedagemWebRoute
   ApiPublicPaymentsMercadopagoWebhookRoute: typeof ApiPublicPaymentsMercadopagoWebhookRoute
 }
 
@@ -450,6 +503,34 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hospedagem/web': {
+      id: '/hospedagem/web'
+      path: '/hospedagem/web'
+      fullPath: '/hospedagem/web'
+      preLoaderRoute: typeof HospedagemWebRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hospedagem/revenda-whm': {
+      id: '/hospedagem/revenda-whm'
+      path: '/hospedagem/revenda-whm'
+      fullPath: '/hospedagem/revenda-whm'
+      preLoaderRoute: typeof HospedagemRevendaWhmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hospedagem/email-corporativo': {
+      id: '/hospedagem/email-corporativo'
+      path: '/hospedagem/email-corporativo'
+      fullPath: '/hospedagem/email-corporativo'
+      preLoaderRoute: typeof HospedagemEmailCorporativoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hospedagem/cloud': {
+      id: '/hospedagem/cloud'
+      path: '/hospedagem/cloud'
+      fullPath: '/hospedagem/cloud'
+      preLoaderRoute: typeof HospedagemCloudRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dominios/transferir': {
@@ -675,9 +756,23 @@ const rootRouteChildren: RootRouteChildren = {
   DominiosProtecaoWhoisRoute: DominiosProtecaoWhoisRoute,
   DominiosRegistrarRoute: DominiosRegistrarRoute,
   DominiosTransferirRoute: DominiosTransferirRoute,
+  HospedagemCloudRoute: HospedagemCloudRoute,
+  HospedagemEmailCorporativoRoute: HospedagemEmailCorporativoRoute,
+  HospedagemRevendaWhmRoute: HospedagemRevendaWhmRoute,
+  HospedagemWebRoute: HospedagemWebRoute,
   ApiPublicPaymentsMercadopagoWebhookRoute:
     ApiPublicPaymentsMercadopagoWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
