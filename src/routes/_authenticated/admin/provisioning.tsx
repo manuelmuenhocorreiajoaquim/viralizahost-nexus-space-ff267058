@@ -173,11 +173,12 @@ function Page() {
                   <td className="px-3 py-2 text-right whitespace-nowrap">
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant="default"
                       disabled={busyId === j.id}
                       onClick={() => { setBusyId(j.id); retry.mutate(j.id); }}
                     >
-                      <RefreshCw className="h-3.5 w-3.5 mr-1" /> Retry
+                      {j.attempts > 0 ? <RefreshCw className="h-3.5 w-3.5 mr-1" /> : <Play className="h-3.5 w-3.5 mr-1" />}
+                      {j.attempts > 0 ? "Reexecutar" : "Executar"}
                     </Button>
                     {j.status !== "provisioned" && (
                       <Button
