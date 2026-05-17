@@ -100,13 +100,13 @@ function Tier({ t, i }: { t: typeof tiers[number]; i: number }) {
         <span className="text-4xl font-bold text-gradient-primary">{displayPrice}</span>
         <span className="text-sm text-muted-foreground">/mês</span>
       </div>
-      <Link
-        to="/checkout"
-        search={{ step: "cycle" as const, product: t.productId }}
+      <button
+        type="button"
+        onClick={() => startCheckout(t.productId, "monthly")}
         className={`group flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl font-semibold transition ${t.popular ? "bg-gradient-primary text-primary-foreground shadow-glow hover:scale-[1.02]" : "border border-border hover:bg-primary/10 hover:border-primary/40"}`}
       >
         <Check className="h-4 w-4" /> Contratar
-      </Link>
+      </button>
     </motion.div>
   );
 }
