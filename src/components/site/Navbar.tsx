@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { Menu, X, Globe, Server, Cloud, Cpu, Megaphone, Palette, Film, Phone, ArrowRight, MessageCircle, ChevronDown, Mail, Shield, Zap, Bot, BarChart3, Brain, Lock, ShieldCheck, Award, Building2 } from "lucide-react";
 import logo from "@/assets/viralizahost-logo.png";
 import { useCurrency, type Currency } from "@/lib/currency";
+import { clearCheckoutState } from "@/lib/cart";
 
 type MenuItem = { icon: React.ComponentType<{ className?: string }>; title: string; desc: string; to?: string };
 type MenuEntry = { label: string; icon: React.ComponentType<{ className?: string }>; to?: string; items?: MenuItem[] };
