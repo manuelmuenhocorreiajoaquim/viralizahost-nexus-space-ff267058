@@ -105,6 +105,16 @@ function Page() {
     onError: (e: any) => toast.error(e?.message ?? "Erro a remover."),
   });
 
+  const test = useMutation({
+    mutationFn: () => testFn(),
+    onSuccess: (r: any) => {
+      if (r?.ok) toast.success(r.message ?? "API Hostinger conectada.");
+      else toast.error(r?.message ?? "API Hostinger indisponível.");
+      qc.invalidateQueries({ queryKey: ["admin-hostinger-catalog"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao testar API."),
+  });
+
   if (loading || roleLoading) {
     return <div className="p-8 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" /></div>;
   }
