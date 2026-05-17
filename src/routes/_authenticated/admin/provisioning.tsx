@@ -1,12 +1,13 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { Loader2, RefreshCw, CheckCircle2, AlertTriangle, Clock, FileSearch, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Loader2, RefreshCw, CheckCircle2, AlertTriangle, Clock, FileSearch, X, Play } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/use-auth";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/dashboard/ui";
+import { supabase } from "@/integrations/supabase/client";
 import {
   adminListProvisioningJobs,
   adminRetryProvisioning,
@@ -59,13 +60,43 @@ function Page() {
     queryFn: () => logsFn({ data: { jobId: logsFor! } }),
   });
 
+  // Realtime: refresh the list whenever provisioning_jobs changes.
+  useEffect(() => {
+    if (!user || !isAdmin) return;
+    const channel = supabase
+      .channel("admin-provisioning-jobs")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "provisioning_jobs" },
+        (payload) => {
+          qc.invalidateQueries({ queryKey: ["admin-provisioning"] });
+          if (payload.eventType === "INSERT") {
+            toast.info("Novo provisionamento na fila");
+          } else if (payload.eventType === "UPDATE") {
+            const status = (payload.new as any)?.status;
+            if (status === "provisioned") toast.success("Provisionamento concluído");
+            else if (status === "failed") toast.error("Erro ao provisionar");
+            else if (status === "processing") toast.message("Provisionamento iniciado");
+          }
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, isAdmin, qc]);
+
   const retry = useMutation({
-    mutationFn: (jobId: string) => retryFn({ data: { jobId } }),
-    onSuccess: () => {
-      toast.success("Reprocessado.");
+    mutationFn: (jobId: string) => {
+      toast.message("Provisionamento iniciado");
+      return retryFn({ data: { jobId } });
+    },
+    onSuccess: (res: any) => {
+      if (res?.ok) toast.success("Provisionamento concluído");
+      else if (res?.error) toast.error(`Erro: ${res.error}`);
       qc.invalidateQueries({ queryKey: ["admin-provisioning"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Falha."),
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao provisionar"),
     onSettled: () => setBusyId(null),
   });
 
@@ -146,11 +177,12 @@ function Page() {
                   <td className="px-3 py-2 text-right whitespace-nowrap">
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant="default"
                       disabled={busyId === j.id}
                       onClick={() => { setBusyId(j.id); retry.mutate(j.id); }}
                     >
-                      <RefreshCw className="h-3.5 w-3.5 mr-1" /> Retry
+                      {j.attempts > 0 ? <RefreshCw className="h-3.5 w-3.5 mr-1" /> : <Play className="h-3.5 w-3.5 mr-1" />}
+                      {j.attempts > 0 ? "Reexecutar" : "Executar"}
                     </Button>
                     {j.status !== "provisioned" && (
                       <Button

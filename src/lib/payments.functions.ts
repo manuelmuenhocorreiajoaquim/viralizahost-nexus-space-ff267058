@@ -9,6 +9,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getProvider } from "@/integrations/payments/mercadopago/client.server";
 import { activateOrderAfterPayment } from "@/lib/payments-activation.server";
+import { ensureProvisioningJobs } from "@/lib/provisioning.server";
 
 const OrderItemSchema = z.object({
   id: z.string().min(1),
@@ -314,6 +315,15 @@ export const createPixPayment = createServerFn({ method: "POST" })
       .update({ payment_status: "pending", payment_provider: "mercadopago", payment_method: "pix" })
       .eq("id", order.id);
 
+    // Create pending provisioning_jobs immediately so admins can see them
+    // in /admin/provisioning before the payment is approved. Idempotent.
+    try {
+      const enq = await ensureProvisioningJobs(order.id);
+      console.log("[pix] ensured provisioning jobs", enq);
+    } catch (e) {
+      console.error("[pix] ensureProvisioningJobs failed (non-fatal)", e);
+    }
+
     return {
       success: true,
       paymentId: payment.id,
@@ -495,6 +505,12 @@ export const createCardPayment = createServerFn({ method: "POST" })
         payment_method: "card",
       })
       .eq("id", order.id);
+
+    try {
+      await ensureProvisioningJobs(order.id);
+    } catch (e) {
+      console.error("[card] ensureProvisioningJobs failed (non-fatal)", e);
+    }
 
     if (result.status === "approved") {
       await activateOrderAfterPayment(order.id);
