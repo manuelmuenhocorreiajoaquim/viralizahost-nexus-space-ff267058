@@ -243,6 +243,7 @@ function Page() {
                   <th className="px-3 py-2 font-mono">item_id (real)</th>
                   <th className="px-3 py-2">Preço Hostinger</th>
                   <th className="px-3 py-2">Período</th>
+                  <th className="px-3 py-2">Recursos</th>
                   <th className="px-3 py-2 text-right">Mapear</th>
                 </tr>
               </thead>
@@ -256,6 +257,9 @@ function Page() {
                       <td className="px-3 py-2 text-xs font-mono">{it.item_id}</td>
                       <td className="px-3 py-2">{it.price != null ? `${it.currency ?? ""} ${it.price.toFixed(2)}` : "—"}</td>
                       <td className="px-3 py-2 text-xs">{it.period ?? ""} {it.period_unit ?? ""}</td>
+                      <td className="px-3 py-2 text-xs text-slate-500 max-w-xs truncate" title={JSON.stringify(it.features ?? {})}>
+                        {summarizeFeatures(it.features)}
+                      </td>
                       <td className="px-3 py-2 text-right">
                         <Button
                           size="sm"
@@ -295,7 +299,7 @@ function Page() {
               <tr>
                 <th className="px-3 py-2">Interno</th>
                 <th className="px-3 py-2">Tipo</th>
-                <th className="px-3 py-2">Hostinger price_id</th>
+                <th className="px-3 py-2">Hostinger item_id real</th>
                 <th className="px-3 py-2">Auto</th>
                 <th className="px-3 py-2">Ativo</th>
                 <th className="px-3 py-2 text-right">Ações</th>
@@ -371,7 +375,7 @@ function Page() {
             </Field>
             <Field label="Hostinger price_id (do catálogo)">
               <input className="w-full border rounded px-3 py-2 text-sm font-mono"
-                placeholder="ex: vps-kvm2-12-eu"
+                placeholder="ex: hostingercombr-vps-…-br1-1m"
                 value={form.provider_price_id}
                 onChange={(e) => setForm({ ...form, provider_price_id: e.target.value })} />
             </Field>
