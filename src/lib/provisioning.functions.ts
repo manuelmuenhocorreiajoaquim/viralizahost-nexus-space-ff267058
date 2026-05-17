@@ -9,6 +9,7 @@ import { hostinger } from "@/integrations/hostinger/client.server";
 import {
   enqueueHostingerProvisioning,
   processProvisioningJob,
+  fetchHostingerVpsCatalog,
 } from "@/lib/provisioning.server";
 
 async function assertAdmin(userId: string) {
