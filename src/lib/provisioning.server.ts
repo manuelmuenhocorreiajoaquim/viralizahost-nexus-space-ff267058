@@ -363,6 +363,15 @@ async function pickUbuntuTemplateId(jobId: string): Promise<number | string | nu
   return chosen?.id ?? null;
 }
 
+async function validateTemplateId(templateId: number | string): Promise<{ ok: boolean; available: string[] }> {
+  const res = await hostinger.listTemplates();
+  const list: any[] = Array.isArray(res.data)
+    ? res.data
+    : (res.data?.data ?? res.data?.templates ?? []);
+  const ids = list.map((t) => String(t?.id)).filter(Boolean);
+  return { ok: ids.includes(String(templateId)), available: ids };
+}
+
 async function pickDataCenterId(jobId: string): Promise<number | string | null> {
   const res = await hostinger.listDataCenters();
   const list: any[] = Array.isArray(res.data)
@@ -377,6 +386,15 @@ async function pickDataCenterId(jobId: string): Promise<number | string | null> 
   const chosen = br ?? list[0];
   console.log("[provisioning] picked datacenter", { jobId, id: chosen?.id, name: chosen?.name ?? chosen?.location });
   return chosen?.id ?? null;
+}
+
+async function validateDataCenterId(dataCenterId: number | string): Promise<{ ok: boolean; available: string[] }> {
+  const res = await hostinger.listDataCenters();
+  const list: any[] = Array.isArray(res.data)
+    ? res.data
+    : (res.data?.data ?? res.data?.dataCenters ?? res.data?.data_centers ?? []);
+  const ids = list.map((d) => String(d?.id)).filter(Boolean);
+  return { ok: ids.includes(String(dataCenterId)), available: ids };
 }
 
 export async function processProvisioningJob(jobId: string) {
