@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -30,7 +31,7 @@ import {
 import { z } from "zod";
 import { toast } from "sonner";
 import logo from "@/assets/viraliza-checkout-logo.png";
-import { useCart, lineMonthly, lineTotal, lineUnit, CATALOG, isAnnualProduct } from "@/lib/cart";
+import { useCart, lineMonthly, lineTotal, lineUnit, CATALOG, isAnnualProduct, normalizeProductId, clearCheckoutState } from "@/lib/cart";
 import {
   CYCLES,
   findCycle,
@@ -125,6 +126,24 @@ function brl(n: number, currency: "BRL" | "AKZ") {
 
 const CHECKOUT_CUSTOMER_KEY = "vh.checkout.customer.v1";
 
+function useHostingerItemIds(productIds: string[]) {
+  const ids = useMemo(() => Array.from(new Set(productIds.map(normalizeProductId))).sort(), [productIds.join("|")]);
+  return useQuery({
+    queryKey: ["hostinger-item-ids", ids.join("|")],
+    enabled: ids.some((id) => id.startsWith("vps-nvme-")),
+    staleTime: 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("provider_products")
+        .select("internal_product_id, provider_price_id")
+        .eq("provider", "hostinger")
+        .eq("active", true)
+        .in("internal_product_id", ids);
+      return Object.fromEntries((data ?? []).map((row: any) => [row.internal_product_id, row.provider_price_id]));
+    },
+  });
+}
+
 function readCheckoutCustomer(): { name?: string; email?: string } {
   try {
     const parsed = JSON.parse(localStorage.getItem(CHECKOUT_CUSTOMER_KEY) ?? "{}");
@@ -155,7 +174,8 @@ function CheckoutPage() {
 
   useEffect(() => {
     if (search.product) {
-      const newProd = findProduct(search.product);
+      const requestedProduct = normalizeProductId(search.product);
+      const newProd = findProduct(requestedProduct);
       if (!newProd) {
         // Invalid product slug → send user to plans page
         navigate({ to: "/vps-cloud/vps-nvme", replace: true });
@@ -164,10 +184,10 @@ function CheckoutPage() {
       // URL product always wins: replace any prior cart contents so we never
       // reuse a previously-selected VPS / plan from cache.
       const onlyThis =
-        cart.items.length === 1 && cart.items[0].productId === search.product;
+        cart.items.length === 1 && normalizeProductId(cart.items[0].productId) === requestedProduct;
       if (!onlyThis) {
         cart.clear();
-        cart.add(search.product);
+        cart.add(requestedProduct);
       }
       // Cycle: explicit URL cycle wins, otherwise monthly for recurring products.
       if (search.cycle) {
