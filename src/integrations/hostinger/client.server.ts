@@ -4,11 +4,13 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const BASE = "https://developers.hostinger.com";
+const DEFAULT_TIMEOUT_MS = 15_000;
 
 type HostingerCallOpts = {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   body?: unknown;
   jobId?: string | null;
+  timeoutMs?: number;
 };
 
 export type HostingerResult<T = any> = {
@@ -18,12 +20,60 @@ export type HostingerResult<T = any> = {
   error?: string;
 };
 
+async function writeHostingerLog(input: {
+  jobId?: string | null;
+  endpoint: string;
+  method: string;
+  status: number;
+  started: number;
+  request?: unknown;
+  response?: unknown;
+  success: boolean;
+  errorMessage?: string | null;
+}) {
+  try {
+    await supabaseAdmin.from("hostinger_logs").insert({
+      job_id: input.jobId ?? null,
+      endpoint: input.endpoint,
+      method: input.method,
+      status_code: input.status || null,
+      duration_ms: Date.now() - input.started,
+      request: input.request ? (input.request as any) : {},
+      response: input.response ? (input.response as any) : {},
+      success: input.success,
+      error_message: input.errorMessage ?? null,
+    });
+  } catch (e) {
+    console.error("[hostinger] failed to insert log", e);
+  }
+}
+
+function getHostingerToken() {
+  const raw = process.env.HOSTINGER_API_TOKEN;
+  return raw?.replace(/^Bearer\s+/i, "").trim() ?? "";
+}
+
 export async function hostingerCall<T = any>(
   path: string,
   opts: HostingerCallOpts = {},
 ): Promise<HostingerResult<T>> {
-  const token = process.env.HOSTINGER_API_TOKEN;
+  const method = opts.method ?? "GET";
+  const started = Date.now();
+  const token = getHostingerToken();
+  console.log("[hostinger] token_exists", Boolean(token));
+
   if (!token) {
+    await writeHostingerLog({
+      jobId: opts.jobId,
+      endpoint: path,
+      method,
+      status: 0,
+      started,
+      request: opts.body,
+      response: { error: "missing_token" },
+      success: false,
+      errorMessage: "HOSTINGER_API_TOKEN is not configured",
+    });
     return {
       ok: false,
       status: 0,
@@ -32,9 +82,8 @@ export async function hostingerCall<T = any>(
     };
   }
 
-  const method = opts.method ?? "GET";
   const url = `${BASE}${path}`;
-  const started = Date.now();
+  console.log("[hostinger] request_started", { method, url });
 
   let status = 0;
   let parsed: any = null;
@@ -48,8 +97,10 @@ export async function hostingerCall<T = any>(
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
         Accept: "application/json",
+        "Cache-Control": "no-store",
       },
       body: opts.body ? JSON.stringify(opts.body) : undefined,
+      signal: AbortSignal.timeout(opts.timeoutMs ?? DEFAULT_TIMEOUT_MS),
     });
     status = res.status;
     const text = await res.text();
@@ -63,31 +114,32 @@ export async function hostingerCall<T = any>(
       errorMessage =
         parsed?.message ?? parsed?.error ?? `Hostinger API ${status}`;
     }
+    console.log("[hostinger] response_status", status);
+    console.log("[hostinger] response_body", parsed);
   } catch (e: any) {
-    errorMessage = e?.message ?? "Network error calling Hostinger API";
+    const timedOut = e?.name === "TimeoutError" || e?.name === "AbortError";
+    errorMessage = timedOut
+      ? "Timeout calling Hostinger API"
+      : e?.message ?? "Network error calling Hostinger API";
+    console.error("[hostinger] fetch_error", { name: e?.name, message: errorMessage });
   }
 
-  // Best-effort audit log — never throw on logging failure.
-  try {
-    await supabaseAdmin.from("hostinger_logs").insert({
-      job_id: opts.jobId ?? null,
-      endpoint: path,
-      method,
-      status_code: status || null,
-      duration_ms: Date.now() - started,
-      request: opts.body ? (opts.body as any) : {},
-      response: parsed ?? {},
-      success,
-      error_message: errorMessage ?? null,
-    });
-  } catch (e) {
-    console.error("[hostinger] failed to insert log", e);
-  }
+  await writeHostingerLog({
+    jobId: opts.jobId,
+    endpoint: path,
+    method,
+    status,
+    started,
+    request: opts.body,
+    response: parsed ?? {},
+    success,
+    errorMessage: errorMessage ?? null,
+  });
 
   return {
     ok: success,
     status,
-    data: success ? (parsed as T) : null,
+    data: parsed as T,
     error: errorMessage,
   };
 }
