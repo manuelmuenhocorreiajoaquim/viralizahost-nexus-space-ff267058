@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
 import { Cpu, HardDrive, Wifi, Check, Zap, ShieldCheck, Clock } from "lucide-react";
-import { Link } from "@tanstack/react-router";
 import { Section, SectionHeader } from "./Section";
 import { usePrice } from "@/lib/currency";
+import { startCheckout } from "@/lib/cart";
 
 const tiers = [
   { name: "VPS NVMe 1", productId: "vps-1", cpu: "1 vCPU", ram: "4 GB", ssd: "50 GB NVMe", bw: "4 TB", price: "59.99", badge: null as string | null },
