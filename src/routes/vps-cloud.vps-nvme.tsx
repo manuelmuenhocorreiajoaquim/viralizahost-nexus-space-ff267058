@@ -19,10 +19,10 @@ export const Route = createFileRoute("/vps-cloud/vps-nvme")({
 });
 
 const tiers = [
-  { name: "VPS NVMe 1", productId: "vps-1", cpu: "1 vCPU", ram: "4 GB", ssd: "50 GB NVMe", bw: "4 TB", price: "59.99" },
-  { name: "VPS NVMe 2", productId: "vps-2", cpu: "2 vCPU", ram: "8 GB", ssd: "100 GB NVMe", bw: "8 TB", price: "87.99", popular: true },
-  { name: "VPS NVMe 3", productId: "vps-3", cpu: "4 vCPU", ram: "16 GB", ssd: "200 GB NVMe", bw: "16 TB", price: "119.99" },
-  { name: "VPS NVMe 4", productId: "vps-4", cpu: "8 vCPU", ram: "32 GB", ssd: "400 GB NVMe", bw: "32 TB", price: "239.99" },
+  { name: "VPS NVMe 1", productId: "vps-nvme-1", cpu: "1 vCPU", ram: "4 GB", ssd: "50 GB NVMe", bw: "4 TB", price: "59.99" },
+  { name: "VPS NVMe 2", productId: "vps-nvme-2", cpu: "2 vCPU", ram: "8 GB", ssd: "100 GB NVMe", bw: "8 TB", price: "87.99", popular: true },
+  { name: "VPS NVMe 3", productId: "vps-nvme-3", cpu: "4 vCPU", ram: "16 GB", ssd: "200 GB NVMe", bw: "16 TB", price: "119.99" },
+  { name: "VPS NVMe 4", productId: "vps-nvme-4", cpu: "8 vCPU", ram: "32 GB", ssd: "400 GB NVMe", bw: "32 TB", price: "239.99" },
 ];
 
 function VPSNvmePage() {
