@@ -201,18 +201,81 @@ export async function enqueueHostingerProvisioning(orderId: string) {
 
 const MAX_ATTEMPTS = 3;
 
-// Map common internal slugs to known Hostinger KVM item_ids as a fallback
-// when provider_products has not been configured.
-const VPS_ITEM_ID_FALLBACK: Record<string, string> = {
-  "vps-nvme-1": "kvm1",
-  "vps-nvme-2": "kvm2",
-  "vps-nvme-3": "kvm4",
-  "vps-nvme-4": "kvm8",
-  "vps-1": "kvm1",
-  "vps-2": "kvm2",
-  "vps-3": "kvm4",
-  "vps-4": "kvm8",
+export type HostingerCatalogPrice = {
+  item_id: string;        // real catalog price id used on POST /api/vps/v1/virtual-machines
+  catalog_id: string;     // parent catalog item id
+  name: string;
+  category: string;
+  price: number | null;
+  currency: string | null;
+  period: number | null;
+  period_unit: string | null;
+  features?: any;
+  raw?: any;
 };
+
+/**
+ * Fetch the live Hostinger billing catalog and flatten every VPS price
+ * (each plan × billing period) into a real `item_id` that can be sent to
+ * POST /api/vps/v1/virtual-machines. NEVER use hard-coded ids.
+ */
+export async function fetchHostingerVpsCatalog(): Promise<HostingerCatalogPrice[]> {
+  const res = await hostinger.listCatalog();
+  if (!res.ok) return [];
+  const raw: any = res.data;
+  const list: any[] = Array.isArray(raw) ? raw : (raw?.data ?? raw?.items ?? []);
+  const out: HostingerCatalogPrice[] = [];
+  for (const item of list) {
+    const category = String(item?.category ?? item?.type ?? "").toLowerCase();
+    const name = String(item?.name ?? item?.title ?? "");
+    if (!category.includes("vps") && !name.toLowerCase().includes("vps") && !name.toLowerCase().includes("kvm")) continue;
+    const prices: any[] = Array.isArray(item?.prices) ? item.prices : [];
+    if (prices.length === 0) {
+      // Some catalog responses put the id at the root level.
+      if (item?.id) {
+        out.push({
+          item_id: String(item.id),
+          catalog_id: String(item.id),
+          name,
+          category,
+          price: typeof item.price === "number" ? item.price : null,
+          currency: item.currency ?? null,
+          period: item.period ?? null,
+          period_unit: item.period_unit ?? null,
+          features: item.features ?? null,
+          raw: item,
+        });
+      }
+      continue;
+    }
+    for (const p of prices) {
+      if (!p?.id) continue;
+      out.push({
+        item_id: String(p.id),
+        catalog_id: String(item.id ?? ""),
+        name: `${name}${p.name ? ` — ${p.name}` : ""}`,
+        category,
+        price: typeof p.first_period_price === "number"
+          ? p.first_period_price / 100
+          : typeof p.price === "number"
+            ? p.price / 100
+            : null,
+        currency: p.currency ?? item.currency ?? null,
+        period: p.period ?? null,
+        period_unit: p.period_unit ?? null,
+        features: item.features ?? null,
+        raw: { item, price: p },
+      });
+    }
+  }
+  return out;
+}
+
+async function validateItemIdInCatalog(itemId: string): Promise<{ ok: boolean; available: string[] }> {
+  const cat = await fetchHostingerVpsCatalog();
+  const ids = cat.map((c) => c.item_id);
+  return { ok: ids.includes(itemId), available: ids };
+}
 
 function generateRootPassword(): string {
   // 20-char password with upper/lower/digits/symbol.
@@ -281,11 +344,7 @@ export async function processProvisioningJob(jobId: string) {
     .eq("id", jobId);
 
   const req: any = job.provider_request ?? {};
-  let itemId: string | null = req.item_id ?? req.hostinger_price_id ?? null;
-  const productSlug: string | null = req.product_slug ?? null;
-  if (!itemId && productSlug && VPS_ITEM_ID_FALLBACK[productSlug]) {
-    itemId = VPS_ITEM_ID_FALLBACK[productSlug];
-  }
+  const itemId: string | null = req.item_id ?? req.hostinger_price_id ?? null;
   const domain: string | null = req.domain ?? null;
 
   let result: { ok: boolean; status: number; data: any; error?: string };
@@ -294,7 +353,17 @@ export async function processProvisioningJob(jobId: string) {
   try {
     switch (job.provider_service_type) {
       case "vps": {
-        if (!itemId) throw new Error("Mapping missing provider_price_id (item_id)");
+        if (!itemId) throw new Error("Mapeamento sem provider_price_id — sincronize o catálogo Hostinger no admin");
+
+        // Validate against the LIVE Hostinger billing catalog.
+        const validation = await validateItemIdInCatalog(itemId);
+        if (!validation.ok) {
+          throw new Error(
+            `item_id "${itemId}" não existe no catálogo real da Hostinger. ` +
+            `Sincronize o catálogo em /admin/provider-products e mapeie o produto. ` +
+            `IDs disponíveis: ${validation.available.slice(0, 8).join(", ")}${validation.available.length > 8 ? "…" : ""}`,
+          );
+        }
 
         // Resolve template + datacenter (auto)
         const [templateId, dataCenterId] = await Promise.all([
