@@ -353,7 +353,17 @@ export async function processProvisioningJob(jobId: string) {
   try {
     switch (job.provider_service_type) {
       case "vps": {
-        if (!itemId) throw new Error("Mapping missing provider_price_id (item_id)");
+        if (!itemId) throw new Error("Mapeamento sem provider_price_id — sincronize o catálogo Hostinger no admin");
+
+        // Validate against the LIVE Hostinger billing catalog.
+        const validation = await validateItemIdInCatalog(itemId);
+        if (!validation.ok) {
+          throw new Error(
+            `item_id "${itemId}" não existe no catálogo real da Hostinger. ` +
+            `Sincronize o catálogo em /admin/provider-products e mapeie o produto. ` +
+            `IDs disponíveis: ${validation.available.slice(0, 8).join(", ")}${validation.available.length > 8 ? "…" : ""}`,
+          );
+        }
 
         // Resolve template + datacenter (auto)
         const [templateId, dataCenterId] = await Promise.all([
