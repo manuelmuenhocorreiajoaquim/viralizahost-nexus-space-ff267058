@@ -50,6 +50,9 @@ type ProviderProductRow = {
  * Does NOT call the Hostinger API.
  */
 export async function ensureProvisioningJobs(orderId: string) {
+  await syncHostingerVpsCatalogToProviderProducts().catch((e) => {
+    console.warn("[provisioning] Hostinger VPS catalog sync skipped", e);
+  });
   const { data: order } = await supabaseAdmin
     .from("orders")
     .select("id, user_id, cycle, notes")
