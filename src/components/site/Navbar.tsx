@@ -93,6 +93,7 @@ export default function Navbar() {
               setOpen(null);
               setMobileOpen(false);
               setCurrOpen(false);
+              clearCheckoutState();
             }}
             className="flex items-center shrink-0 cursor-pointer"
             aria-label="Ir para a página inicial"
