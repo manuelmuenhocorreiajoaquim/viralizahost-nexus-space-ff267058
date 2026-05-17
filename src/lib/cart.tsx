@@ -43,6 +43,41 @@ type Ctx = {
 const CartContext = createContext<Ctx | null>(null);
 const STORAGE_KEY = "vh.cart.v1";
 const CATALOG_VERSION_KEY = "vh.catalog.version";
+
+/**
+ * Hard-reset all checkout state and navigate to /checkout with the chosen
+ * product. Used by "Contratar" buttons so each click starts a fresh checkout
+ * and never reuses a previously-selected product or cycle from cache.
+ */
+export function startCheckout(productId: string, cycle: CycleId = "monthly") {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem("selectedProduct");
+    localStorage.removeItem("selectedCycle");
+    localStorage.removeItem("checkoutState");
+    localStorage.removeItem("cart");
+    localStorage.removeItem("cachedCheckout");
+    localStorage.removeItem("cachedProducts");
+    sessionStorage.clear();
+    localStorage.setItem(CATALOG_VERSION_KEY, CATALOG_VERSION);
+  } catch {}
+  const url = `/checkout?step=cycle&product=${encodeURIComponent(productId)}&cycle=${cycle}&t=${Date.now()}`;
+  // Hard navigation → guarantees a fresh app boot with clean state.
+  window.location.href = url;
+}
+
+/** Clear checkout-related state (call on logo/home navigation). */
+export function clearCheckoutState() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem("selectedProduct");
+    localStorage.removeItem("selectedCycle");
+    localStorage.removeItem("checkoutState");
+    localStorage.removeItem("cart");
+    localStorage.removeItem("cachedCheckout");
+    localStorage.removeItem("cachedProducts");
+  } catch {}
+}
 export const CATALOG_VERSION = "2026-05-17-vps-prices-v2";
 
 export function CartProvider({ children }: { children: ReactNode }) {
