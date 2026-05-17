@@ -199,6 +199,66 @@ export async function enqueueHostingerProvisioning(orderId: string) {
   return { ok: true };
 }
 
+const MAX_ATTEMPTS = 3;
+
+// Map common internal slugs to known Hostinger KVM item_ids as a fallback
+// when provider_products has not been configured.
+const VPS_ITEM_ID_FALLBACK: Record<string, string> = {
+  "vps-nvme-1": "kvm1",
+  "vps-nvme-2": "kvm2",
+  "vps-nvme-3": "kvm4",
+  "vps-nvme-4": "kvm8",
+  "vps-1": "kvm1",
+  "vps-2": "kvm2",
+  "vps-3": "kvm4",
+  "vps-4": "kvm8",
+};
+
+function generateRootPassword(): string {
+  // 20-char password with upper/lower/digits/symbol.
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghijkmnopqrstuvwxyz";
+  const digits = "23456789";
+  const symbols = "!@#$%^*-_=+";
+  const all = upper + lower + digits + symbols;
+  const pick = (s: string) => s[Math.floor(Math.random() * s.length)];
+  let pwd = pick(upper) + pick(lower) + pick(digits) + pick(symbols);
+  for (let i = 0; i < 16; i++) pwd += pick(all);
+  return pwd.split("").sort(() => Math.random() - 0.5).join("");
+}
+
+async function pickUbuntuTemplateId(jobId: string): Promise<number | string | null> {
+  const res = await hostinger.listTemplates();
+  const list: any[] = Array.isArray(res.data)
+    ? res.data
+    : (res.data?.data ?? res.data?.templates ?? []);
+  if (!list.length) return null;
+  const norm = (s: any) => String(s ?? "").toLowerCase();
+  const ubuntu2204 = list.find(
+    (t) => norm(t.name).includes("ubuntu") && norm(t.name).includes("22.04"),
+  );
+  const anyUbuntu = list.find((t) => norm(t.name).includes("ubuntu"));
+  const chosen = ubuntu2204 ?? anyUbuntu ?? list[0];
+  console.log("[provisioning] picked template", { jobId, id: chosen?.id, name: chosen?.name });
+  return chosen?.id ?? null;
+}
+
+async function pickDataCenterId(jobId: string): Promise<number | string | null> {
+  const res = await hostinger.listDataCenters();
+  const list: any[] = Array.isArray(res.data)
+    ? res.data
+    : (res.data?.data ?? res.data?.dataCenters ?? res.data?.data_centers ?? []);
+  if (!list.length) return null;
+  const norm = (s: any) => String(s ?? "").toLowerCase();
+  // Prefer Brazil/São Paulo → Americas → first
+  const br =
+    list.find((d) => norm(d.location).includes("brazil") || norm(d.city).includes("sao paulo") || norm(d.name).includes("brazil")) ??
+    list.find((d) => norm(d.continent).includes("america") || norm(d.location).includes("us") || norm(d.name).includes("america"));
+  const chosen = br ?? list[0];
+  console.log("[provisioning] picked datacenter", { jobId, id: chosen?.id, name: chosen?.name ?? chosen?.location });
+  return chosen?.id ?? null;
+}
+
 export async function processProvisioningJob(jobId: string) {
   const { data: job } = await supabaseAdmin
     .from("provisioning_jobs")
@@ -207,6 +267,9 @@ export async function processProvisioningJob(jobId: string) {
     .maybeSingle();
   if (!job) return { ok: false, error: "job_not_found" };
   if (job.status === "provisioned") return { ok: true, alreadyDone: true };
+  if ((job.attempts ?? 0) >= MAX_ATTEMPTS && job.status === "failed") {
+    return { ok: false, error: `max_attempts_reached (${MAX_ATTEMPTS})` };
+  }
 
   await supabaseAdmin
     .from("provisioning_jobs")
@@ -218,19 +281,57 @@ export async function processProvisioningJob(jobId: string) {
     .eq("id", jobId);
 
   const req: any = job.provider_request ?? {};
-  const itemId: string | null = req.item_id ?? req.hostinger_price_id ?? null;
+  let itemId: string | null = req.item_id ?? req.hostinger_price_id ?? null;
+  const productSlug: string | null = req.product_slug ?? null;
+  if (!itemId && productSlug && VPS_ITEM_ID_FALLBACK[productSlug]) {
+    itemId = VPS_ITEM_ID_FALLBACK[productSlug];
+  }
   const domain: string | null = req.domain ?? null;
 
   let result: { ok: boolean; status: number; data: any; error?: string };
+  let builtPayload: Record<string, unknown> | null = null;
 
   try {
     switch (job.provider_service_type) {
       case "vps": {
         if (!itemId) throw new Error("Mapping missing provider_price_id (item_id)");
-        result = await hostinger.createVps(
-          { item_id: itemId, ...(req.metadata?.vps ?? {}) },
-          jobId,
-        );
+
+        // Resolve template + datacenter (auto)
+        const [templateId, dataCenterId] = await Promise.all([
+          pickUbuntuTemplateId(jobId),
+          pickDataCenterId(jobId),
+        ]);
+        if (!templateId) throw new Error("Hostinger template (Ubuntu 22.04 LTS) não encontrado");
+        if (!dataCenterId) throw new Error("Nenhum data center Hostinger disponível");
+
+        const hostname = `vps-${String(job.order_id ?? job.id).slice(0, 8)}`;
+        const rootPassword = generateRootPassword();
+
+        builtPayload = {
+          item_id: itemId,
+          setup: {
+            template_id: templateId,
+            data_center_id: dataCenterId,
+            hostname,
+            root_password: rootPassword,
+            ...(req.metadata?.vps?.setup ?? {}),
+          },
+        };
+
+        console.log("[provisioning] hostinger payload", { jobId, payload: { ...builtPayload, setup: { ...(builtPayload as any).setup, root_password: "***" } } });
+        result = await hostinger.createVps(builtPayload, jobId);
+
+        // Persist generated setup fields back into provider_request so the
+        // admin / customer can retrieve hostname + root_user later.
+        await supabaseAdmin
+          .from("provisioning_jobs")
+          .update({
+            provider_request: {
+              ...req,
+              setup: { template_id: templateId, data_center_id: dataCenterId, hostname, root_user: "root" },
+            },
+          })
+          .eq("id", jobId);
         break;
       }
       case "domain": {
