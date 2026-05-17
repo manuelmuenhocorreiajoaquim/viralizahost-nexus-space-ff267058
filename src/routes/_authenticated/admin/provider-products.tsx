@@ -13,6 +13,8 @@ import {
   adminDeleteProviderProduct,
   adminHostingerCatalog,
   adminTestHostingerConnection,
+  adminListHostingerVpsCatalog,
+  adminMapCatalogItem,
 } from "@/lib/provisioning.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/provider-products")({
