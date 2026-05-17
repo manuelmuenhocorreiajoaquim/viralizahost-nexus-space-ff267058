@@ -110,6 +110,7 @@ const searchSchema = z.object({
   product: z.string().optional(),
   cycle: z.enum(["monthly", "semestral", "annual", "biennial", "triennial"]).optional(),
   order: z.string().optional(),
+  t: z.union([z.string(), z.number()]).optional(),
 });
 
 export const Route = createFileRoute("/checkout")({
