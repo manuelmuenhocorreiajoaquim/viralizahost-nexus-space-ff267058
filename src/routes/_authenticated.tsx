@@ -154,6 +154,22 @@ function AuthLayout() {
                 bg="bg-amber-500/10"
                 onClick={() => setMobileOpen(false)}
               />
+              <SideLink
+                to="/admin/provisioning"
+                label="Provisionamentos"
+                icon={Server}
+                color="text-violet-600"
+                bg="bg-violet-500/10"
+                onClick={() => setMobileOpen(false)}
+              />
+              <SideLink
+                to="/admin/provider-products"
+                label="Produtos Hostinger"
+                icon={Bot}
+                color="text-fuchsia-600"
+                bg="bg-fuchsia-500/10"
+                onClick={() => setMobileOpen(false)}
+              />
             </>
           )}
         </nav>
