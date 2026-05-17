@@ -155,7 +155,22 @@ function CheckoutPage() {
   useEffect(() => {
     if (search.product && !cart.items.some((i) => i.productId === search.product)) {
       cart.add(search.product);
-      navigate({ to: "/checkout", search: { step: undefined }, replace: true });
+    }
+    if (search.cycle) {
+      cart.setCycle(search.cycle);
+    } else if (search.product) {
+      const p = findProduct(search.product);
+      // VPS / hosting products default to monthly when no cycle is specified
+      if (p && !isAnnualProduct(p) && !isOneTimeService(p)) {
+        cart.setCycle("monthly");
+      }
+    }
+    if (search.product || search.cycle) {
+      navigate({
+        to: "/checkout",
+        search: { step: search.step ?? "cycle" },
+        replace: true,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
