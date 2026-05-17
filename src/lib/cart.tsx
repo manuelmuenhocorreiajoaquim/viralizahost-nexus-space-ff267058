@@ -42,13 +42,23 @@ type Ctx = {
 
 const CartContext = createContext<Ctx | null>(null);
 const STORAGE_KEY = "vh.cart.v1";
+const CATALOG_VERSION_KEY = "vh.catalog.version";
+export const CATALOG_VERSION = "2026-05-17-vps-prices-v2";
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
-  const [cycle, setCycleState] = useState<CycleId>("annual");
+  const [cycle, setCycleState] = useState<CycleId>("monthly");
 
   useEffect(() => {
     try {
+      // Invalidate cached cart/cycle when catalog version changes
+      const savedVersion = localStorage.getItem(CATALOG_VERSION_KEY);
+      if (savedVersion !== CATALOG_VERSION) {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem("vh.checkout.customer.v1");
+        localStorage.setItem(CATALOG_VERSION_KEY, CATALOG_VERSION);
+        return;
+      }
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const data = JSON.parse(raw);
