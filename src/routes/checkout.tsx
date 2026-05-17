@@ -108,6 +108,7 @@ function computeActiveSteps(items: Array<{ productId: string }>): StepId[] {
 const searchSchema = z.object({
   step: z.enum(["cycle", "cart", "domain", "email", "auth", "payment", "done"]).optional(),
   product: z.string().optional(),
+  cycle: z.enum(["monthly", "semestral", "annual", "biennial", "triennial"]).optional(),
   order: z.string().optional(),
 });
 
@@ -118,7 +119,7 @@ export const Route = createFileRoute("/checkout")({
 });
 
 function brl(n: number, currency: "BRL" | "AKZ") {
-  return formatPrice(`R$ ${Math.round(n)}`, currency);
+  return formatPrice(n.toFixed(2), currency);
 }
 
 const CHECKOUT_CUSTOMER_KEY = "vh.checkout.customer.v1";
