@@ -180,6 +180,9 @@ export const hostinger = {
 
   listVps: () => hostingerCall("/api/vps/v1/virtual-machines"),
 
+  listTemplates: () => hostingerCall("/api/vps/v1/templates"),
+  listDataCenters: () => hostingerCall("/api/vps/v1/data-centers"),
+
   // Preferred: dedicated domain purchase endpoint
   buyDomain: (body: Record<string, unknown>, jobId?: string) =>
     hostingerCall("/api/domains/v1/portfolio", {
