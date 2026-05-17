@@ -56,6 +56,8 @@ function Page() {
   const deleteFn = useServerFn(adminDeleteProviderProduct);
   const catalogFn = useServerFn(adminHostingerCatalog);
   const testFn = useServerFn(adminTestHostingerConnection);
+  const vpsCatalogFn = useServerFn(adminListHostingerVpsCatalog);
+  const mapCatalogFn = useServerFn(adminMapCatalogItem);
 
   const [form, setForm] = useState<FormState | null>(null);
 
