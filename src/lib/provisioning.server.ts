@@ -50,6 +50,9 @@ type ProviderProductRow = {
  * Does NOT call the Hostinger API.
  */
 export async function ensureProvisioningJobs(orderId: string) {
+  await syncHostingerVpsCatalogToProviderProducts().catch((e) => {
+    console.warn("[provisioning] Hostinger VPS catalog sync skipped", e);
+  });
   const { data: order } = await supabaseAdmin
     .from("orders")
     .select("id, user_id, cycle, notes")
@@ -214,6 +217,23 @@ export type HostingerCatalogPrice = {
   raw?: any;
 };
 
+const VPS_INTERNAL_PRODUCTS: Record<string, { slug: string; name: string; price: number }> = {
+  "1": { slug: "vps-nvme-1", name: "VPS NVMe 1", price: 59.99 },
+  "2": { slug: "vps-nvme-2", name: "VPS NVMe 2", price: 87.99 },
+  "4": { slug: "vps-nvme-3", name: "VPS NVMe 3", price: 119.99 },
+  "8": { slug: "vps-nvme-4", name: "VPS NVMe 4", price: 239.99 },
+};
+
+function normalizePlanCode(input: string): string | null {
+  return /vps-kvm(1|2|4|8)(?:\D|$)/i.exec(input)?.[1] ?? null;
+}
+
+function isMonthlyCatalogEntry(entry: HostingerCatalogPrice) {
+  const item = entry.item_id.toLowerCase();
+  const unit = String(entry.period_unit ?? "").toLowerCase();
+  return item.endsWith("-1m") || item.includes("-1m-") || (Number(entry.period) === 1 && /month|mês|mes|monthly|m/.test(unit));
+}
+
 /**
  * Fetch the live Hostinger billing catalog and flatten every VPS price
  * (each plan × billing period) into a real `item_id` that can be sent to
@@ -277,6 +297,46 @@ async function validateItemIdInCatalog(itemId: string): Promise<{ ok: boolean; a
   return { ok: ids.includes(itemId), available: ids };
 }
 
+export async function syncHostingerVpsCatalogToProviderProducts() {
+  const catalog = await fetchHostingerVpsCatalog();
+  const preferred = new Map<string, HostingerCatalogPrice>();
+  for (const entry of catalog) {
+    const plan = normalizePlanCode(entry.item_id) ?? normalizePlanCode(entry.name);
+    const product = plan ? VPS_INTERNAL_PRODUCTS[plan] : null;
+    if (!product) continue;
+    const current = preferred.get(product.slug);
+    if (!current || (isMonthlyCatalogEntry(entry) && !isMonthlyCatalogEntry(current))) {
+      preferred.set(product.slug, entry);
+    }
+  }
+  for (const [slug, entry] of preferred) {
+    const plan = normalizePlanCode(entry.item_id) ?? normalizePlanCode(entry.name);
+    const product = plan ? VPS_INTERNAL_PRODUCTS[plan] : null;
+    if (!product) continue;
+    await supabaseAdmin.from("provider_products").upsert(
+      {
+        internal_product_id: product.slug,
+        internal_product_name: product.name,
+        provider: "hostinger",
+        provider_service_type: "vps",
+        provider_price_id: entry.item_id,
+        provider_metadata: {
+          catalog: entry.raw ?? null,
+          hostinger_name: entry.name,
+          hostinger_item_id: entry.item_id,
+          billing_period: entry.period ? `${entry.period}${entry.period_unit ?? ""}` : null,
+        },
+        auto_provision: true,
+        internal_price: product.price,
+        currency: "BRL",
+        active: true,
+      },
+      { onConflict: "provider,internal_product_id" },
+    );
+  }
+  return { ok: true, catalog, mapped: Array.from(preferred.entries()).map(([slug, entry]) => ({ slug, item_id: entry.item_id })) };
+}
+
 function generateRootPassword(): string {
   // 20-char password with upper/lower/digits/symbol.
   const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -306,6 +366,15 @@ async function pickUbuntuTemplateId(jobId: string): Promise<number | string | nu
   return chosen?.id ?? null;
 }
 
+async function validateTemplateId(templateId: number | string): Promise<{ ok: boolean; available: string[] }> {
+  const res = await hostinger.listTemplates();
+  const list: any[] = Array.isArray(res.data)
+    ? res.data
+    : (res.data?.data ?? res.data?.templates ?? []);
+  const ids = list.map((t) => String(t?.id)).filter(Boolean);
+  return { ok: ids.includes(String(templateId)), available: ids };
+}
+
 async function pickDataCenterId(jobId: string): Promise<number | string | null> {
   const res = await hostinger.listDataCenters();
   const list: any[] = Array.isArray(res.data)
@@ -320,6 +389,15 @@ async function pickDataCenterId(jobId: string): Promise<number | string | null> 
   const chosen = br ?? list[0];
   console.log("[provisioning] picked datacenter", { jobId, id: chosen?.id, name: chosen?.name ?? chosen?.location });
   return chosen?.id ?? null;
+}
+
+async function validateDataCenterId(dataCenterId: number | string): Promise<{ ok: boolean; available: string[] }> {
+  const res = await hostinger.listDataCenters();
+  const list: any[] = Array.isArray(res.data)
+    ? res.data
+    : (res.data?.data ?? res.data?.dataCenters ?? res.data?.data_centers ?? []);
+  const ids = list.map((d) => String(d?.id)).filter(Boolean);
+  return { ok: ids.includes(String(dataCenterId)), available: ids };
 }
 
 export async function processProvisioningJob(jobId: string) {
@@ -373,14 +451,29 @@ export async function processProvisioningJob(jobId: string) {
         if (!templateId) throw new Error("Hostinger template (Ubuntu 22.04 LTS) não encontrado");
         if (!dataCenterId) throw new Error("Nenhum data center Hostinger disponível");
 
+        const [templateValidation, dcValidation] = await Promise.all([
+          validateTemplateId(templateId),
+          validateDataCenterId(dataCenterId),
+        ]);
+        if (!templateValidation.ok) {
+          throw new Error(
+            `template_id "${templateId}" não existe na API Hostinger. IDs válidos: ${templateValidation.available.slice(0, 10).join(", ")}`,
+          );
+        }
+        if (!dcValidation.ok) {
+          throw new Error(
+            `data_center_id "${dataCenterId}" não existe na API Hostinger. IDs válidos: ${dcValidation.available.slice(0, 10).join(", ")}`,
+          );
+        }
+
         const hostname = `vps-${String(job.order_id ?? job.id).slice(0, 8)}`;
         const rootPassword = generateRootPassword();
 
         builtPayload = {
           item_id: itemId,
           setup: {
-            template_id: templateId,
-            data_center_id: dataCenterId,
+            template_id: String(templateId),
+            data_center_id: String(dataCenterId),
             hostname,
             root_password: rootPassword,
             ...(req.metadata?.vps?.setup ?? {}),
@@ -397,7 +490,7 @@ export async function processProvisioningJob(jobId: string) {
           .update({
             provider_request: {
               ...req,
-              setup: { template_id: templateId, data_center_id: dataCenterId, hostname, root_user: "root" },
+              setup: { template_id: String(templateId), data_center_id: String(dataCenterId), hostname, root_user: "root" },
             },
           })
           .eq("id", jobId);

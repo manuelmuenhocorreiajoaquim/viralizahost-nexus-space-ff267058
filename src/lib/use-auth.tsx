@@ -1,6 +1,7 @@
 import { createContext, useContext, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User } from "@supabase/supabase-js";
+import { clearCheckoutState } from "@/lib/cart";
 
 type AuthCtx = {
   user: User | null;
@@ -73,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userId: s?.user?.id ?? null,
         hasSession: !!s,
       });
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") clearCheckoutState();
       setSession(s);
       setAuthLoading(false);
       void loadRoles(s?.user?.id ?? null);
@@ -108,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshRoles: async () => loadRoles(session?.user?.id ?? null),
       signOut: async () => {
         console.info("[auth] sign out", { userId: session?.user?.id ?? null });
+        clearCheckoutState();
         await supabase.auth.signOut();
         setRoles([]);
       },

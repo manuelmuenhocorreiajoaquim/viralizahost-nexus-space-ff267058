@@ -10,6 +10,7 @@ import {
   enqueueHostingerProvisioning,
   processProvisioningJob,
   fetchHostingerVpsCatalog,
+  syncHostingerVpsCatalogToProviderProducts,
 } from "@/lib/provisioning.server";
 
 async function assertAdmin(userId: string) {
@@ -164,6 +165,16 @@ export const adminUpsertProviderProduct = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => ProviderProductInput.parse(input))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
+    if (/^vps-[1-4]$/.test(data.internal_product_id)) {
+      throw new Error("Use apenas os slugs oficiais vps-nvme-1 a vps-nvme-4.");
+    }
+    if (data.provider_service_type === "vps") {
+      const catalog = await fetchHostingerVpsCatalog();
+      const valid = catalog.some((c) => c.item_id === data.provider_price_id);
+      if (!data.provider_price_id || !valid) {
+        throw new Error("VPS só pode ser salvo com item_id real retornado pelo catálogo Hostinger.");
+      }
+    }
     const payload = { ...data };
     if (payload.id) {
       const { id, ...rest } = payload;
@@ -218,6 +229,13 @@ export const adminListHostingerVpsCatalog = createServerFn({ method: "GET" })
     return { items };
   });
 
+export const adminSyncHostingerVpsCatalog = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    return syncHostingerVpsCatalogToProviderProducts();
+  });
+
 // Upsert a provider_products row from a real catalog entry. The price markup
 // (default 2x = 100% profit) is applied to the Hostinger price.
 export const adminMapCatalogItem = createServerFn({ method: "POST" })
@@ -236,6 +254,9 @@ export const adminMapCatalogItem = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
+    if (/^vps-[1-4]$/.test(data.internal_product_id)) {
+      throw new Error("Mapeamento legado bloqueado. Use vps-nvme-1 a vps-nvme-4.");
+    }
     // Validate item_id against the live catalog.
     const catalog = await fetchHostingerVpsCatalog();
     const entry = catalog.find((c) => c.item_id === data.item_id);

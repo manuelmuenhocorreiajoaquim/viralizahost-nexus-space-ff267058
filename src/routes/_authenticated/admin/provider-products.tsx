@@ -15,6 +15,7 @@ import {
   adminTestHostingerConnection,
   adminListHostingerVpsCatalog,
   adminMapCatalogItem,
+  adminSyncHostingerVpsCatalog,
 } from "@/lib/provisioning.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/provider-products")({
@@ -58,6 +59,7 @@ function Page() {
   const testFn = useServerFn(adminTestHostingerConnection);
   const vpsCatalogFn = useServerFn(adminListHostingerVpsCatalog);
   const mapCatalogFn = useServerFn(adminMapCatalogItem);
+  const syncCatalogFn = useServerFn(adminSyncHostingerVpsCatalog);
 
   const [form, setForm] = useState<FormState | null>(null);
 
@@ -148,6 +150,16 @@ function Page() {
     onError: (e: any) => toast.error(e?.message ?? "Erro a mapear."),
   });
 
+  const syncCatalog = useMutation({
+    mutationFn: () => syncCatalogFn(),
+    onSuccess: (res: any) => {
+      toast.success(`Catálogo sincronizado: ${res?.mapped?.length ?? 0} planos VPS atualizados.`);
+      qc.invalidateQueries({ queryKey: ["admin-provider-products"] });
+      qc.invalidateQueries({ queryKey: ["admin-hostinger-vps-catalog"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao sincronizar catálogo."),
+  });
+
   if (loading || roleLoading) {
     return <div className="p-8 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" /></div>;
   }
@@ -213,8 +225,8 @@ function Page() {
               Itens VPS retornados em tempo real pela API. Use “Mapear” para gravar o item_id oficial em provider_products.
             </div>
           </div>
-          <Button size="sm" variant="outline" onClick={() => vpsCatalogQuery.refetch()} disabled={vpsCatalogQuery.isFetching}>
-            {vpsCatalogQuery.isFetching ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+          <Button size="sm" variant="outline" onClick={() => syncCatalog.mutate()} disabled={syncCatalog.isPending || vpsCatalogQuery.isFetching}>
+            {syncCatalog.isPending || vpsCatalogQuery.isFetching ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
             Sincronizar catálogo
           </Button>
         </div>
@@ -231,12 +243,13 @@ function Page() {
                   <th className="px-3 py-2 font-mono">item_id (real)</th>
                   <th className="px-3 py-2">Preço Hostinger</th>
                   <th className="px-3 py-2">Período</th>
+                  <th className="px-3 py-2">Recursos</th>
                   <th className="px-3 py-2 text-right">Mapear</th>
                 </tr>
               </thead>
               <tbody>
                 {(vpsCatalogQuery.data?.items ?? []).map((it: any) => {
-                  const slug = guessInternalSlug(it.name);
+                  const slug = guessInternalSlug(it.item_id, it.name);
                   const internalPrice = it.price != null ? Number((it.price * 2).toFixed(2)) : 0;
                   return (
                     <tr key={it.item_id} className="border-t border-slate-100">
@@ -244,6 +257,9 @@ function Page() {
                       <td className="px-3 py-2 text-xs font-mono">{it.item_id}</td>
                       <td className="px-3 py-2">{it.price != null ? `${it.currency ?? ""} ${it.price.toFixed(2)}` : "—"}</td>
                       <td className="px-3 py-2 text-xs">{it.period ?? ""} {it.period_unit ?? ""}</td>
+                      <td className="px-3 py-2 text-xs text-slate-500 max-w-xs truncate" title={JSON.stringify(it.features ?? {})}>
+                        {summarizeFeatures(it.features)}
+                      </td>
                       <td className="px-3 py-2 text-right">
                         <Button
                           size="sm"
@@ -251,14 +267,14 @@ function Page() {
                           onClick={() =>
                             mapItem.mutate({
                               item_id: it.item_id,
-                              internal_product_id: slug,
+                              internal_product_id: slug ?? "",
                               internal_product_name: it.name,
                               internal_price: internalPrice,
                             })
                           }
-                          disabled={mapItem.isPending}
+                          disabled={mapItem.isPending || !slug}
                         >
-                          Mapear → {slug}
+                          {slug ? `Mapear → ${slug}` : "Plano não reconhecido"}
                         </Button>
                       </td>
                     </tr>
@@ -283,7 +299,7 @@ function Page() {
               <tr>
                 <th className="px-3 py-2">Interno</th>
                 <th className="px-3 py-2">Tipo</th>
-                <th className="px-3 py-2">Hostinger price_id</th>
+                <th className="px-3 py-2">Hostinger item_id real</th>
                 <th className="px-3 py-2">Auto</th>
                 <th className="px-3 py-2">Ativo</th>
                 <th className="px-3 py-2 text-right">Ações</th>
@@ -359,7 +375,7 @@ function Page() {
             </Field>
             <Field label="Hostinger price_id (do catálogo)">
               <input className="w-full border rounded px-3 py-2 text-sm font-mono"
-                placeholder="ex: vps-kvm2-12-eu"
+                placeholder="ex: hostingercombr-vps-…-br1-1m"
                 value={form.provider_price_id}
                 onChange={(e) => setForm({ ...form, provider_price_id: e.target.value })} />
             </Field>
@@ -407,13 +423,26 @@ function Page() {
 }
 
 // Heuristic mapping: Hostinger plan name → ViralizaHost internal slug.
-function guessInternalSlug(name: string): string {
-  const n = name.toLowerCase();
-  if (n.includes("kvm 8") || n.includes("kvm8")) return "vps-nvme-4";
-  if (n.includes("kvm 4") || n.includes("kvm4")) return "vps-nvme-3";
-  if (n.includes("kvm 2") || n.includes("kvm2")) return "vps-nvme-2";
-  if (n.includes("kvm 1") || n.includes("kvm1")) return "vps-nvme-1";
-  return "vps-nvme-1";
+function guessInternalSlug(itemId: string, name: string): string | null {
+  const source = `${itemId} ${name}`.toLowerCase();
+  const plan = /vps-kvm([1248])(?:\D|$)/.exec(source)?.[1];
+  if (plan === "8") return "vps-nvme-4";
+  if (plan === "4") return "vps-nvme-3";
+  if (plan === "2") return "vps-nvme-2";
+  if (plan === "1") return "vps-nvme-1";
+  return null;
+}
+
+function summarizeFeatures(features: unknown): string {
+  if (!features) return "—";
+  if (Array.isArray(features)) return features.slice(0, 4).map(String).join(" · ") || "—";
+  if (typeof features === "object") {
+    return Object.entries(features as Record<string, unknown>)
+      .slice(0, 4)
+      .map(([key, value]) => `${key}: ${String(value)}`)
+      .join(" · ") || "—";
+  }
+  return String(features);
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -30,7 +31,7 @@ import {
 import { z } from "zod";
 import { toast } from "sonner";
 import logo from "@/assets/viraliza-checkout-logo.png";
-import { useCart, lineMonthly, lineTotal, lineUnit, CATALOG, isAnnualProduct } from "@/lib/cart";
+import { useCart, lineMonthly, lineTotal, lineUnit, CATALOG, isAnnualProduct, normalizeProductId, clearCheckoutState } from "@/lib/cart";
 import {
   CYCLES,
   findCycle,
@@ -125,6 +126,24 @@ function brl(n: number, currency: "BRL" | "AKZ") {
 
 const CHECKOUT_CUSTOMER_KEY = "vh.checkout.customer.v1";
 
+function useHostingerItemIds(productIds: string[]) {
+  const ids = useMemo(() => Array.from(new Set(productIds.map(normalizeProductId))).sort(), [productIds.join("|")]);
+  return useQuery({
+    queryKey: ["hostinger-item-ids", ids.join("|")],
+    enabled: ids.some((id) => id.startsWith("vps-nvme-")),
+    staleTime: 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("provider_products")
+        .select("internal_product_id, provider_price_id")
+        .eq("provider", "hostinger")
+        .eq("active", true)
+        .in("internal_product_id", ids);
+      return Object.fromEntries((data ?? []).map((row: any) => [row.internal_product_id, row.provider_price_id]));
+    },
+  });
+}
+
 function readCheckoutCustomer(): { name?: string; email?: string } {
   try {
     const parsed = JSON.parse(localStorage.getItem(CHECKOUT_CUSTOMER_KEY) ?? "{}");
@@ -155,7 +174,8 @@ function CheckoutPage() {
 
   useEffect(() => {
     if (search.product) {
-      const newProd = findProduct(search.product);
+      const requestedProduct = normalizeProductId(search.product);
+      const newProd = findProduct(requestedProduct);
       if (!newProd) {
         // Invalid product slug → send user to plans page
         navigate({ to: "/vps-cloud/vps-nvme", replace: true });
@@ -164,10 +184,10 @@ function CheckoutPage() {
       // URL product always wins: replace any prior cart contents so we never
       // reuse a previously-selected VPS / plan from cache.
       const onlyThis =
-        cart.items.length === 1 && cart.items[0].productId === search.product;
+        cart.items.length === 1 && normalizeProductId(cart.items[0].productId) === requestedProduct;
       if (!onlyThis) {
         cart.clear();
-        cart.add(search.product);
+        cart.add(requestedProduct);
       }
       // Cycle: explicit URL cycle wins, otherwise monthly for recurring products.
       if (search.cycle) {
@@ -497,6 +517,7 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
   const cart = useCart();
   const { currency } = useCurrency();
   const [showAdd, setShowAdd] = useState(false);
+  const hostingerIds = useHostingerItemIds(cart.items.map((i) => i.productId));
 
   if (cart.items.length === 0) {
     return (
@@ -550,6 +571,11 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
                   <div className="text-xs text-slate-500 capitalize">{subLabel}</div>
                   {it.domain && !annual && (
                     <div className="text-[11px] text-slate-400 truncate mt-0.5">{it.domain}</div>
+                  )}
+                  {p.type === "vps" && normalizeProductId(p.id).startsWith("vps-nvme-") && (
+                    <div className="text-[10px] text-slate-400 font-mono truncate mt-0.5">
+                      item_id: {hostingerIds.data?.[normalizeProductId(p.id)] ?? "a sincronizar…"}
+                    </div>
                   )}
                 </div>
                 {annual ? (
@@ -1214,6 +1240,7 @@ function PaymentStep({
   const { user } = useAuth();
   const { currency } = useCurrency();
   const createOrderFn = useServerFn(createCheckoutOrder);
+  const hostingerIds = useHostingerItemIds(cart.items.map((i) => i.productId));
   const [method, setMethod] = useState<"pix" | "card" | "boleto" | "paypal" | "bank_bic">("pix");
   const [loading, setLoading] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
@@ -1274,13 +1301,14 @@ function PaymentStep({
           throw new Error("Item inválido no carrinho.");
         }
         return {
-          id: p?.id ?? it.productId,
+          id: normalizeProductId(p?.id ?? it.productId),
           name,
           type,
           price,
           quantity,
           domain: it.domain ?? null,
           total: safeTotal,
+          hostingerItemId: p?.type === "vps" ? hostingerIds.data?.[normalizeProductId(p.id)] : undefined,
         };
       });
 
@@ -1327,6 +1355,7 @@ function PaymentStep({
   const onApproved = () => {
     if (!pendingOrderId) return;
     cart.clear();
+    clearCheckoutState();
     setTimeout(() => {
       setPixOpen(false);
       setCardOpen(false);

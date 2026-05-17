@@ -156,6 +156,7 @@ function Page() {
                 <th className="px-3 py-2">Tipo</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Order</th>
+                <th className="px-3 py-2">item_id</th>
                 <th className="px-3 py-2">Resource ID</th>
                 <th className="px-3 py-2">Erro</th>
                 <th className="px-3 py-2">Tentativas</th>
@@ -169,6 +170,9 @@ function Page() {
                   <td className="px-3 py-2 font-medium">{j.provider_service_type}</td>
                   <td className="px-3 py-2">{statusBadge(j.status)}</td>
                   <td className="px-3 py-2 text-xs font-mono">{j.order_id?.slice(0, 8)}…</td>
+                  <td className="px-3 py-2 text-xs font-mono max-w-[220px] truncate" title={j.provider_request?.item_id ?? j.provider_request?.hostinger_price_id ?? ""}>
+                    {j.provider_request?.item_id ?? j.provider_request?.hostinger_price_id ?? "—"}
+                  </td>
                   <td className="px-3 py-2 text-xs font-mono">{j.provider_resource_id ?? "—"}</td>
                   <td className="px-3 py-2 text-xs text-red-600 max-w-xs truncate" title={j.error_message ?? ""}>
                     {j.error_message ?? "—"}
