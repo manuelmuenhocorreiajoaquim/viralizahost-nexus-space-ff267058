@@ -203,7 +203,7 @@ export const adminHostingerCatalog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.userId);
-    const res = await hostinger.listCatalog();
+    const res = await hostinger.listVps();
     return res;
   });
 
@@ -215,19 +215,10 @@ export const adminTestHostingerConnection = createServerFn({ method: "POST" })
     await assertAdmin(context.userId);
     const token = process.env.HOSTINGER_API_TOKEN;
     const tokenPresent = !!token && token.trim().length > 0;
-    console.log("[hostinger-test] token present:", tokenPresent, "len:", token?.length ?? 0);
+    console.log("[hostinger-test] token_exists", tokenPresent);
 
-    if (!tokenPresent) {
-      return {
-        ok: false,
-        status: 0,
-        kind: "missing_token" as const,
-        message: "HOSTINGER_API_TOKEN não está configurado nos Secrets.",
-      };
-    }
-
-    const res = await hostinger.listVps();
-    console.log("[hostinger-test] result", { ok: res.ok, status: res.status, error: res.error });
+    const res = await hostinger.call("/api/vps/v1/virtual-machines", { timeoutMs: 15_000 });
+    console.log("[hostinger-test] response_status", res.status);
 
     let kind:
       | "ok"
@@ -239,8 +230,10 @@ export const adminTestHostingerConnection = createServerFn({ method: "POST" })
       | "missing_token" = "ok";
     let message = "API Hostinger conectada com sucesso.";
     if (!res.ok) {
-      if (res.status === 401) { kind = "unauthorized"; message = "Token inválido (401)."; }
+      if (!tokenPresent) { kind = "missing_token"; message = "HOSTINGER_API_TOKEN não está configurado nos Secrets."; }
+      else if (res.status === 401) { kind = "unauthorized"; message = "Token inválido ou Bearer malformado (401)."; }
       else if (res.status === 403) { kind = "forbidden"; message = "Acesso proibido (403). Verifique escopos do token."; }
+      else if (res.status === 0 && res.error?.toLowerCase().includes("timeout")) { kind = "timeout"; message = "Timeout ao contactar a API Hostinger."; }
       else if (res.status === 0) { kind = "network_error"; message = res.error ?? "Falha de rede ao contactar a Hostinger."; }
       else { kind = "http_error"; message = `Erro HTTP ${res.status}: ${res.error ?? "sem detalhes"}`; }
     }
@@ -251,5 +244,6 @@ export const adminTestHostingerConnection = createServerFn({ method: "POST" })
       kind,
       message,
       sample: res.ok ? (Array.isArray(res.data) ? `${res.data.length} VPS encontradas` : "resposta recebida") : null,
+      details: res.ok ? null : res.data,
     };
   });

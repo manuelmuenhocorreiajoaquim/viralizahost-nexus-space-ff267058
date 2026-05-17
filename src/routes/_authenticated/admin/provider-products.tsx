@@ -67,7 +67,8 @@ function Page() {
     queryKey: ["admin-hostinger-catalog"],
     enabled: !!user && isAdmin && !roleLoading,
     queryFn: () => catalogFn(),
-    staleTime: 1000 * 60 * 10,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const save = useMutation({
@@ -147,10 +148,14 @@ function Page() {
                   ● {test.data.message} (kind: {test.data.kind}{test.data.status ? `, http ${test.data.status}` : ""})
                 </span>
               )
-            ) : catalogQuery.isLoading ? (
-              <span className="text-slate-500">a verificar catálogo…</span>
+            ) : catalogQuery.isLoading || catalogQuery.isFetching ? (
+              <span className="text-slate-500">a testar GET /api/vps/v1/virtual-machines…</span>
             ) : catalogOk ? (
-              <span className="text-emerald-600 font-semibold">● catálogo acessível</span>
+              <span className="text-emerald-600 font-semibold">🟢 API Hostinger conectada</span>
+            ) : catalogQuery.data ? (
+              <span className="text-red-600 font-semibold">
+                ● {catalogQuery.data.error ?? `Erro HTTP ${catalogQuery.data.status || 0}`}
+              </span>
             ) : (
               <span className="text-amber-600 font-semibold">● estado desconhecido — clique em “Testar API”</span>
             )}
