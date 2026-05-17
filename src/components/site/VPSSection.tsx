@@ -1,13 +1,14 @@
 import { motion } from "framer-motion";
-import { Cpu, HardDrive, Wifi, Check, Zap } from "lucide-react";
+import { Cpu, HardDrive, Wifi, Check, Zap, ShieldCheck, Clock } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Section, SectionHeader } from "./Section";
 import { usePrice } from "@/lib/currency";
 
 const tiers = [
-  { name: "VPS NVMe 2", cpu: "2 vCPU", ram: "4 GB", ssd: "80 GB", bw: "4 TB", price: "89", badge: null },
-  { name: "VPS NVMe 4", cpu: "4 vCPU", ram: "8 GB", ssd: "160 GB", bw: "6 TB", price: "189", badge: "Recomendado" },
-  { name: "VPS NVMe 8", cpu: "8 vCPU", ram: "16 GB", ssd: "320 GB", bw: "10 TB", price: "349", badge: "Mais popular" },
-  { name: "Dedicado Pro", cpu: "16 vCPU", ram: "64 GB", ssd: "1 TB", bw: "20 TB", price: "899", badge: null },
+  { name: "VPS NVMe 1", productId: "vps-1", cpu: "1 vCPU", ram: "4 GB", ssd: "50 GB NVMe", bw: "4 TB", price: "59.99", badge: null as string | null },
+  { name: "VPS NVMe 2", productId: "vps-2", cpu: "2 vCPU", ram: "8 GB", ssd: "100 GB NVMe", bw: "8 TB", price: "87.99", badge: "Recomendado" },
+  { name: "VPS NVMe 3", productId: "vps-3", cpu: "4 vCPU", ram: "16 GB", ssd: "200 GB NVMe", bw: "16 TB", price: "119.99", badge: "Mais popular" },
+  { name: "VPS NVMe 4", productId: "vps-4", cpu: "8 vCPU", ram: "32 GB", ssd: "400 GB NVMe", bw: "32 TB", price: "239.99", badge: null },
 ];
 
 export default function VPSSection() {
@@ -18,6 +19,15 @@ export default function VPSSection() {
         title="Performance bruta com NVMe"
         desc="KVM virtualizado, IPv4 dedicado, snapshots ilimitados e painel premium."
       />
+
+      <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
+        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
+          <ShieldCheck className="h-3.5 w-3.5" /> Infraestrutura Oficial Hostinger
+        </span>
+        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted text-muted-foreground text-xs font-medium">
+          <Clock className="h-3.5 w-3.5" /> Provisionamento automático em até 5 minutos
+        </span>
+      </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
         {tiers.map((t, i) => (
@@ -57,9 +67,13 @@ function Tier({ t, i }: { t: typeof tiers[number]; i: number }) {
               <span className="text-4xl font-bold text-gradient-primary">{displayPrice}</span>
               <span className="text-xs text-muted-foreground">/mês</span>
             </div>
-            <a href="#" className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-gradient-primary text-primary-foreground text-sm font-semibold shadow-glow hover:scale-[1.02] transition">
+            <Link
+              to="/checkout"
+              search={{ step: "cycle" as const, product: t.productId }}
+              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-gradient-primary text-primary-foreground text-sm font-semibold shadow-glow hover:scale-[1.02] transition"
+            >
               <Check className="h-4 w-4" /> Contratar
-            </a>
+            </Link>
           </motion.div>
   );
 }
