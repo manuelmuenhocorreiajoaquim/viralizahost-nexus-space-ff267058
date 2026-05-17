@@ -1,15 +1,21 @@
 // Provisioning queue logic — server-only.
 //
-// For each paid order we:
-//  1. fetch its order_items
-//  2. look up provider_products mapping by internal_product_id
-//  3. create a provisioning_jobs row (status=pending)
-//  4. if mapping has auto_provision=true → try to provision now via Hostinger
-//     API; otherwise leave it as manual_review so admin can act on it.
+// Two-phase flow:
+//   ensureProvisioningJobs(orderId)
+//     → creates `provisioning_jobs` rows with status='pending' for every
+//       order_item that has a mapping in `provider_products`. Idempotent.
+//       Called as soon as a payment is generated (PIX / card / etc.), so
+//       admins can see the job in /admin/provisioning before the payment
+//       is even approved.
 //
-// This module is INDEPENDENT of the existing cPanel/WHM flow — the webhook
-// continues to call `create-cpanel-account` exactly as before. Hostinger
-// provisioning runs in addition to it.
+//   runPendingProvisioningJobs(orderId)
+//     → picks up pending jobs (auto_provision=true) and actually calls the
+//       Hostinger API to provision them. Called from
+//       activateOrderAfterPayment() after the MP webhook approves the
+//       payment.
+//
+//   enqueueHostingerProvisioning(orderId)
+//     → backwards-compatible wrapper that does BOTH (used by webhook).
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { hostinger } from "@/integrations/hostinger/client.server";
@@ -22,6 +28,9 @@ type OrderItemRow = {
   product_type: string;
   quantity: number;
   domain: string | null;
+  cycle: string | null;
+  unit_price: number | null;
+  total: number | null;
   metadata: any;
 };
 
@@ -36,23 +45,27 @@ type ProviderProductRow = {
   active: boolean;
 };
 
-export async function enqueueHostingerProvisioning(orderId: string) {
+/**
+ * Idempotently create pending provisioning_jobs for an order.
+ * Does NOT call the Hostinger API.
+ */
+export async function ensureProvisioningJobs(orderId: string) {
   const { data: order } = await supabaseAdmin
     .from("orders")
-    .select("id, user_id, status, payment_status")
+    .select("id, user_id, cycle, notes")
     .eq("id", orderId)
     .maybeSingle();
-  if (!order) return { ok: false, reason: "order_not_found" };
-  if (order.status !== "paid") return { ok: false, reason: "order_not_paid" };
+  if (!order) return { ok: false, reason: "order_not_found", jobs: [] as string[] };
 
   const { data: items } = await supabaseAdmin
     .from("order_items")
-    .select("id, order_id, product_id, product_name, product_type, quantity, domain, metadata")
+    .select(
+      "id, order_id, product_id, product_name, product_type, quantity, domain, cycle, unit_price, total, metadata",
+    )
     .eq("order_id", orderId);
 
-  if (!items || items.length === 0) return { ok: true, jobs: [] };
+  if (!items || items.length === 0) return { ok: true, jobs: [] as string[] };
 
-  // Look up active mappings in one round-trip.
   const productIds = Array.from(new Set(items.map((it) => it.product_id)));
   const { data: mappings } = await supabaseAdmin
     .from("provider_products")
@@ -64,13 +77,27 @@ export async function enqueueHostingerProvisioning(orderId: string) {
   const byId = new Map<string, ProviderProductRow>();
   for (const m of mappings ?? []) byId.set(m.internal_product_id, m as any);
 
+  // Lookup latest payment for amount/customer (best-effort).
+  const { data: payment } = await supabaseAdmin
+    .from("payments")
+    .select("id, amount, raw_response, provider_payment_id")
+    .eq("order_id", orderId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let customerEmail: string | null = null;
+  if (order.user_id) {
+    const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(order.user_id);
+    customerEmail = userRes?.user?.email ?? null;
+  }
+
   const createdJobs: string[] = [];
 
   for (const item of items as OrderItemRow[]) {
     const mapping = byId.get(item.product_id);
-    if (!mapping) continue; // not mapped to Hostinger → skip (e.g. WHM/cPanel handled it)
+    if (!mapping) continue;
 
-    // Idempotency: don't create a duplicate job for the same order_item.
     const { data: existing } = await supabaseAdmin
       .from("provisioning_jobs")
       .select("id")
@@ -84,6 +111,23 @@ export async function enqueueHostingerProvisioning(orderId: string) {
 
     const initialStatus = mapping.auto_provision ? "pending" : "manual_review";
 
+    const providerRequest = {
+      item_id: mapping.provider_price_id,
+      hostinger_price_id: mapping.provider_price_id,
+      product_slug: item.product_id,
+      product_name: item.product_name,
+      product_type: item.product_type,
+      quantity: item.quantity,
+      domain: item.domain,
+      billing_cycle: item.cycle ?? order.cycle ?? null,
+      unit_price: item.unit_price,
+      amount: item.total ?? payment?.amount ?? null,
+      customer_email: customerEmail,
+      payment_id: payment?.id ?? null,
+      provider_payment_id: payment?.provider_payment_id ?? null,
+      metadata: { ...(item.metadata ?? {}), ...(mapping.provider_metadata ?? {}) },
+    };
+
     const { data: job, error: jobErr } = await supabaseAdmin
       .from("provisioning_jobs")
       .insert({
@@ -94,12 +138,7 @@ export async function enqueueHostingerProvisioning(orderId: string) {
         provider_service_type: mapping.provider_service_type,
         provider_product_id: mapping.id,
         status: initialStatus,
-        provider_request: {
-          item_id: mapping.provider_price_id,
-          quantity: item.quantity,
-          domain: item.domain,
-          metadata: item.metadata ?? {},
-        },
+        provider_request: providerRequest,
       })
       .select("id")
       .single();
@@ -107,16 +146,57 @@ export async function enqueueHostingerProvisioning(orderId: string) {
       console.error("[provisioning] failed to create job", jobErr);
       continue;
     }
-
+    console.log("[provisioning] created pending job", {
+      jobId: job.id,
+      orderId,
+      itemId: item.id,
+      productSlug: item.product_id,
+      priceId: mapping.provider_price_id,
+    });
     createdJobs.push(job.id);
-
-    if (mapping.auto_provision) {
-      // Fire-and-await per item — total order processing is short.
-      await processProvisioningJob(job.id);
-    }
   }
 
   return { ok: true, jobs: createdJobs };
+}
+
+/**
+ * Process all pending jobs for an order via the Hostinger API.
+ * Called after the payment is approved.
+ */
+export async function runPendingProvisioningJobs(orderId: string) {
+  const { data: jobs } = await supabaseAdmin
+    .from("provisioning_jobs")
+    .select("id, status")
+    .eq("order_id", orderId)
+    .eq("provider", "hostinger")
+    .in("status", ["pending"]);
+
+  const ran: string[] = [];
+  for (const j of jobs ?? []) {
+    await processProvisioningJob(j.id);
+    ran.push(j.id);
+  }
+  return { ok: true, processed: ran };
+}
+
+/**
+ * Backwards-compatible: ensure jobs exist + run any pending ones immediately.
+ */
+export async function enqueueHostingerProvisioning(orderId: string) {
+  const { data: order } = await supabaseAdmin
+    .from("orders")
+    .select("id, status")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!order) return { ok: false, reason: "order_not_found" };
+
+  await ensureProvisioningJobs(orderId);
+
+  // Only auto-process when the order is already paid.
+  if (order.status === "paid") {
+    await runPendingProvisioningJobs(orderId);
+  }
+  return { ok: true };
 }
 
 export async function processProvisioningJob(jobId: string) {
@@ -138,8 +218,7 @@ export async function processProvisioningJob(jobId: string) {
     .eq("id", jobId);
 
   const req: any = job.provider_request ?? {};
-  const itemId: string | null = req.item_id ?? null;
-  const quantity: number = Number(req.quantity ?? 1);
+  const itemId: string | null = req.item_id ?? req.hostinger_price_id ?? null;
   const domain: string | null = req.domain ?? null;
 
   let result: { ok: boolean; status: number; data: any; error?: string };
@@ -148,8 +227,6 @@ export async function processProvisioningJob(jobId: string) {
     switch (job.provider_service_type) {
       case "vps": {
         if (!itemId) throw new Error("Mapping missing provider_price_id (item_id)");
-        // Best-effort: Hostinger requires more params (template, datacenter, hostname).
-        // Pass metadata from the mapping as overrides.
         result = await hostinger.createVps(
           { item_id: itemId, ...(req.metadata?.vps ?? {}) },
           jobId,
@@ -166,7 +243,6 @@ export async function processProvisioningJob(jobId: string) {
         break;
       }
       default: {
-        // Hosting / email / builder / vibecode etc. — no public purchase API.
         await supabaseAdmin
           .from("provisioning_jobs")
           .update({
@@ -215,8 +291,6 @@ export async function processProvisioningJob(jobId: string) {
     })
     .eq("id", jobId);
 
-  // Best-effort: create/refresh a row in `services` so the client panel
-  // surfaces the active item.
   try {
     if (job.user_id) {
       await supabaseAdmin.from("services").insert({
