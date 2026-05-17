@@ -245,7 +245,7 @@ export default function Navbar() {
               className="xl:hidden fixed top-0 right-0 bottom-0 z-50 w-[88vw] max-w-[380px] bg-[#050C18] border-l border-white/10 shadow-2xl flex flex-col"
             >
               <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
-                <Link to="/" onClick={() => setMobileOpen(false)} className="flex items-center">
+                <Link to="/" onClick={() => { setMobileOpen(false); clearCheckoutState(); }} className="flex items-center">
                   <img src={logo} alt="ViralizaHost" className="h-9 w-auto object-contain" />
                 </Link>
                 <button
