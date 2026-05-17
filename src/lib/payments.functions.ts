@@ -506,6 +506,12 @@ export const createCardPayment = createServerFn({ method: "POST" })
       })
       .eq("id", order.id);
 
+    try {
+      await ensureProvisioningJobs(order.id);
+    } catch (e) {
+      console.error("[card] ensureProvisioningJobs failed (non-fatal)", e);
+    }
+
     if (result.status === "approved") {
       await activateOrderAfterPayment(order.id);
     }
