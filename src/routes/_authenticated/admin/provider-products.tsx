@@ -432,6 +432,18 @@ function guessInternalSlug(name: string): string {
   return "vps-nvme-1";
 }
 
+function summarizeFeatures(features: unknown): string {
+  if (!features) return "—";
+  if (Array.isArray(features)) return features.slice(0, 4).map(String).join(" · ") || "—";
+  if (typeof features === "object") {
+    return Object.entries(features as Record<string, unknown>)
+      .slice(0, 4)
+      .map(([key, value]) => `${key}: ${String(value)}`)
+      .join(" · ") || "—";
+  }
+  return String(features);
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
