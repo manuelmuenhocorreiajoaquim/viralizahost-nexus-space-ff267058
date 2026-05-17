@@ -406,6 +406,16 @@ function Page() {
   );
 }
 
+// Heuristic mapping: Hostinger plan name → ViralizaHost internal slug.
+function guessInternalSlug(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes("kvm 8") || n.includes("kvm8")) return "vps-nvme-4";
+  if (n.includes("kvm 4") || n.includes("kvm4")) return "vps-nvme-3";
+  if (n.includes("kvm 2") || n.includes("kvm2")) return "vps-nvme-2";
+  if (n.includes("kvm 1") || n.includes("kvm1")) return "vps-nvme-1";
+  return "vps-nvme-1";
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
