@@ -208,6 +208,78 @@ export const adminHostingerCatalog = createServerFn({ method: "GET" })
     return res;
   });
 
+// ---- Admin: real VPS catalog from Hostinger billing API ----
+
+export const adminListHostingerVpsCatalog = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const items = await fetchHostingerVpsCatalog();
+    return { items };
+  });
+
+// Upsert a provider_products row from a real catalog entry. The price markup
+// (default 2x = 100% profit) is applied to the Hostinger price.
+export const adminMapCatalogItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        item_id: z.string().min(1).max(200),
+        internal_product_id: z.string().min(1).max(120),
+        internal_product_name: z.string().min(1).max(200),
+        internal_price: z.number().finite().nonnegative(),
+        currency: z.string().min(1).max(8).default("BRL"),
+        auto_provision: z.boolean().default(true),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    // Validate item_id against the live catalog.
+    const catalog = await fetchHostingerVpsCatalog();
+    const entry = catalog.find((c) => c.item_id === data.item_id);
+    if (!entry) throw new Error(`item_id "${data.item_id}" não encontrado no catálogo Hostinger`);
+
+    // Upsert by internal_product_id
+    const { data: existing } = await supabaseAdmin
+      .from("provider_products")
+      .select("id")
+      .eq("internal_product_id", data.internal_product_id)
+      .eq("provider", "hostinger")
+      .maybeSingle();
+
+    const payload = {
+      internal_product_id: data.internal_product_id,
+      internal_product_name: data.internal_product_name,
+      provider: "hostinger",
+      provider_service_type: "vps",
+      provider_price_id: data.item_id,
+      provider_metadata: { catalog: entry.raw ?? null, hostinger_name: entry.name },
+      auto_provision: data.auto_provision,
+      internal_price: data.internal_price,
+      currency: data.currency,
+      active: true,
+    };
+
+    if (existing?.id) {
+      const { error } = await supabaseAdmin
+        .from("provider_products")
+        .update(payload)
+        .eq("id", existing.id);
+      if (error) throw new Error(error.message);
+      return { ok: true, id: existing.id, updated: true };
+    }
+    const { data: row, error } = await supabaseAdmin
+      .from("provider_products")
+      .insert(payload)
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    return { ok: true, id: row.id, updated: false };
+  });
+
+
 // ---- Admin: dedicated connection test (GET /api/vps/v1/virtual-machines) ----
 
 export const adminTestHostingerConnection = createServerFn({ method: "POST" })
