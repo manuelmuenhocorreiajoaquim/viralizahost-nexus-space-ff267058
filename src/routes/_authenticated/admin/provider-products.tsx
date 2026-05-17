@@ -53,6 +53,7 @@ function Page() {
   const upsertFn = useServerFn(adminUpsertProviderProduct);
   const deleteFn = useServerFn(adminDeleteProviderProduct);
   const catalogFn = useServerFn(adminHostingerCatalog);
+  const testFn = useServerFn(adminTestHostingerConnection);
 
   const [form, setForm] = useState<FormState | null>(null);
 
