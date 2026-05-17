@@ -1,12 +1,13 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { Loader2, RefreshCw, CheckCircle2, AlertTriangle, Clock, FileSearch, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Loader2, RefreshCw, CheckCircle2, AlertTriangle, Clock, FileSearch, X, Play } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/use-auth";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/dashboard/ui";
+import { supabase } from "@/integrations/supabase/client";
 import {
   adminListProvisioningJobs,
   adminRetryProvisioning,
