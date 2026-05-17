@@ -87,12 +87,16 @@ function Page() {
   }, [user, isAdmin, qc]);
 
   const retry = useMutation({
-    mutationFn: (jobId: string) => retryFn({ data: { jobId } }),
-    onSuccess: () => {
-      toast.success("Reprocessado.");
+    mutationFn: (jobId: string) => {
+      toast.message("Provisionamento iniciado");
+      return retryFn({ data: { jobId } });
+    },
+    onSuccess: (res: any) => {
+      if (res?.ok) toast.success("Provisionamento concluído");
+      else if (res?.error) toast.error(`Erro: ${res.error}`);
       qc.invalidateQueries({ queryKey: ["admin-provisioning"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Falha."),
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao provisionar"),
     onSettled: () => setBusyId(null),
   });
 
