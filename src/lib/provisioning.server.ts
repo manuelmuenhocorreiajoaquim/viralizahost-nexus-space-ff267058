@@ -221,7 +221,7 @@ export async function processProvisioningJob(jobId: string) {
     await supabaseAdmin.from("services").insert({
       user_id: job.user_id,
       type: job.provider_service_type,
-      name: `${job.provider_service_type} (Hostinger)`,
+      name: `${String(job.provider_service_type)} (Hostinger)`,
       status: "active",
       provisioning_job_id: jobId,
     });
