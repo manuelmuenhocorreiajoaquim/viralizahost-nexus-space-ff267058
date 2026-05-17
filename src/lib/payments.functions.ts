@@ -315,6 +315,15 @@ export const createPixPayment = createServerFn({ method: "POST" })
       .update({ payment_status: "pending", payment_provider: "mercadopago", payment_method: "pix" })
       .eq("id", order.id);
 
+    // Create pending provisioning_jobs immediately so admins can see them
+    // in /admin/provisioning before the payment is approved. Idempotent.
+    try {
+      const enq = await ensureProvisioningJobs(order.id);
+      console.log("[pix] ensured provisioning jobs", enq);
+    } catch (e) {
+      console.error("[pix] ensureProvisioningJobs failed (non-fatal)", e);
+    }
+
     return {
       success: true,
       paymentId: payment.id,
