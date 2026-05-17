@@ -43,6 +43,32 @@ type Ctx = {
 const CartContext = createContext<Ctx | null>(null);
 const STORAGE_KEY = "vh.cart.v1";
 const CATALOG_VERSION_KEY = "vh.catalog.version";
+const CHECKOUT_CACHE_KEYS = [
+  STORAGE_KEY,
+  "vh.checkout.customer.v1",
+  "selectedProduct",
+  "selectedCycle",
+  "checkoutState",
+  "cart",
+  "cachedCheckout",
+  "cachedProducts",
+  "admin-provider-products",
+  "admin-hostinger-vps-catalog",
+  "admin-provisioning",
+];
+
+export function normalizeProductId(productId: string) {
+  const legacyVps = /^vps-(\d)$/.exec(productId);
+  return legacyVps ? `vps-nvme-${legacyVps[1]}` : productId;
+}
+
+function clearKnownCheckoutKeys(includeSession = true) {
+  try {
+    CHECKOUT_CACHE_KEYS.forEach((key) => localStorage.removeItem(key));
+    if (includeSession) sessionStorage.clear();
+    localStorage.setItem(CATALOG_VERSION_KEY, CATALOG_VERSION);
+  } catch {}
+}
 
 /**
  * Hard-reset all checkout state and navigate to /checkout with the chosen
@@ -50,35 +76,18 @@ const CATALOG_VERSION_KEY = "vh.catalog.version";
  * and never reuses a previously-selected product or cycle from cache.
  */
 export function startCheckout(productId: string, cycle: CycleId = "monthly") {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem("selectedProduct");
-    localStorage.removeItem("selectedCycle");
-    localStorage.removeItem("checkoutState");
-    localStorage.removeItem("cart");
-    localStorage.removeItem("cachedCheckout");
-    localStorage.removeItem("cachedProducts");
-    sessionStorage.clear();
-    localStorage.setItem(CATALOG_VERSION_KEY, CATALOG_VERSION);
-  } catch {}
-  const url = `/checkout?step=cycle&product=${encodeURIComponent(productId)}&cycle=${cycle}&t=${Date.now()}`;
+  clearKnownCheckoutKeys(true);
+  const normalizedProductId = normalizeProductId(productId);
+  const url = `/checkout?step=cycle&product=${encodeURIComponent(normalizedProductId)}&cycle=${cycle}&t=${Date.now()}`;
   // Hard navigation → guarantees a fresh app boot with clean state.
   window.location.href = url;
 }
 
 /** Clear checkout-related state (call on logo/home navigation). */
 export function clearCheckoutState() {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem("selectedProduct");
-    localStorage.removeItem("selectedCycle");
-    localStorage.removeItem("checkoutState");
-    localStorage.removeItem("cart");
-    localStorage.removeItem("cachedCheckout");
-    localStorage.removeItem("cachedProducts");
-  } catch {}
+  clearKnownCheckoutKeys(false);
 }
-export const CATALOG_VERSION = "2026-05-17-vps-prices-v2";
+export const CATALOG_VERSION = "2026-05-17-vps-hostinger-item-ids-v3";
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -100,7 +109,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (Array.isArray(data.items)) {
           const normalized = data.items
             .map((item: any) => ({
-              productId: String(item.productId ?? item.id ?? ""),
+              productId: normalizeProductId(String(item.productId ?? item.id ?? "")),
               qty: Number(item.qty ?? item.quantity ?? 1),
               domain: typeof item.domain === "string" ? item.domain : undefined,
               name: typeof item.name === "string" ? item.name : undefined,
