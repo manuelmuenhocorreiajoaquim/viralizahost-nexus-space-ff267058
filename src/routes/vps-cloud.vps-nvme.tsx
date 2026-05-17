@@ -4,6 +4,7 @@ import { Zap, Cpu, HardDrive, Wifi, Check, ArrowRight, Globe, ShieldCheck, Clock
 import Navbar from "@/components/site/Navbar";
 import CTAFooter from "@/components/site/CTAFooter";
 import { usePrice } from "@/lib/currency";
+import { startCheckout } from "@/lib/cart";
 
 export const Route = createFileRoute("/vps-cloud/vps-nvme")({
   head: () => ({
