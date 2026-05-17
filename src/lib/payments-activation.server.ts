@@ -43,4 +43,13 @@ export async function activateOrderAfterPayment(orderId: string) {
   } catch (e) {
     console.error("[activation] cPanel provisioning error", e);
   }
+
+  // Hostinger provisioning queue — runs in addition to cPanel.
+  // Only items mapped in `provider_products` are processed; everything else
+  // is a no-op so the existing WHM flow remains untouched.
+  try {
+    await enqueueHostingerProvisioning(orderId);
+  } catch (e) {
+    console.error("[activation] hostinger provisioning error", e);
+  }
 }
