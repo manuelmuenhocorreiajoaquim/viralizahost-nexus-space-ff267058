@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { Menu, X, Globe, Server, Cloud, Cpu, Megaphone, Palette, Film, Phone, ArrowRight, MessageCircle, ChevronDown, Mail, Shield, Zap, Bot, BarChart3, Brain, Lock, ShieldCheck, Award, Building2 } from "lucide-react";
 import logo from "@/assets/viralizahost-logo.png";
 import { useCurrency, type Currency } from "@/lib/currency";
+import { clearCheckoutState } from "@/lib/cart";
 
 type MenuItem = { icon: React.ComponentType<{ className?: string }>; title: string; desc: string; to?: string };
 type MenuEntry = { label: string; icon: React.ComponentType<{ className?: string }>; to?: string; items?: MenuItem[] };
@@ -92,6 +93,7 @@ export default function Navbar() {
               setOpen(null);
               setMobileOpen(false);
               setCurrOpen(false);
+              clearCheckoutState();
             }}
             className="flex items-center shrink-0 cursor-pointer"
             aria-label="Ir para a página inicial"
@@ -243,7 +245,7 @@ export default function Navbar() {
               className="xl:hidden fixed top-0 right-0 bottom-0 z-50 w-[88vw] max-w-[380px] bg-[#050C18] border-l border-white/10 shadow-2xl flex flex-col"
             >
               <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
-                <Link to="/" onClick={() => setMobileOpen(false)} className="flex items-center">
+                <Link to="/" onClick={() => { setMobileOpen(false); clearCheckoutState(); }} className="flex items-center">
                   <img src={logo} alt="ViralizaHost" className="h-9 w-auto object-contain" />
                 </Link>
                 <button
