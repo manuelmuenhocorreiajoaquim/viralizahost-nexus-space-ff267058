@@ -517,6 +517,7 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
   const cart = useCart();
   const { currency } = useCurrency();
   const [showAdd, setShowAdd] = useState(false);
+  const hostingerIds = useHostingerItemIds(cart.items.map((i) => i.productId));
 
   if (cart.items.length === 0) {
     return (
@@ -570,6 +571,11 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
                   <div className="text-xs text-slate-500 capitalize">{subLabel}</div>
                   {it.domain && !annual && (
                     <div className="text-[11px] text-slate-400 truncate mt-0.5">{it.domain}</div>
+                  )}
+                  {p.type === "vps" && normalizeProductId(p.id).startsWith("vps-nvme-") && (
+                    <div className="text-[10px] text-slate-400 font-mono truncate mt-0.5">
+                      item_id: {hostingerIds.data?.[normalizeProductId(p.id)] ?? "a sincronizar…"}
+                    </div>
                   )}
                 </div>
                 {annual ? (
