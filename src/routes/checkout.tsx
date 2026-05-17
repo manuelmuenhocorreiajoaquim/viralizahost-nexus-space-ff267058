@@ -154,19 +154,35 @@ function CheckoutPage() {
         : initialStep;
 
   useEffect(() => {
-    if (search.product && !cart.items.some((i) => i.productId === search.product)) {
-      cart.add(search.product);
-    }
-    if (search.cycle) {
-      cart.setCycle(search.cycle);
-    } else if (search.product) {
-      const p = findProduct(search.product);
-      // VPS / hosting products default to monthly when no cycle is specified
-      if (p && !isAnnualProduct(p) && !isOneTimeService(p)) {
+    if (search.product) {
+      const newProd = findProduct(search.product);
+      if (!newProd) {
+        // Invalid product slug → send user to plans page
+        navigate({ to: "/vps-cloud/vps-nvme", replace: true });
+        return;
+      }
+      // URL product always wins: replace any prior cart contents so we never
+      // reuse a previously-selected VPS / plan from cache.
+      const onlyThis =
+        cart.items.length === 1 && cart.items[0].productId === search.product;
+      if (!onlyThis) {
+        cart.clear();
+        cart.add(search.product);
+      }
+      // Cycle: explicit URL cycle wins, otherwise monthly for recurring products.
+      if (search.cycle) {
+        cart.setCycle(search.cycle);
+      } else if (!isAnnualProduct(newProd) && !isOneTimeService(newProd)) {
         cart.setCycle("monthly");
       }
-    }
-    if (search.product || search.cycle) {
+      // Strip product/cycle/t from URL but keep current step.
+      navigate({
+        to: "/checkout",
+        search: { step: search.step ?? "cycle" },
+        replace: true,
+      });
+    } else if (search.cycle) {
+      cart.setCycle(search.cycle);
       navigate({
         to: "/checkout",
         search: { step: search.step ?? "cycle" },
@@ -174,7 +190,7 @@ function CheckoutPage() {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [search.product, search.cycle, search.t]);
 
   // Keep URL in sync if the step is no longer valid for the current cart.
   useEffect(() => {
