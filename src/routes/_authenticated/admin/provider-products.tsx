@@ -120,6 +120,34 @@ function Page() {
     onError: (e: any) => toast.error(e?.message ?? "Falha ao testar API."),
   });
 
+  const vpsCatalogQuery = useQuery({
+    queryKey: ["admin-hostinger-vps-catalog"],
+    enabled: !!user && isAdmin && !roleLoading,
+    queryFn: () => vpsCatalogFn(),
+    staleTime: 60_000,
+  });
+
+  const mapItem = useMutation({
+    mutationFn: (p: {
+      item_id: string;
+      internal_product_id: string;
+      internal_product_name: string;
+      internal_price: number;
+    }) =>
+      mapCatalogFn({
+        data: {
+          ...p,
+          currency: "BRL",
+          auto_provision: true,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Produto mapeado com item_id real da Hostinger.");
+      qc.invalidateQueries({ queryKey: ["admin-provider-products"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro a mapear."),
+  });
+
   if (loading || roleLoading) {
     return <div className="p-8 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" /></div>;
   }
