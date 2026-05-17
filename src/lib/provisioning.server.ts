@@ -344,11 +344,7 @@ export async function processProvisioningJob(jobId: string) {
     .eq("id", jobId);
 
   const req: any = job.provider_request ?? {};
-  let itemId: string | null = req.item_id ?? req.hostinger_price_id ?? null;
-  const productSlug: string | null = req.product_slug ?? null;
-  if (!itemId && productSlug && VPS_ITEM_ID_FALLBACK[productSlug]) {
-    itemId = VPS_ITEM_ID_FALLBACK[productSlug];
-  }
+  const itemId: string | null = req.item_id ?? req.hostinger_price_id ?? null;
   const domain: string | null = req.domain ?? null;
 
   let result: { ok: boolean; status: number; data: any; error?: string };
