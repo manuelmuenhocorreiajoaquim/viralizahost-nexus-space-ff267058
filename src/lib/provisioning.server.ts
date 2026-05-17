@@ -294,6 +294,46 @@ async function validateItemIdInCatalog(itemId: string): Promise<{ ok: boolean; a
   return { ok: ids.includes(itemId), available: ids };
 }
 
+export async function syncHostingerVpsCatalogToProviderProducts() {
+  const catalog = await fetchHostingerVpsCatalog();
+  const preferred = new Map<string, HostingerCatalogPrice>();
+  for (const entry of catalog) {
+    const plan = normalizePlanCode(entry.item_id) ?? normalizePlanCode(entry.name);
+    const product = plan ? VPS_INTERNAL_PRODUCTS[plan] : null;
+    if (!product) continue;
+    const current = preferred.get(product.slug);
+    if (!current || (isMonthlyCatalogEntry(entry) && !isMonthlyCatalogEntry(current))) {
+      preferred.set(product.slug, entry);
+    }
+  }
+  for (const [slug, entry] of preferred) {
+    const plan = normalizePlanCode(entry.item_id) ?? normalizePlanCode(entry.name);
+    const product = plan ? VPS_INTERNAL_PRODUCTS[plan] : null;
+    if (!product) continue;
+    await supabaseAdmin.from("provider_products").upsert(
+      {
+        internal_product_id: product.slug,
+        internal_product_name: product.name,
+        provider: "hostinger",
+        provider_service_type: "vps",
+        provider_price_id: entry.item_id,
+        provider_metadata: {
+          catalog: entry.raw ?? null,
+          hostinger_name: entry.name,
+          hostinger_item_id: entry.item_id,
+          billing_period: entry.period ? `${entry.period}${entry.period_unit ?? ""}` : null,
+        },
+        auto_provision: true,
+        internal_price: product.price,
+        currency: "BRL",
+        active: true,
+      },
+      { onConflict: "provider,internal_product_id" },
+    );
+  }
+  return { ok: true, catalog, mapped: Array.from(preferred.entries()).map(([slug, entry]) => ({ slug, item_id: entry.item_id })) };
+}
+
 function generateRootPassword(): string {
   // 20-char password with upper/lower/digits/symbol.
   const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
