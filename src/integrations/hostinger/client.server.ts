@@ -98,6 +98,7 @@ export async function hostingerCall<T = any>(
         "Content-Type": "application/json",
         Accept: "application/json",
         "Cache-Control": "no-store",
+        "User-Agent": "ViralizaHost/1.0 (+https://viralizahost.com)",
       },
       body: opts.body ? JSON.stringify(opts.body) : undefined,
       signal: AbortSignal.timeout(opts.timeoutMs ?? DEFAULT_TIMEOUT_MS),
