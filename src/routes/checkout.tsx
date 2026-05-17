@@ -1240,6 +1240,7 @@ function PaymentStep({
   const { user } = useAuth();
   const { currency } = useCurrency();
   const createOrderFn = useServerFn(createCheckoutOrder);
+  const hostingerIds = useHostingerItemIds(cart.items.map((i) => i.productId));
   const [method, setMethod] = useState<"pix" | "card" | "boleto" | "paypal" | "bank_bic">("pix");
   const [loading, setLoading] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
@@ -1300,13 +1301,14 @@ function PaymentStep({
           throw new Error("Item inválido no carrinho.");
         }
         return {
-          id: p?.id ?? it.productId,
+          id: normalizeProductId(p?.id ?? it.productId),
           name,
           type,
           price,
           quantity,
           domain: it.domain ?? null,
           total: safeTotal,
+          hostingerItemId: p?.type === "vps" ? hostingerIds.data?.[normalizeProductId(p.id)] : undefined,
         };
       });
 
@@ -1353,6 +1355,7 @@ function PaymentStep({
   const onApproved = () => {
     if (!pendingOrderId) return;
     cart.clear();
+    clearCheckoutState();
     setTimeout(() => {
       setPixOpen(false);
       setCardOpen(false);
