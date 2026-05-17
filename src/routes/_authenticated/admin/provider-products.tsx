@@ -12,6 +12,7 @@ import {
   adminUpsertProviderProduct,
   adminDeleteProviderProduct,
   adminHostingerCatalog,
+  adminTestHostingerConnection,
 } from "@/lib/provisioning.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/provider-products")({
@@ -52,6 +53,7 @@ function Page() {
   const upsertFn = useServerFn(adminUpsertProviderProduct);
   const deleteFn = useServerFn(adminDeleteProviderProduct);
   const catalogFn = useServerFn(adminHostingerCatalog);
+  const testFn = useServerFn(adminTestHostingerConnection);
 
   const [form, setForm] = useState<FormState | null>(null);
 
@@ -103,6 +105,16 @@ function Page() {
     onError: (e: any) => toast.error(e?.message ?? "Erro a remover."),
   });
 
+  const test = useMutation({
+    mutationFn: () => testFn(),
+    onSuccess: (r: any) => {
+      if (r?.ok) toast.success(r.message ?? "API Hostinger conectada.");
+      else toast.error(r?.message ?? "API Hostinger indisponível.");
+      qc.invalidateQueries({ queryKey: ["admin-hostinger-catalog"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao testar API."),
+  });
+
   if (loading || roleLoading) {
     return <div className="p-8 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" /></div>;
   }
@@ -119,17 +131,40 @@ function Page() {
         subtitle="Mapeie cada produto do ViralizaHost ao item correspondente do catálogo Hostinger."
       />
 
-      <div className="flex items-center justify-between">
-        <div className="text-xs text-slate-500">
-          API Hostinger: {catalogQuery.isLoading
-            ? "a verificar…"
-            : catalogOk
-              ? <span className="text-emerald-600 font-semibold">online</span>
-              : <span className="text-red-600 font-semibold">indisponível — verifique o token</span>}
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="text-sm">
+          <div className="font-semibold mb-0.5">Conexão API Hostinger</div>
+          <div className="text-xs text-slate-600">
+            {test.isPending ? (
+              <span className="text-slate-500">A testar GET /api/vps/v1/virtual-machines…</span>
+            ) : test.data ? (
+              test.data.ok ? (
+                <span className="text-emerald-600 font-semibold">
+                  ● API Hostinger conectada {test.data.sample ? `— ${test.data.sample}` : ""}
+                </span>
+              ) : (
+                <span className="text-red-600 font-semibold">
+                  ● {test.data.message} (kind: {test.data.kind}{test.data.status ? `, http ${test.data.status}` : ""})
+                </span>
+              )
+            ) : catalogQuery.isLoading ? (
+              <span className="text-slate-500">a verificar catálogo…</span>
+            ) : catalogOk ? (
+              <span className="text-emerald-600 font-semibold">● catálogo acessível</span>
+            ) : (
+              <span className="text-amber-600 font-semibold">● estado desconhecido — clique em “Testar API”</span>
+            )}
+          </div>
         </div>
-        <Button size="sm" onClick={() => setForm(empty)}>
-          <Plus className="h-4 w-4 mr-1" /> Novo mapeamento
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => test.mutate()} disabled={test.isPending}>
+            {test.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+            Testar API
+          </Button>
+          <Button size="sm" onClick={() => setForm(empty)}>
+            <Plus className="h-4 w-4 mr-1" /> Novo mapeamento
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
