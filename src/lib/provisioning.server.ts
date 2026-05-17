@@ -448,14 +448,29 @@ export async function processProvisioningJob(jobId: string) {
         if (!templateId) throw new Error("Hostinger template (Ubuntu 22.04 LTS) não encontrado");
         if (!dataCenterId) throw new Error("Nenhum data center Hostinger disponível");
 
+        const [templateValidation, dcValidation] = await Promise.all([
+          validateTemplateId(templateId),
+          validateDataCenterId(dataCenterId),
+        ]);
+        if (!templateValidation.ok) {
+          throw new Error(
+            `template_id "${templateId}" não existe na API Hostinger. IDs válidos: ${templateValidation.available.slice(0, 10).join(", ")}`,
+          );
+        }
+        if (!dcValidation.ok) {
+          throw new Error(
+            `data_center_id "${dataCenterId}" não existe na API Hostinger. IDs válidos: ${dcValidation.available.slice(0, 10).join(", ")}`,
+          );
+        }
+
         const hostname = `vps-${String(job.order_id ?? job.id).slice(0, 8)}`;
         const rootPassword = generateRootPassword();
 
         builtPayload = {
           item_id: itemId,
           setup: {
-            template_id: templateId,
-            data_center_id: dataCenterId,
+            template_id: String(templateId),
+            data_center_id: String(dataCenterId),
             hostname,
             root_password: rootPassword,
             ...(req.metadata?.vps?.setup ?? {}),
@@ -472,7 +487,7 @@ export async function processProvisioningJob(jobId: string) {
           .update({
             provider_request: {
               ...req,
-              setup: { template_id: templateId, data_center_id: dataCenterId, hostname, root_user: "root" },
+              setup: { template_id: String(templateId), data_center_id: String(dataCenterId), hostname, root_user: "root" },
             },
           })
           .eq("id", jobId);
