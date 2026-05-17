@@ -249,7 +249,7 @@ function Page() {
               </thead>
               <tbody>
                 {(vpsCatalogQuery.data?.items ?? []).map((it: any) => {
-                  const slug = guessInternalSlug(it.name);
+                  const slug = guessInternalSlug(it.item_id, it.name);
                   const internalPrice = it.price != null ? Number((it.price * 2).toFixed(2)) : 0;
                   return (
                     <tr key={it.item_id} className="border-t border-slate-100">
@@ -267,14 +267,14 @@ function Page() {
                           onClick={() =>
                             mapItem.mutate({
                               item_id: it.item_id,
-                              internal_product_id: slug,
+                              internal_product_id: slug ?? "",
                               internal_product_name: it.name,
                               internal_price: internalPrice,
                             })
                           }
-                          disabled={mapItem.isPending}
+                          disabled={mapItem.isPending || !slug}
                         >
-                          Mapear → {slug}
+                          {slug ? `Mapear → ${slug}` : "Plano não reconhecido"}
                         </Button>
                       </td>
                     </tr>
@@ -423,13 +423,14 @@ function Page() {
 }
 
 // Heuristic mapping: Hostinger plan name → ViralizaHost internal slug.
-function guessInternalSlug(name: string): string {
-  const n = name.toLowerCase();
-  if (n.includes("kvm 8") || n.includes("kvm8")) return "vps-nvme-4";
-  if (n.includes("kvm 4") || n.includes("kvm4")) return "vps-nvme-3";
-  if (n.includes("kvm 2") || n.includes("kvm2")) return "vps-nvme-2";
-  if (n.includes("kvm 1") || n.includes("kvm1")) return "vps-nvme-1";
-  return "vps-nvme-1";
+function guessInternalSlug(itemId: string, name: string): string | null {
+  const source = `${itemId} ${name}`.toLowerCase();
+  const plan = /vps-kvm([1248])(?:\D|$)/.exec(source)?.[1];
+  if (plan === "8") return "vps-nvme-4";
+  if (plan === "4") return "vps-nvme-3";
+  if (plan === "2") return "vps-nvme-2";
+  if (plan === "1") return "vps-nvme-1";
+  return null;
 }
 
 function summarizeFeatures(features: unknown): string {
