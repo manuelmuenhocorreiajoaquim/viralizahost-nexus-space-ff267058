@@ -204,6 +204,72 @@ function Page() {
         </div>
       </div>
 
+      {/* Catálogo Hostinger real */}
+      <div className="rounded-2xl border border-slate-200 bg-white">
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <div className="font-semibold">Catálogo Hostinger (item_id real)</div>
+            <div className="text-xs text-slate-500">
+              Itens VPS retornados em tempo real pela API. Use “Mapear” para gravar o item_id oficial em provider_products.
+            </div>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => vpsCatalogQuery.refetch()} disabled={vpsCatalogQuery.isFetching}>
+            {vpsCatalogQuery.isFetching ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+            Sincronizar catálogo
+          </Button>
+        </div>
+        <div className="overflow-x-auto">
+          {vpsCatalogQuery.isLoading ? (
+            <div className="py-10 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-slate-400" /></div>
+          ) : (vpsCatalogQuery.data?.items?.length ?? 0) === 0 ? (
+            <div className="py-10 text-center text-slate-500 text-sm">Sem itens VPS no catálogo. Verifique o token e clique em “Sincronizar catálogo”.</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-3 py-2">Plano</th>
+                  <th className="px-3 py-2 font-mono">item_id (real)</th>
+                  <th className="px-3 py-2">Preço Hostinger</th>
+                  <th className="px-3 py-2">Período</th>
+                  <th className="px-3 py-2 text-right">Mapear</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(vpsCatalogQuery.data?.items ?? []).map((it: any) => {
+                  const slug = guessInternalSlug(it.name);
+                  const internalPrice = it.price != null ? Number((it.price * 2).toFixed(2)) : 0;
+                  return (
+                    <tr key={it.item_id} className="border-t border-slate-100">
+                      <td className="px-3 py-2">{it.name}</td>
+                      <td className="px-3 py-2 text-xs font-mono">{it.item_id}</td>
+                      <td className="px-3 py-2">{it.price != null ? `${it.currency ?? ""} ${it.price.toFixed(2)}` : "—"}</td>
+                      <td className="px-3 py-2 text-xs">{it.period ?? ""} {it.period_unit ?? ""}</td>
+                      <td className="px-3 py-2 text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            mapItem.mutate({
+                              item_id: it.item_id,
+                              internal_product_id: slug,
+                              internal_product_name: it.name,
+                              internal_price: internalPrice,
+                            })
+                          }
+                          disabled={mapItem.isPending}
+                        >
+                          Mapear → {slug}
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
       {isLoading ? (
         <div className="py-12 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" /></div>
       ) : products.length === 0 ? (
