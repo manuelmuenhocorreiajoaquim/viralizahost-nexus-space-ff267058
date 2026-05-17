@@ -254,6 +254,9 @@ export const adminMapCatalogItem = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
+    if (/^vps-[1-4]$/.test(data.internal_product_id)) {
+      throw new Error("Mapeamento legado bloqueado. Use vps-nvme-1 a vps-nvme-4.");
+    }
     // Validate item_id against the live catalog.
     const catalog = await fetchHostingerVpsCatalog();
     const entry = catalog.find((c) => c.item_id === data.item_id);
