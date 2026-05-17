@@ -214,6 +214,23 @@ export type HostingerCatalogPrice = {
   raw?: any;
 };
 
+const VPS_INTERNAL_PRODUCTS: Record<string, { slug: string; name: string; price: number }> = {
+  "1": { slug: "vps-nvme-1", name: "VPS NVMe 1", price: 59.99 },
+  "2": { slug: "vps-nvme-2", name: "VPS NVMe 2", price: 87.99 },
+  "4": { slug: "vps-nvme-3", name: "VPS NVMe 3", price: 119.99 },
+  "8": { slug: "vps-nvme-4", name: "VPS NVMe 4", price: 239.99 },
+};
+
+function normalizePlanCode(input: string): string | null {
+  return /vps-kvm(1|2|4|8)(?:\D|$)/i.exec(input)?.[1] ?? null;
+}
+
+function isMonthlyCatalogEntry(entry: HostingerCatalogPrice) {
+  const item = entry.item_id.toLowerCase();
+  const unit = String(entry.period_unit ?? "").toLowerCase();
+  return item.endsWith("-1m") || item.includes("-1m-") || (Number(entry.period) === 1 && /month|mês|mes|monthly|m/.test(unit));
+}
+
 /**
  * Fetch the live Hostinger billing catalog and flatten every VPS price
  * (each plan × billing period) into a real `item_id` that can be sent to
