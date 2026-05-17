@@ -9,6 +9,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getProvider } from "@/integrations/payments/mercadopago/client.server";
 import { activateOrderAfterPayment } from "@/lib/payments-activation.server";
+import { ensureProvisioningJobs } from "@/lib/provisioning.server";
 
 const OrderItemSchema = z.object({
   id: z.string().min(1),
