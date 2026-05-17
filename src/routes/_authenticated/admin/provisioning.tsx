@@ -60,6 +60,32 @@ function Page() {
     queryFn: () => logsFn({ data: { jobId: logsFor! } }),
   });
 
+  // Realtime: refresh the list whenever provisioning_jobs changes.
+  useEffect(() => {
+    if (!user || !isAdmin) return;
+    const channel = supabase
+      .channel("admin-provisioning-jobs")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "provisioning_jobs" },
+        (payload) => {
+          qc.invalidateQueries({ queryKey: ["admin-provisioning"] });
+          if (payload.eventType === "INSERT") {
+            toast.info("Novo provisionamento na fila");
+          } else if (payload.eventType === "UPDATE") {
+            const status = (payload.new as any)?.status;
+            if (status === "provisioned") toast.success("Provisionamento concluído");
+            else if (status === "failed") toast.error("Erro ao provisionar");
+            else if (status === "processing") toast.message("Provisionamento iniciado");
+          }
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, isAdmin, qc]);
+
   const retry = useMutation({
     mutationFn: (jobId: string) => retryFn({ data: { jobId } }),
     onSuccess: () => {
