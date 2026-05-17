@@ -15,6 +15,7 @@ import {
   adminTestHostingerConnection,
   adminListHostingerVpsCatalog,
   adminMapCatalogItem,
+  adminSyncHostingerVpsCatalog,
 } from "@/lib/provisioning.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/provider-products")({
@@ -58,6 +59,7 @@ function Page() {
   const testFn = useServerFn(adminTestHostingerConnection);
   const vpsCatalogFn = useServerFn(adminListHostingerVpsCatalog);
   const mapCatalogFn = useServerFn(adminMapCatalogItem);
+  const syncCatalogFn = useServerFn(adminSyncHostingerVpsCatalog);
 
   const [form, setForm] = useState<FormState | null>(null);
 
@@ -148,6 +150,16 @@ function Page() {
     onError: (e: any) => toast.error(e?.message ?? "Erro a mapear."),
   });
 
+  const syncCatalog = useMutation({
+    mutationFn: () => syncCatalogFn(),
+    onSuccess: (res: any) => {
+      toast.success(`Catálogo sincronizado: ${res?.mapped?.length ?? 0} planos VPS atualizados.`);
+      qc.invalidateQueries({ queryKey: ["admin-provider-products"] });
+      qc.invalidateQueries({ queryKey: ["admin-hostinger-vps-catalog"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao sincronizar catálogo."),
+  });
+
   if (loading || roleLoading) {
     return <div className="p-8 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" /></div>;
   }
@@ -213,8 +225,8 @@ function Page() {
               Itens VPS retornados em tempo real pela API. Use “Mapear” para gravar o item_id oficial em provider_products.
             </div>
           </div>
-          <Button size="sm" variant="outline" onClick={() => vpsCatalogQuery.refetch()} disabled={vpsCatalogQuery.isFetching}>
-            {vpsCatalogQuery.isFetching ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+          <Button size="sm" variant="outline" onClick={() => syncCatalog.mutate()} disabled={syncCatalog.isPending || vpsCatalogQuery.isFetching}>
+            {syncCatalog.isPending || vpsCatalogQuery.isFetching ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
             Sincronizar catálogo
           </Button>
         </div>
