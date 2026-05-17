@@ -56,6 +56,8 @@ import { Route as AuthenticatedChangePasswordRouteImport } from './routes/_authe
 import { Route as AuthenticatedAiRouteImport } from './routes/_authenticated/ai'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminServersRouteImport } from './routes/_authenticated/admin/servers'
+import { Route as AuthenticatedAdminProvisioningRouteImport } from './routes/_authenticated/admin/provisioning'
+import { Route as AuthenticatedAdminProviderProductsRouteImport } from './routes/_authenticated/admin/provider-products'
 import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authenticated/admin/payments'
 import { Route as ApiPublicPaymentsMercadopagoWebhookRouteImport } from './routes/api/public/payments/mercadopago/webhook'
 
@@ -298,6 +300,18 @@ const AuthenticatedAdminServersRoute =
     path: '/admin/servers',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAdminProvisioningRoute =
+  AuthenticatedAdminProvisioningRouteImport.update({
+    id: '/admin/provisioning',
+    path: '/admin/provisioning',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAdminProviderProductsRoute =
+  AuthenticatedAdminProviderProductsRouteImport.update({
+    id: '/admin/provider-products',
+    path: '/admin/provider-products',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAdminPaymentsRoute =
   AuthenticatedAdminPaymentsRouteImport.update({
     id: '/admin/payments',
@@ -358,6 +372,8 @@ export interface FileRoutesByFullPath {
   '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
   '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
+  '/admin/provider-products': typeof AuthenticatedAdminProviderProductsRoute
+  '/admin/provisioning': typeof AuthenticatedAdminProvisioningRoute
   '/admin/servers': typeof AuthenticatedAdminServersRoute
   '/api/public/payments/mercadopago/webhook': typeof ApiPublicPaymentsMercadopagoWebhookRoute
 }
@@ -408,6 +424,8 @@ export interface FileRoutesByTo {
   '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
   '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
+  '/admin/provider-products': typeof AuthenticatedAdminProviderProductsRoute
+  '/admin/provisioning': typeof AuthenticatedAdminProvisioningRoute
   '/admin/servers': typeof AuthenticatedAdminServersRoute
   '/api/public/payments/mercadopago/webhook': typeof ApiPublicPaymentsMercadopagoWebhookRoute
 }
@@ -460,6 +478,8 @@ export interface FileRoutesById {
   '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
   '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
   '/_authenticated/admin/payments': typeof AuthenticatedAdminPaymentsRoute
+  '/_authenticated/admin/provider-products': typeof AuthenticatedAdminProviderProductsRoute
+  '/_authenticated/admin/provisioning': typeof AuthenticatedAdminProvisioningRoute
   '/_authenticated/admin/servers': typeof AuthenticatedAdminServersRoute
   '/api/public/payments/mercadopago/webhook': typeof ApiPublicPaymentsMercadopagoWebhookRoute
 }
@@ -512,6 +532,8 @@ export interface FileRouteTypes {
     | '/vps-cloud/servidor-dedicado'
     | '/vps-cloud/vps-nvme'
     | '/admin/payments'
+    | '/admin/provider-products'
+    | '/admin/provisioning'
     | '/admin/servers'
     | '/api/public/payments/mercadopago/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -562,6 +584,8 @@ export interface FileRouteTypes {
     | '/vps-cloud/servidor-dedicado'
     | '/vps-cloud/vps-nvme'
     | '/admin/payments'
+    | '/admin/provider-products'
+    | '/admin/provisioning'
     | '/admin/servers'
     | '/api/public/payments/mercadopago/webhook'
   id:
@@ -613,6 +637,8 @@ export interface FileRouteTypes {
     | '/vps-cloud/servidor-dedicado'
     | '/vps-cloud/vps-nvme'
     | '/_authenticated/admin/payments'
+    | '/_authenticated/admin/provider-products'
+    | '/_authenticated/admin/provisioning'
     | '/_authenticated/admin/servers'
     | '/api/public/payments/mercadopago/webhook'
   fileRoutesById: FileRoutesById
@@ -981,6 +1007,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminServersRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/admin/provisioning': {
+      id: '/_authenticated/admin/provisioning'
+      path: '/admin/provisioning'
+      fullPath: '/admin/provisioning'
+      preLoaderRoute: typeof AuthenticatedAdminProvisioningRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin/provider-products': {
+      id: '/_authenticated/admin/provider-products'
+      path: '/admin/provider-products'
+      fullPath: '/admin/provider-products'
+      preLoaderRoute: typeof AuthenticatedAdminProviderProductsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/admin/payments': {
       id: '/_authenticated/admin/payments'
       path: '/admin/payments'
@@ -1017,6 +1057,8 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSitesRoute: typeof AuthenticatedSitesRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
   AuthenticatedAdminPaymentsRoute: typeof AuthenticatedAdminPaymentsRoute
+  AuthenticatedAdminProviderProductsRoute: typeof AuthenticatedAdminProviderProductsRoute
+  AuthenticatedAdminProvisioningRoute: typeof AuthenticatedAdminProvisioningRoute
   AuthenticatedAdminServersRoute: typeof AuthenticatedAdminServersRoute
 }
 
@@ -1039,6 +1081,9 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSitesRoute: AuthenticatedSitesRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
   AuthenticatedAdminPaymentsRoute: AuthenticatedAdminPaymentsRoute,
+  AuthenticatedAdminProviderProductsRoute:
+    AuthenticatedAdminProviderProductsRoute,
+  AuthenticatedAdminProvisioningRoute: AuthenticatedAdminProvisioningRoute,
   AuthenticatedAdminServersRoute: AuthenticatedAdminServersRoute,
 }
 
