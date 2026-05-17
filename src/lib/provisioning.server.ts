@@ -218,13 +218,15 @@ export async function processProvisioningJob(jobId: string) {
   // Best-effort: create/refresh a row in `services` so the client panel
   // surfaces the active item.
   try {
-    await supabaseAdmin.from("services").insert({
-      user_id: job.user_id,
-      type: job.provider_service_type,
-      name: `${String(job.provider_service_type)} (Hostinger)`,
-      status: "active",
-      provisioning_job_id: jobId,
-    });
+    if (job.user_id) {
+      await supabaseAdmin.from("services").insert({
+        user_id: job.user_id,
+        type: String(job.provider_service_type),
+        name: `${String(job.provider_service_type)} (Hostinger)`,
+        status: "active",
+        provisioning_job_id: jobId,
+      });
+    }
   } catch (e) {
     console.warn("[provisioning] could not insert service row", e);
   }
