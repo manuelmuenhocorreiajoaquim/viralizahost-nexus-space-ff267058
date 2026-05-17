@@ -278,6 +278,56 @@ export type Database = {
         }
         Relationships: []
       }
+      hostinger_logs: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          endpoint: string
+          error_message: string | null
+          id: string
+          job_id: string | null
+          method: string
+          request: Json
+          response: Json
+          status_code: number | null
+          success: boolean
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          endpoint: string
+          error_message?: string | null
+          id?: string
+          job_id?: string | null
+          method?: string
+          request?: Json
+          response?: Json
+          status_code?: number | null
+          success?: boolean
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          endpoint?: string
+          error_message?: string | null
+          id?: string
+          job_id?: string | null
+          method?: string
+          request?: Json
+          response?: Json
+          status_code?: number | null
+          success?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hostinger_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "provisioning_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           amount: number
@@ -541,6 +591,122 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_products: {
+        Row: {
+          active: boolean
+          auto_provision: boolean
+          created_at: string
+          currency: string
+          id: string
+          internal_price: number
+          internal_product_id: string
+          internal_product_name: string
+          notes: string | null
+          provider: string
+          provider_metadata: Json
+          provider_price_id: string | null
+          provider_service_type: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          auto_provision?: boolean
+          created_at?: string
+          currency?: string
+          id?: string
+          internal_price?: number
+          internal_product_id: string
+          internal_product_name: string
+          notes?: string | null
+          provider?: string
+          provider_metadata?: Json
+          provider_price_id?: string | null
+          provider_service_type: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          auto_provision?: boolean
+          created_at?: string
+          currency?: string
+          id?: string
+          internal_price?: number
+          internal_product_id?: string
+          internal_product_name?: string
+          notes?: string | null
+          provider?: string
+          provider_metadata?: Json
+          provider_price_id?: string | null
+          provider_service_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      provisioning_jobs: {
+        Row: {
+          attempts: number
+          created_at: string
+          error_message: string | null
+          id: string
+          last_attempt_at: string | null
+          order_id: string | null
+          order_item_id: string | null
+          provider: string
+          provider_product_id: string | null
+          provider_request: Json
+          provider_resource_id: string | null
+          provider_response: Json
+          provider_service_type: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          order_id?: string | null
+          order_item_id?: string | null
+          provider?: string
+          provider_product_id?: string | null
+          provider_request?: Json
+          provider_resource_id?: string | null
+          provider_response?: Json
+          provider_service_type: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          order_id?: string | null
+          order_item_id?: string | null
+          provider?: string
+          provider_product_id?: string | null
+          provider_request?: Json
+          provider_resource_id?: string | null
+          provider_response?: Json
+          provider_service_type?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provisioning_jobs_provider_product_id_fkey"
+            columns: ["provider_product_id"]
+            isOneToOne: false
+            referencedRelation: "provider_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provisioning_logs: {
         Row: {
           cpanel_account_id: string | null
@@ -595,6 +761,7 @@ export type Database = {
           expires_at: string | null
           id: string
           name: string
+          provisioning_job_id: string | null
           status: string
           type: string
           user_id: string
@@ -604,6 +771,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           name: string
+          provisioning_job_id?: string | null
           status?: string
           type: string
           user_id: string
@@ -613,11 +781,20 @@ export type Database = {
           expires_at?: string | null
           id?: string
           name?: string
+          provisioning_job_id?: string | null
           status?: string
           type?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "services_provisioning_job_id_fkey"
+            columns: ["provisioning_job_id"]
+            isOneToOne: false
+            referencedRelation: "provisioning_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       support_tickets: {
         Row: {

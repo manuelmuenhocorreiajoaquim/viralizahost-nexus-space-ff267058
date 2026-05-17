@@ -1,89 +1,84 @@
-## Integração WHM/cPanel — Provisionamento automático
+## Integração ViralizaHost + Hostinger
 
-Vou implementar a integração real com WHM/cPanel via API Token, com provisionamento automático após pagamento aprovado.
+### O que a API Hostinger permite hoje (verificado em developers.hostinger.com)
 
-### 1. Base de dados (migration)
+| Serviço | Endpoint | Automatizável? |
+|---|---|---|
+| VPS (compra) | `POST /api/billing/v1/orders` (BillingOrdersApi) + `GET /api/billing/v1/catalog` | **Sim** — fluxo `createServiceOrderV1` com `price_id` do catálogo, cobrado no saldo/método pré-cadastrado da conta Hostinger |
+| VPS (gestão pós-compra) | `/api/vps/v1/*` (start/stop, reinstall, SSH keys, snapshots, metrics) | Sim |
+| Domínios | `/api/domains/v1/availability`, `/api/domains/v1/portfolio`; compra via `BillingOrdersApi` | Compra: sim (via billing/orders) — disponibilidade: sim |
+| DNS | `/api/dns/v1/*` | Sim |
+| Hospedagem partilhada / Builder / E-mail Comercial / E-mail Marketing | **Sem endpoint público de compra/provisionamento** atualmente | **Não** — fica em `manual_review` |
 
-**Nova tabela `whm_servers`** (admin-only):
-- `hostname`, `api_url`, `username`, `token` (encrypted), `nameserver1`, `nameserver2`, `active`, `max_accounts`, `current_accounts`, `notes`
-- RLS: apenas admins podem ler/escrever (criar tabela `user_roles` + enum `app_role` + função `has_role`)
+→ Conclusão: VPS e domínios podem ir 100% automáticos via `BillingOrdersApi`. Restantes serviços ficam semi-automáticos (job criado, admin ativa manualmente, cliente vê "ativação em análise"). A integração WHM/cPanel atual continua a funcionar exatamente como hoje.
 
-**Estender `cpanel_accounts`** (já existe) com:
-- `server_id` (FK → whm_servers), `server_ip`, `nameservers` (jsonb), `cpanel_url`, `password_encrypted`, `package`, `expiry_date`, `provisioned_at`, `last_error`
+---
 
-**Estender `orders`** com:
-- `provisioned` (bool), `provisioning_error` (text)
+### 1. Base de dados (migração)
 
-**Tabela `provisioning_logs`**:
-- `order_id`, `cpanel_account_id`, `event`, `payload` (jsonb), `success`, `created_at` — auditoria
+**`provider_products`** — mapeia produto ViralizaHost ↔ produto Hostinger
+- `id`, `internal_product_id` (slug catálogo ViralizaHost), `internal_product_name`
+- `provider` (`hostinger`), `provider_service_type` (`vps`, `domain`, `hosting`, `email`, `email_marketing`, `builder`, `vibecode`)
+- `provider_price_id` (texto, vindo de `/billing/v1/catalog`; pode ser null se manual)
+- `auto_provision` (bool — só `true` para VPS/domínio hoje)
+- `internal_price`, `currency`, `active`, timestamps
+- RLS: leitura pública só dos `active=true`; escrita admin via `has_role(auth.uid(),'admin')`
 
-### 2. Roles & segurança
+**`provisioning_jobs`**
+- `id`, `order_id` FK orders, `order_item_id` FK order_items, `user_id`
+- `provider` (`hostinger`), `provider_service_type`, `provider_product_id` FK provider_products
+- `status`: `pending | processing | provisioned | failed | manual_review`
+- `provider_request` jsonb, `provider_response` jsonb, `provider_resource_id` (id retornado p/ VPS/domínio)
+- `error_message`, `attempts` int, `last_attempt_at`, timestamps
+- RLS: user vê os seus; admin vê tudo; insert apenas via service role
 
-- Criar `app_role` enum (`admin`, `user`)
-- Criar `user_roles` table + `has_role()` security-definer function
-- RLS de `whm_servers` exige `has_role(auth.uid(), 'admin')`
+**`hostinger_logs`** (auditoria fina) — `job_id`, `endpoint`, `request`, `response`, `status_code`, `duration_ms`, `created_at`. RLS admin-only.
 
-### 3. Edge Function `create-cpanel-account`
+**Estender `services`** com `provisioning_job_id` para o painel cliente ligar serviço ↔ job e mostrar status (`a provisionar`, `ativo`, `em análise`).
 
-Localização: `supabase/functions/create-cpanel-account/index.ts`
+### 2. Secret
 
-Fluxo:
-1. Recebe `{ order_id }` + JWT do user
-2. Lê order via `supabase` (RLS = só o dono)
-3. Valida `status = 'paid'` e `provisioned = false`
-4. Lê primeiro item do tipo `hosting` → `package` (slug)
-5. Escolhe servidor: `whm_servers WHERE active=true ORDER BY current_accounts ASC LIMIT 1` (via service role)
-6. Gera `username` (8 chars, derivado do domínio) e `password` (forte)
-7. Chama `POST {api_url}/json-api/createacct?api.version=1` com header `Authorization: whm <user>:<token>` (form-encoded: `username`, `domain`, `password`, `plan`, `contactemail`)
-8. Persiste em `cpanel_accounts` + cria `domains` + `services` + marca `orders.provisioned=true` + insere `provisioning_logs`
-9. Devolve `{ success, account, cpanel_url }`. Em erro: grava log e devolve mensagem amigável.
+Pedir **`HOSTINGER_API_TOKEN`** (Bearer token gerado em hpanel.hostinger.com → API). Nunca toca o browser — só nas server functions.
 
-Credenciais: usa `server.api_url` + `server.token` lidos da DB (não env), encrypted-at-rest pelo service role.
+### 3. Cliente Hostinger (server-only)
 
-### 4. Hook automático (cliente)
+`src/integrations/hostinger/client.server.ts`:
+- `hostingerFetch(path, init)` → `https://developers.hostinger.com${path}` com `Authorization: Bearer ${process.env.HOSTINGER_API_TOKEN}`, timeout, log para `hostinger_logs`
+- Wrappers: `listCatalog()`, `createServiceOrder({price_id, payment_method_id, ...})`, `checkDomainAvailability(domain)`, `listVps()`, `getVps(id)`
 
-No `checkout.tsx` (passo confirmação), após gravar pagamento aprovado, invocar `supabase.functions.invoke('create-cpanel-account', { body: { order_id }})` para cada order. Mostrar estado "A provisionar…" → "Hospedagem ativa".
+### 4. Server functions / route
 
-### 5. Painel admin — `/admin/servers`
+**Webhook MP existente** (`src/routes/api/public/payments/mercadopago/webhook.ts`) — após `activateOrderAfterPayment`, despoletar `enqueueHostingerProvisioning(orderId)` (já criada como server util) que, para cada `order_item`:
+1. Lê `provider_products` por `internal_product_id`
+2. Cria linha em `provisioning_jobs` (`status=pending`)
+3. Se `auto_provision=true` → chama `processProvisioningJob(jobId)` (cria `service_order` na Hostinger, guarda `provider_resource_id`, marca `provisioned`, cria/atualiza `services` do cliente)
+4. Se `auto_provision=false` → marca `manual_review` e envia notificação ao admin (linha em `provisioning_logs`)
 
-Nova rota `_authenticated/admin/servers.tsx` (visível só se `has_role admin`):
-- Listar servidores
-- Form: adicionar/editar (hostname, api_url, username, token, nameservers, active)
-- Botão **Testar conexão** → Edge Function `whm-test-connection` (chama `/json-api/version`)
-- Toggle ativar/desativar
+**Server functions** (em `src/lib/hostinger.functions.ts`):
+- `listMyProvisioningJobs` (user) — para painel cliente
+- `adminListProvisioningJobs({status?})` (admin) — painel admin
+- `adminRetryProvisioning(jobId)` (admin) — re-tenta
+- `adminMarkProvisioned(jobId, providerResourceId)` (admin) — fecha manual
+- `adminListProviderProducts` / `adminUpsertProviderProduct` — gestão mapeamento
 
-Edge Function auxiliar: `whm-test-connection` (admin-only).
+### 5. UI
 
-### 6. Painel do cliente (já existe parcialmente)
+- **`/admin/provisioning`** (admin) — tabela com filtros por status, botões Retry / Mark provisioned / Ver logs
+- **`/admin/provider-products`** (admin) — CRUD mapeamento ViralizaHost → Hostinger (com dropdown que carrega catálogo Hostinger live)
+- **Painel cliente** (`_authenticated/account` + páginas existentes de hosting/domains/etc.) — secção “Estado de ativação” mostra: `Em fila → A provisionar → Ativo` ou `Pedido recebido, ativação em análise`
+- Adicionar ícone no header de admin para a nova área
 
-Atualizar `/_authenticated/hosting`, `/_authenticated/domains`, `/_authenticated/account`:
-- **Minhas hospedagens**: lista `cpanel_accounts` com badge status, package, nameservers, botão **Login cPanel** (abre `cpanel_url` em nova aba — single-sign-on via `create_user_session` futuro; nesta fase abre URL direto)
-- **Uso de disco / banda**: nova Edge Function `cpanel-usage` (chama `listaccts?search={username}`) — chamada on-demand
-- Domínios e emails já listam da DB; emails ligam ao cpanel via `cpanel_account_id`
+### 6. WHM/cPanel — preservado
 
-### 7. Email de boas-vindas
+O fluxo `activateOrderAfterPayment` continua a chamar `create-cpanel-account` para itens `product_type='hosting'` exatamente como hoje. A nova fila Hostinger corre em paralelo só para itens com mapping em `provider_products`. Nada quebra.
 
-Após provisionamento OK, Edge Function envia email via `resend` (se `RESEND_API_KEY` existir) com credenciais cPanel + nameservers. Se a key não estiver configurada, salta o passo silenciosamente e mostra os dados no painel.
+### 7. Ordem de execução
 
-### Detalhes técnicos
+1. Migration (tabelas + RLS + extensão services) — pedir aprovação
+2. Pedir secret `HOSTINGER_API_TOKEN`
+3. Cliente Hostinger + server functions + integração no webhook MP
+4. Páginas admin (`/admin/provisioning`, `/admin/provider-products`)
+5. Atualizar painel cliente com badge de estado
+6. Smoke test: criar mapping VPS sandbox → simular order paga → verificar job → consultar `hostinger_logs`
 
-- WHM API Token: header `Authorization: whm USERNAME:TOKEN`
-- Endpoints: `createacct`, `listaccts`, `version`, `removeacct`, `create_user_session`
-- Todas as credenciais ficam apenas em `whm_servers` (DB, RLS admin-only) e nas Edge Functions (service role). Nunca chegam ao browser.
-- Passwords cPanel geradas server-side e guardadas encrypted (pgcrypto `pgp_sym_encrypt` com `WHM_ENCRYPTION_KEY` secret).
-
-### Secret necessário
-
-- `WHM_ENCRYPTION_KEY` — para cifrar passwords cPanel guardadas (vou pedir após aprovação do plano)
-- `RESEND_API_KEY` (opcional, para email de boas-vindas)
-
-### Ordem de execução
-
-1. Migration: roles, whm_servers, extensões, logs, pgcrypto
-2. Pedir secret `WHM_ENCRYPTION_KEY`
-3. Edge Functions: `create-cpanel-account`, `whm-test-connection`, `cpanel-usage`
-4. Admin UI `/admin/servers`
-5. Trigger no checkout
-6. Atualizar painel cliente com dados reais
-
-Confirmas para eu avançar?
+Confirmas para avançar com a migration?
