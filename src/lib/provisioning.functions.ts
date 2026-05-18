@@ -415,9 +415,20 @@ const DomainSearchSchema = z.object({
   query: z.string().min(1).max(63),
 });
 
+type DomainHit = {
+  domain: string;
+  ext: string;
+  priceBRL: number;
+  available: boolean;
+  status: "available" | "taken" | "suggestion";
+  source: string;
+  suggested?: boolean;
+};
+
 export const searchDomainsHostinger = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => DomainSearchSchema.parse(input))
   .handler(async ({ data }) => {
+    const started = Date.now();
     const base = data.query
       .toLowerCase()
       .trim()
@@ -429,58 +440,116 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
       .slice(0, 63);
     if (!base) return { results: [], warning: "Domínio inválido." };
 
-    // Load TLD price table from provider_products.
+    // Load TLD price table from provider_products (domains only).
     const { data: tldRows } = await supabaseAdmin
       .from("provider_products")
-      .select("internal_product_id, internal_price, provider_metadata")
+      .select("internal_product_id, internal_price")
       .eq("provider", "hostinger")
       .eq("provider_service_type", "domain")
       .eq("active", true);
 
     const priceByTld = new Map<string, number>();
     for (const r of tldRows ?? []) {
-      const tld = (r.internal_product_id as string).replace(/^tld:/, "");
-      priceByTld.set(tld, Number(r.internal_price ?? 0));
+      const tld = String(r.internal_product_id ?? "").replace(/^tld:/, "");
+      if (tld) priceByTld.set(tld, Number(r.internal_price ?? 0));
     }
     const FALLBACK: Record<string, number> = {
       ".com": 118, ".net": 138, ".org": 138, ".com.br": 98, ".ao": 500, ".co.ao": 700,
       ".cloud": 58, ".store": 56, ".tech": 98, ".io": 398, ".app": 178, ".dev": 178,
     };
+    const POPULAR_TLDS = [".com", ".net", ".org", ".com.br", ".ao", ".co.ao", ".cloud", ".store", ".tech"];
     const tldsToCheck = priceByTld.size > 0
-      ? Array.from(priceByTld.keys())
-      : [".com", ".net", ".org", ".com.br", ".ao", ".co.ao", ".cloud", ".store", ".tech"];
+      ? Array.from(new Set([...POPULAR_TLDS, ...priceByTld.keys()]))
+      : POPULAR_TLDS;
 
-    const domains = tldsToCheck.map((t) => `${base}${t}`);
-    const results: Array<{ domain: string; ext: string; priceBRL: number; available: boolean; status: "available" | "taken" | "suggestion"; source: string; suggested?: boolean }> = [];
+    const priceFor = (ext: string) =>
+      Math.round((priceByTld.get(ext) ?? FALLBACK[ext] ?? 79) * 100) / 100;
 
-    for (const d of domains) {
-      const ext = tldOfDomain(d) ?? "";
-      const price = Math.round((priceByTld.get(ext) ?? FALLBACK[ext] ?? 79) * 100) / 100;
-      try {
-        const res = await fetch(
-          `https://developers.hostinger.com/api/domains/v1/availability?domain=${encodeURIComponent(d)}`,
-          {
-            headers: { Authorization: `Bearer ${process.env.HOSTINGER_API_TOKEN}` },
-            signal: AbortSignal.timeout(8000),
-          },
-        );
-        const text = await res.text();
-        let parsed: any = null;
-        try { parsed = text ? JSON.parse(text) : null; } catch { parsed = null; }
-        const available = Boolean(
-          parsed?.available ??
-          parsed?.data?.available ??
-          (Array.isArray(parsed?.data) ? parsed.data.find((x: any) => x?.domain === d)?.available : false),
-        );
+    const results: DomainHit[] = [];
+    let warning: string | null = null;
+
+    // POST /api/domains/v1/availability — official endpoint accepts a domain
+    // and a list of TLDs and returns availability + alternative suggestions.
+    const apiRes = await hostinger.call<any>("/api/domains/v1/availability", {
+      method: "POST",
+      body: {
+        domain: base,
+        tlds: tldsToCheck.map((t) => t.replace(/^\./, "")),
+        with_alternatives: true,
+      },
+      timeoutMs: 12_000,
+    });
+
+    const parseList = (payload: any): any[] => {
+      if (!payload) return [];
+      if (Array.isArray(payload)) return payload;
+      if (Array.isArray(payload.data)) return payload.data;
+      if (Array.isArray(payload.results)) return payload.results;
+      if (Array.isArray(payload.domains)) return payload.domains;
+      if (Array.isArray(payload.availability)) return payload.availability;
+      if (payload.domain || payload.name) return [payload];
+      return [];
+    };
+
+    const items = parseList(apiRes.data);
+    console.log("[domain-search] hostinger", {
+      query: base, status: apiRes.status, count: items.length, ms: Date.now() - started,
+    });
+
+    if (apiRes.ok && items.length > 0) {
+      for (const it of items) {
+        const domain = String(it.domain ?? it.name ?? "").toLowerCase();
+        if (!domain) continue;
+        const ext = tldOfDomain(domain) ?? "";
+        const available = Boolean(it.available ?? it.is_available ?? it.status === "available");
+        const isAlternative = Boolean(it.alternative ?? it.is_alternative);
         results.push({
-          domain: d, ext, priceBRL: price,
+          domain,
+          ext,
+          priceBRL: priceFor(ext),
           available,
-          status: available ? "available" : "taken",
-          source: res.ok ? "hostinger" : "fallback",
+          status: available ? (isAlternative ? "suggestion" : "available") : "taken",
+          source: "hostinger",
+          suggested: isAlternative || undefined,
         });
-      } catch {
-        results.push({ domain: d, ext, priceBRL: price, available: false, status: "suggestion", source: "fallback", suggested: true });
+      }
+    } else {
+      warning = "Não foi possível consultar a Hostinger agora. Mostrando estimativas.";
+      // Fallback: build entries (marked unknown=taken) so UI is never empty.
+      for (const t of tldsToCheck) {
+        const domain = `${base}${t}`;
+        results.push({
+          domain,
+          ext: t,
+          priceBRL: priceFor(t),
+          available: false,
+          status: "suggestion",
+          source: "fallback",
+          suggested: true,
+        });
       }
     }
-    return { results, warning: null };
+
+    // Ensure the primary TLDs requested always appear in the response.
+    for (const t of tldsToCheck) {
+      const domain = `${base}${t}`;
+      if (!results.find((r) => r.domain === domain)) {
+        results.push({
+          domain,
+          ext: t,
+          priceBRL: priceFor(t),
+          available: false,
+          status: "suggestion",
+          source: "fallback",
+          suggested: true,
+        });
+      }
+    }
+
+    // Sort: available first, then suggestions, then taken.
+    const weight = (r: DomainHit) =>
+      r.available ? 0 : r.status === "suggestion" || r.suggested ? 1 : 2;
+    results.sort((a, b) => weight(a) - weight(b));
+
+    return { results, warning };
   });
