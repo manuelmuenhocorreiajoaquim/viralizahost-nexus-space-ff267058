@@ -481,7 +481,7 @@ function Page() {
                       internal_product_id: p.internal_product_id,
                       internal_product_name: p.internal_product_name,
                       provider: p.provider,
-                      provider_service_type: p.provider_service_type,
+                      provider_service_type: p.provider_service_type as FormState["provider_service_type"],
                       provider_price_id: p.provider_price_id ?? "",
                       auto_provision: p.auto_provision,
                       internal_price: Number(p.internal_price ?? 0),
