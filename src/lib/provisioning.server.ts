@@ -716,12 +716,44 @@ export async function processProvisioningJob(jobId: string) {
         break;
       }
       case "domain": {
-        if (!domain) throw new Error("Missing domain name in order item");
-        if (!itemId) throw new Error("Mapping missing provider_price_id (item_id)");
-        result = await hostinger.buyDomain(
-          { item_id: itemId, domain, ...(req.metadata?.domain ?? {}) },
-          jobId,
-        );
+        if (!domain) throw new Error("Domínio em falta no item do pedido");
+        if (!itemId) throw new Error("Mapeamento de TLD sem item_id real — sincronize o catálogo de domínios no admin");
+
+        // Validate against live domain catalog
+        const domainCatalog = await fetchHostingerDomainCatalog();
+        const valid = domainCatalog.some((c) => c.item_id === itemId);
+        if (!valid) {
+          throw new Error(
+            `item_id "${itemId}" não existe no catálogo de domínios da Hostinger. ` +
+            `Sincronize em /admin/provider-products.`,
+          );
+        }
+
+        // Lookup customer profile for WHOIS contact (best-effort).
+        let contact: any = null;
+        if (job.user_id) {
+          const [{ data: userRes }, { data: profile }] = await Promise.all([
+            supabaseAdmin.auth.admin.getUserById(job.user_id),
+            supabaseAdmin.from("profiles").select("full_name, phone, country").eq("id", job.user_id).maybeSingle(),
+          ]);
+          contact = {
+            email: userRes?.user?.email ?? req.customer_email ?? null,
+            name: profile?.full_name ?? null,
+            phone: profile?.phone ?? null,
+            country: profile?.country ?? "BR",
+          };
+        }
+
+        builtPayload = {
+          item_id: itemId,
+          domain,
+          period: 1,
+          period_unit: "year",
+          contact,
+          ...(req.metadata?.domain ?? {}),
+        };
+        console.log("[provisioning] hostinger domain payload", { jobId, domain, itemId });
+        result = await hostinger.buyDomain(builtPayload, jobId);
         break;
       }
       default: {
