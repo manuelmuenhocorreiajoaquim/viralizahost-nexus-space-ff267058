@@ -62,6 +62,8 @@ function Page() {
   const vpsCatalogFn = useServerFn(adminListHostingerVpsCatalog);
   const mapCatalogFn = useServerFn(adminMapCatalogItem);
   const syncCatalogFn = useServerFn(adminSyncHostingerVpsCatalog);
+  const syncDomainCatalogFn = useServerFn(adminSyncHostingerDomainCatalog);
+  const domainCatalogFn = useServerFn(adminListHostingerDomainCatalog);
 
   const [form, setForm] = useState<FormState | null>(null);
 
