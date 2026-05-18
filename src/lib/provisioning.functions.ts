@@ -344,3 +344,143 @@ export const adminTestHostingerConnection = createServerFn({ method: "POST" })
       details: res.ok ? null : res.data,
     };
   });
+
+// ---- Admin: Hostinger DOMAIN catalog ----
+
+export const adminListHostingerDomainCatalog = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const items = await fetchHostingerDomainCatalog();
+    return { items };
+  });
+
+export const adminSyncHostingerDomainCatalog = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    return syncHostingerDomainCatalogToProviderProducts();
+  });
+
+export const adminMapDomainCatalogItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        item_id: z.string().min(1).max(200),
+        tld: z.string().min(2).max(20),
+        internal_price: z.number().finite().nonnegative(),
+        currency: z.string().min(1).max(8).default("BRL"),
+        auto_provision: z.boolean().default(true),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const catalog = await fetchHostingerDomainCatalog();
+    const entry = catalog.find((c) => c.item_id === data.item_id);
+    if (!entry) throw new Error(`item_id "${data.item_id}" não encontrado no catálogo de domínios da Hostinger`);
+    const slug = `tld:${data.tld.startsWith(".") ? data.tld : "." + data.tld}`;
+    const { data: existing } = await supabaseAdmin
+      .from("provider_products")
+      .select("id")
+      .eq("internal_product_id", slug)
+      .eq("provider", "hostinger")
+      .maybeSingle();
+    const payload = {
+      internal_product_id: slug,
+      internal_product_name: `Domínio ${data.tld}`,
+      provider: "hostinger",
+      provider_service_type: "domain",
+      provider_price_id: data.item_id,
+      provider_metadata: { tld: data.tld, hostinger_name: entry.name, catalog: entry.raw ?? null },
+      auto_provision: data.auto_provision,
+      internal_price: data.internal_price,
+      currency: data.currency,
+      active: true,
+    };
+    if (existing?.id) {
+      const { error } = await supabaseAdmin.from("provider_products").update(payload).eq("id", existing.id);
+      if (error) throw new Error(error.message);
+      return { ok: true, id: existing.id, updated: true };
+    }
+    const { data: row, error } = await supabaseAdmin.from("provider_products").insert(payload).select("id").single();
+    if (error) throw new Error(error.message);
+    return { ok: true, id: row.id, updated: false };
+  });
+
+// ---- Public-ish: domain availability via Hostinger (with markup) ----
+
+const DomainSearchSchema = z.object({
+  query: z.string().min(1).max(63),
+});
+
+export const searchDomainsHostinger = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => DomainSearchSchema.parse(input))
+  .handler(async ({ data }) => {
+    const base = data.query
+      .toLowerCase()
+      .trim()
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .replace(/\..*$/, "")
+      .replace(/[^a-z0-9-]/g, "")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 63);
+    if (!base) return { results: [], warning: "Domínio inválido." };
+
+    // Load TLD price table from provider_products.
+    const { data: tldRows } = await supabaseAdmin
+      .from("provider_products")
+      .select("internal_product_id, internal_price, provider_metadata")
+      .eq("provider", "hostinger")
+      .eq("provider_service_type", "domain")
+      .eq("active", true);
+
+    const priceByTld = new Map<string, number>();
+    for (const r of tldRows ?? []) {
+      const tld = (r.internal_product_id as string).replace(/^tld:/, "");
+      priceByTld.set(tld, Number(r.internal_price ?? 0));
+    }
+    const FALLBACK: Record<string, number> = {
+      ".com": 118, ".net": 138, ".org": 138, ".com.br": 98, ".ao": 500, ".co.ao": 700,
+      ".cloud": 58, ".store": 56, ".tech": 98, ".io": 398, ".app": 178, ".dev": 178,
+    };
+    const tldsToCheck = priceByTld.size > 0
+      ? Array.from(priceByTld.keys())
+      : [".com", ".net", ".org", ".com.br", ".ao", ".co.ao", ".cloud", ".store", ".tech"];
+
+    const domains = tldsToCheck.map((t) => `${base}${t}`);
+    const results: Array<{ domain: string; ext: string; priceBRL: number; available: boolean; status: "available" | "taken" | "suggestion"; source: string; suggested?: boolean }> = [];
+
+    for (const d of domains) {
+      const ext = tldOfDomain(d) ?? "";
+      const price = Math.round((priceByTld.get(ext) ?? FALLBACK[ext] ?? 79) * 100) / 100;
+      try {
+        const res = await fetch(
+          `https://developers.hostinger.com/api/domains/v1/availability?domain=${encodeURIComponent(d)}`,
+          {
+            headers: { Authorization: `Bearer ${process.env.HOSTINGER_API_TOKEN}` },
+            signal: AbortSignal.timeout(8000),
+          },
+        );
+        const text = await res.text();
+        let parsed: any = null;
+        try { parsed = text ? JSON.parse(text) : null; } catch { parsed = null; }
+        const available = Boolean(
+          parsed?.available ??
+          parsed?.data?.available ??
+          (Array.isArray(parsed?.data) ? parsed.data.find((x: any) => x?.domain === d)?.available : false),
+        );
+        results.push({
+          domain: d, ext, priceBRL: price,
+          available,
+          status: available ? "available" : "taken",
+          source: res.ok ? "hostinger" : "fallback",
+        });
+      } catch {
+        results.push({ domain: d, ext, priceBRL: price, available: false, status: "suggestion", source: "fallback", suggested: true });
+      }
+    }
+    return { results, warning: null };
+  });
