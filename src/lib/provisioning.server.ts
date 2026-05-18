@@ -178,6 +178,29 @@ export async function ensureProvisioningJobs(orderId: string) {
  * Called after the payment is approved.
  */
 export async function runPendingProvisioningJobs(orderId: string) {
+  // Re-check payment status: never auto-run unless the order is fully paid.
+  const { data: order } = await supabaseAdmin
+    .from("orders")
+    .select("id, status, payment_status")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!order || order.status !== "paid" || order.payment_status !== "approved") {
+    console.warn("[provisioning] runPendingProvisioningJobs blocked: order not paid", {
+      orderId,
+      status: order?.status,
+      payment_status: order?.payment_status,
+    });
+    return { ok: false, reason: "order_not_paid", processed: [] as string[] };
+  }
+
+  // Flip any waiting_payment jobs to pending now that payment is confirmed.
+  await supabaseAdmin
+    .from("provisioning_jobs")
+    .update({ status: "pending" })
+    .eq("order_id", orderId)
+    .eq("provider", "hostinger")
+    .eq("status", "waiting_payment");
+
   const { data: jobs } = await supabaseAdmin
     .from("provisioning_jobs")
     .select("id, status")
@@ -192,6 +215,7 @@ export async function runPendingProvisioningJobs(orderId: string) {
   }
   return { ok: true, processed: ran };
 }
+
 
 /**
  * Backwards-compatible: ensure jobs exist + run any pending ones immediately.
