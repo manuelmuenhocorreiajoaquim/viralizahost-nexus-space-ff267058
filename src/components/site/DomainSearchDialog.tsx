@@ -182,22 +182,47 @@ export default function DomainSearchDialog({
     };
   }, [open, cleanQuery]);
 
+  // Per-domain period selection (default 1 year).
+  const [periodByDomain, setPeriodByDomain] = useState<Record<string, PeriodKey>>({});
+  const periodFor = (domain: string): PeriodKey => periodByDomain[domain] ?? "1y";
+
+  const tierFor = (r: DomainResult, key: PeriodKey): DomainPricingTier => {
+    if (r.pricing) return r.pricing[key];
+    const years = key === "2y" ? 2 : key === "3y" ? 3 : 1;
+    const discount = years === 2 ? 0.95 : years === 3 ? 0.9 : 1;
+    return {
+      years: years as 1 | 2 | 3,
+      price_hostinger: null,
+      price_final: Number((r.priceBRL * years * discount).toFixed(2)),
+      item_id: null,
+    };
+  };
+
   const buy = (r: DomainResult) => {
-    const annualPrice = Number(Number(r.priceBRL).toFixed(2));
-    const product = registerDomainProduct(r.domain, annualPrice);
+    const key = periodFor(r.domain);
+    const tier = tierFor(r, key);
+    const totalPrice = Number(tier.price_final.toFixed(2));
+    // Register product with the TOTAL price for the chosen period (annual billing).
+    const product = registerDomainProduct(r.domain, totalPrice);
     add(product.id, {
       domain: r.domain,
       name: r.domain,
       type: "domain",
-      priceBRL: annualPrice,
+      priceBRL: totalPrice,
       billing: "annual",
       qty: 1,
+      metadata: {
+        period: tier.years,
+        period_unit: "year",
+        tld: r.ext,
+        price_hostinger: tier.price_hostinger,
+        price_final: totalPrice,
+        hostinger_item_id: tier.item_id,
+      },
     });
     setDomain(product.id, r.domain);
-    // NÃO alterar o ciclo global aqui: o domínio é cobrado sempre anual
-    // (billing: "annual"), mas outros itens (e-mail, hospedagem) devem manter
-    // o ciclo escolhido pelo cliente.
-    toast.success(`${r.domain} adicionado ao carrinho`);
+    console.log("[domain-cart] added", { domain: r.domain, period: tier.years, totalPrice });
+    toast.success(`${r.domain} (${tier.years} ${tier.years === 1 ? "ano" : "anos"}) adicionado ao carrinho`);
     onOpenChange(false);
     navigate({ to: "/checkout", search: { step: "cart" } });
   };
