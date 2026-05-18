@@ -604,6 +604,17 @@ function summarizeFeatures(features: unknown): string {
   return String(features);
 }
 
+function bestDomainPerTld(items: any[]): any[] {
+  const best = new Map<string, any>();
+  for (const it of items) {
+    if (!it?.tld) continue;
+    const cur = best.get(it.tld);
+    if (!cur) { best.set(it.tld, it); continue; }
+    if ((it.price ?? Infinity) < (cur.price ?? Infinity)) best.set(it.tld, it);
+  }
+  return Array.from(best.values()).sort((a, b) => a.tld.localeCompare(b.tld));
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
