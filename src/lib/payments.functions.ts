@@ -19,6 +19,7 @@ const OrderItemSchema = z.object({
   quantity: z.number().int().positive(),
   domain: z.string().optional().nullable(),
   total: z.number().finite().positive().optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 const CreateCheckoutOrderSchema = z.object({
