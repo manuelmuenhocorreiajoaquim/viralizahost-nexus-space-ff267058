@@ -753,7 +753,7 @@ export async function processProvisioningJob(jobId: string) {
           ...(req.metadata?.domain ?? {}),
         };
         console.log("[provisioning] hostinger domain payload", { jobId, domain, itemId });
-        result = await hostinger.buyDomain(builtPayload, jobId);
+        result = await hostinger.buyDomain(builtPayload as Record<string, unknown>, jobId);
         break;
       }
       default: {
