@@ -30,6 +30,13 @@ import { useCart } from "@/lib/cart";
 import { registerDomainProduct } from "@/lib/catalog";
 import { toast } from "sonner";
 
+export type DomainPricingTier = {
+  years: 1 | 2 | 3;
+  price_hostinger: number | null;
+  price_final: number;
+  item_id: string | null;
+};
+
 export type DomainResult = {
   domain: string;
   ext: string;
@@ -38,7 +45,19 @@ export type DomainResult = {
   status?: "available" | "taken" | "suggestion";
   source?: string;
   suggested?: boolean;
+  pricing?: {
+    "1y": DomainPricingTier;
+    "2y": DomainPricingTier;
+    "3y": DomainPricingTier;
+  };
 };
+
+type PeriodKey = "1y" | "2y" | "3y";
+const PERIOD_OPTIONS: { key: PeriodKey; years: 1 | 2 | 3; label: string }[] = [
+  { key: "1y", years: 1, label: "1 ano" },
+  { key: "2y", years: 2, label: "2 anos" },
+  { key: "3y", years: 3, label: "3 anos" },
+];
 
 function sanitize(input: string): string {
   return (input || "")
