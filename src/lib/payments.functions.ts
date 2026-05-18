@@ -111,7 +111,10 @@ export const createCheckoutOrder = createServerFn({ method: "POST" })
         quantity,
         total: itemTotal,
         domain: item.domain ?? null,
-        metadata: { billing: item.type === "domain" ? "annual" : "cycle" },
+        metadata: {
+          billing: item.type === "domain" ? "annual" : "cycle",
+          ...(item.metadata ?? {}),
+        },
       };
     });
 
