@@ -177,21 +177,30 @@ export default function DomainSearchDialog({
 
   const tierFor = (r: DomainResult, key: PeriodKey): DomainPricingTier => {
     if (r.pricing) return r.pricing[key];
-    const years = key === "2y" ? 2 : key === "3y" ? 3 : 1;
-    const discount = years === 2 ? 0.95 : years === 3 ? 0.9 : 1;
+    const years = (key === "2y" ? 2 : key === "3y" ? 3 : 1) as 1 | 2 | 3;
+    // Sem dados de provider — preço indisponível (nunca inventamos valor).
     return {
-      years: years as 1 | 2 | 3,
+      years,
       price_hostinger: null,
-      price_final: Number((r.priceBRL * years * discount).toFixed(2)),
+      price_final: null,
       item_id: null,
+      unavailable: true,
     };
   };
 
   const buy = (r: DomainResult) => {
     const key = periodFor(r.domain);
     const tier = tierFor(r, key);
+    if (tier.price_final == null || tier.unavailable) {
+      toast.error("Preço indisponível temporariamente. Tente novamente em instantes.");
+      return;
+    }
+    // Invariante: final >= provider (validação no servidor, garantia no cliente).
+    if (tier.price_hostinger != null && tier.price_final < tier.price_hostinger) {
+      toast.error("Erro de preço. Recarregue a pesquisa.");
+      return;
+    }
     const totalPrice = Number(tier.price_final.toFixed(2));
-    // Register product with the TOTAL price for the chosen period (annual billing).
     const product = registerDomainProduct(r.domain, totalPrice);
     add(product.id, {
       domain: r.domain,
@@ -206,11 +215,18 @@ export default function DomainSearchDialog({
         tld: r.ext,
         price_hostinger: tier.price_hostinger,
         price_final: totalPrice,
+        markup_percent: 50,
         hostinger_item_id: tier.item_id,
       },
     });
     setDomain(product.id, r.domain);
-    console.log("[domain-cart] added", { domain: r.domain, period: tier.years, totalPrice });
+    console.log("[domain-cart] added", {
+      domain: r.domain,
+      period: tier.years,
+      provider_price: tier.price_hostinger,
+      markup_percent: 50,
+      final_price: totalPrice,
+    });
     toast.success(`${r.domain} (${tier.years} ${tier.years === 1 ? "ano" : "anos"}) adicionado ao carrinho`);
     onOpenChange(false);
     navigate({ to: "/checkout", search: { step: "cart" } });
