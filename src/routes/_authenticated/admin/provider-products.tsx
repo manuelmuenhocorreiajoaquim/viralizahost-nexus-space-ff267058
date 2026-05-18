@@ -307,6 +307,144 @@ function Page() {
         </div>
       </div>
 
+      {/* Catálogo Hostinger — Domínios */}
+      <div className="rounded-2xl border border-slate-200 bg-white">
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <div className="font-semibold">Catálogo Hostinger — Domínios</div>
+            <div className="text-xs text-slate-500">
+              TLDs com item_id oficial da Hostinger. Margem padrão 2× sobre o preço base. Ative/inative ou ative o auto-provisionamento por TLD.
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => syncDomainCatalog.mutate()}
+            disabled={syncDomainCatalog.isPending || domainCatalogQuery.isFetching}
+          >
+            {syncDomainCatalog.isPending || domainCatalogQuery.isFetching ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+            Sincronizar domínios
+          </Button>
+        </div>
+        <div className="overflow-x-auto">
+          {domainCatalogQuery.isLoading ? (
+            <div className="py-10 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-slate-400" /></div>
+          ) : (domainCatalogQuery.data?.items?.length ?? 0) === 0 ? (
+            <div className="py-10 text-center text-slate-500 text-sm">
+              Nenhum TLD retornado pela Hostinger. Clique em “Sincronizar domínios”.
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-3 py-2">TLD</th>
+                  <th className="px-3 py-2 font-mono">item_id (real)</th>
+                  <th className="px-3 py-2">Preço Hostinger</th>
+                  <th className="px-3 py-2">Preço ViralizaHost (2×)</th>
+                  <th className="px-3 py-2">Período</th>
+                  <th className="px-3 py-2 text-center">Ativo</th>
+                  <th className="px-3 py-2 text-center">Auto-provision</th>
+                  <th className="px-3 py-2 text-right">Mapear</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bestDomainPerTld(domainCatalogQuery.data?.items ?? []).map((it: any) => {
+                  const slug = `tld:${it.tld}`;
+                  const internalPrice = it.price != null ? Number((it.price * 2).toFixed(2)) : 0;
+                  const mapped = products.find((p: any) => p.internal_product_id === slug);
+                  return (
+                    <tr key={`${it.tld}-${it.item_id}`} className="border-t border-slate-100">
+                      <td className="px-3 py-2 font-semibold">{it.tld}</td>
+                      <td className="px-3 py-2 text-xs font-mono">{it.item_id}</td>
+                      <td className="px-3 py-2">
+                        {it.price != null ? `${it.currency ?? "BRL"} ${it.price.toFixed(2)}` : "—"}
+                      </td>
+                      <td className="px-3 py-2 font-semibold text-emerald-700">
+                        {it.price != null ? `BRL ${internalPrice.toFixed(2)}` : "—"}
+                      </td>
+                      <td className="px-3 py-2 text-xs">{it.period ?? ""} {it.period_unit ?? ""}</td>
+                      <td className="px-3 py-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={!!mapped?.active}
+                          disabled={!mapped || save.isPending}
+                          onChange={(e) =>
+                            mapped &&
+                            save.mutate({
+                              id: mapped.id,
+                              internal_product_id: mapped.internal_product_id,
+                              internal_product_name: mapped.internal_product_name,
+                              provider: mapped.provider,
+                              provider_service_type: mapped.provider_service_type as FormState["provider_service_type"],
+                              provider_price_id: mapped.provider_price_id ?? "",
+                              auto_provision: mapped.auto_provision,
+                              internal_price: Number(mapped.internal_price ?? 0),
+                              currency: mapped.currency,
+                              active: e.target.checked,
+                              notes: mapped.notes ?? "",
+                            })
+                          }
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={!!mapped?.auto_provision}
+                          disabled={!mapped || save.isPending}
+                          onChange={(e) =>
+                            mapped &&
+                            save.mutate({
+                              id: mapped.id,
+                              internal_product_id: mapped.internal_product_id,
+                              internal_product_name: mapped.internal_product_name,
+                              provider: mapped.provider,
+                              provider_service_type: mapped.provider_service_type as FormState["provider_service_type"],
+                              provider_price_id: mapped.provider_price_id ?? "",
+                              auto_provision: e.target.checked,
+                              internal_price: Number(mapped.internal_price ?? 0),
+                              currency: mapped.currency,
+                              active: mapped.active,
+                              notes: mapped.notes ?? "",
+                            })
+                          }
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {mapped ? (
+                          <span className="text-xs text-emerald-600 font-semibold">✓ mapeado</span>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              save.mutate({
+                                internal_product_id: slug,
+                                internal_product_name: `Domínio ${it.tld}`,
+                                provider: "hostinger",
+                                provider_service_type: "domain",
+                                provider_price_id: it.item_id,
+                                auto_provision: true,
+                                internal_price: internalPrice,
+                                currency: it.currency ?? "BRL",
+                                active: true,
+                                notes: "",
+                              })
+                            }
+                            disabled={save.isPending}
+                          >
+                            Mapear
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
       {isLoading ? (
         <div className="py-12 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" /></div>
       ) : products.length === 0 ? (
@@ -464,6 +602,17 @@ function summarizeFeatures(features: unknown): string {
       .join(" · ") || "—";
   }
   return String(features);
+}
+
+function bestDomainPerTld(items: any[]): any[] {
+  const best = new Map<string, any>();
+  for (const it of items) {
+    if (!it?.tld) continue;
+    const cur = best.get(it.tld);
+    if (!cur) { best.set(it.tld, it); continue; }
+    if ((it.price ?? Infinity) < (cur.price ?? Infinity)) best.set(it.tld, it);
+  }
+  return Array.from(best.values()).sort((a, b) => a.tld.localeCompare(b.tld));
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
