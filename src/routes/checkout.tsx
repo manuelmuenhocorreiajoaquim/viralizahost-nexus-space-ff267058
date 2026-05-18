@@ -1308,6 +1308,7 @@ function PaymentStep({
           quantity,
           domain: it.domain ?? null,
           total: safeTotal,
+          metadata: it.metadata ?? undefined,
           hostingerItemId: p?.type === "vps" ? hostingerIds.data?.[normalizeProductId(p.id)] : undefined,
         };
       });

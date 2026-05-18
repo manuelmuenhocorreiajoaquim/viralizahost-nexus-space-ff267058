@@ -30,6 +30,13 @@ import { useCart } from "@/lib/cart";
 import { registerDomainProduct } from "@/lib/catalog";
 import { toast } from "sonner";
 
+export type DomainPricingTier = {
+  years: 1 | 2 | 3;
+  price_hostinger: number | null;
+  price_final: number;
+  item_id: string | null;
+};
+
 export type DomainResult = {
   domain: string;
   ext: string;
@@ -38,7 +45,19 @@ export type DomainResult = {
   status?: "available" | "taken" | "suggestion";
   source?: string;
   suggested?: boolean;
+  pricing?: {
+    "1y": DomainPricingTier;
+    "2y": DomainPricingTier;
+    "3y": DomainPricingTier;
+  };
 };
+
+type PeriodKey = "1y" | "2y" | "3y";
+const PERIOD_OPTIONS: { key: PeriodKey; years: 1 | 2 | 3; label: string }[] = [
+  { key: "1y", years: 1, label: "1 ano" },
+  { key: "2y", years: 2, label: "2 anos" },
+  { key: "3y", years: 3, label: "3 anos" },
+];
 
 function sanitize(input: string): string {
   return (input || "")
@@ -163,22 +182,47 @@ export default function DomainSearchDialog({
     };
   }, [open, cleanQuery]);
 
+  // Per-domain period selection (default 1 year).
+  const [periodByDomain, setPeriodByDomain] = useState<Record<string, PeriodKey>>({});
+  const periodFor = (domain: string): PeriodKey => periodByDomain[domain] ?? "1y";
+
+  const tierFor = (r: DomainResult, key: PeriodKey): DomainPricingTier => {
+    if (r.pricing) return r.pricing[key];
+    const years = key === "2y" ? 2 : key === "3y" ? 3 : 1;
+    const discount = years === 2 ? 0.95 : years === 3 ? 0.9 : 1;
+    return {
+      years: years as 1 | 2 | 3,
+      price_hostinger: null,
+      price_final: Number((r.priceBRL * years * discount).toFixed(2)),
+      item_id: null,
+    };
+  };
+
   const buy = (r: DomainResult) => {
-    const annualPrice = Number(Number(r.priceBRL).toFixed(2));
-    const product = registerDomainProduct(r.domain, annualPrice);
+    const key = periodFor(r.domain);
+    const tier = tierFor(r, key);
+    const totalPrice = Number(tier.price_final.toFixed(2));
+    // Register product with the TOTAL price for the chosen period (annual billing).
+    const product = registerDomainProduct(r.domain, totalPrice);
     add(product.id, {
       domain: r.domain,
       name: r.domain,
       type: "domain",
-      priceBRL: annualPrice,
+      priceBRL: totalPrice,
       billing: "annual",
       qty: 1,
+      metadata: {
+        period: tier.years,
+        period_unit: "year",
+        tld: r.ext,
+        price_hostinger: tier.price_hostinger,
+        price_final: totalPrice,
+        hostinger_item_id: tier.item_id,
+      },
     });
     setDomain(product.id, r.domain);
-    // NÃO alterar o ciclo global aqui: o domínio é cobrado sempre anual
-    // (billing: "annual"), mas outros itens (e-mail, hospedagem) devem manter
-    // o ciclo escolhido pelo cliente.
-    toast.success(`${r.domain} adicionado ao carrinho`);
+    console.log("[domain-cart] added", { domain: r.domain, period: tier.years, totalPrice });
+    toast.success(`${r.domain} (${tier.years} ${tier.years === 1 ? "ano" : "anos"}) adicionado ao carrinho`);
     onOpenChange(false);
     navigate({ to: "/checkout", search: { step: "cart" } });
   };
@@ -365,29 +409,80 @@ export default function DomainSearchDialog({
                                 </div>
                               </div>
 
-                              <div className="relative mt-auto flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-                                <div>
-                                  <div className="text-xs text-muted-foreground">Preço anual</div>
-                                  <div className="text-lg font-bold text-foreground">
-                                    {formatPrice(`R$ ${r.priceBRL}`, currency)}
-                                    <span className="text-xs font-medium text-muted-foreground">
-                                      /ano
-                                    </span>
-                                  </div>
-                                </div>
+                              <div className="relative mt-auto space-y-3">
+                                {(() => {
+                                  const key = periodFor(r.domain);
+                                  const tier = tierFor(r, key);
+                                  const tier1y = tierFor(r, "1y");
+                                  const yearly = tier.price_final / tier.years;
+                                  const savings =
+                                    tier.years > 1
+                                      ? Math.max(0, tier1y.price_final * tier.years - tier.price_final)
+                                      : 0;
+                                  return (
+                                    <>
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        <span className="text-[10px] font-semibold text-muted-foreground mr-1">
+                                          Período:
+                                        </span>
+                                        {PERIOD_OPTIONS.map((opt) => {
+                                          const active = key === opt.key;
+                                          return (
+                                            <button
+                                              key={opt.key}
+                                              type="button"
+                                              onClick={() =>
+                                                setPeriodByDomain((p) => ({
+                                                  ...p,
+                                                  [r.domain]: opt.key,
+                                                }))
+                                              }
+                                              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all ${
+                                                active
+                                                  ? "border-primary bg-primary/15 text-primary"
+                                                  : "border-border bg-muted/40 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                                              }`}
+                                            >
+                                              {opt.label}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
 
-                                <button
-                                  onClick={() => buy(r)}
-                                  className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02] ${
-                                    r.available
-                                      ? "bg-gradient-primary text-primary-foreground shadow-glow-soft"
-                                      : isSuggestion
-                                        ? "bg-primary/10 text-primary hover:bg-primary/15"
-                                        : "bg-muted text-foreground hover:bg-muted/80"
-                                  }`}
-                                >
-                                  <ShoppingCart className="h-4 w-4" /> Comprar domínio
-                                </button>
+                                      <div className="flex items-end justify-between gap-3">
+                                        <div>
+                                          <div className="text-[11px] text-muted-foreground">
+                                            Total {tier.years === 1 ? "1 ano" : `${tier.years} anos`}
+                                          </div>
+                                          <div className="text-lg font-bold text-foreground leading-tight">
+                                            {formatPrice(`R$ ${tier.price_final.toFixed(2)}`, currency)}
+                                          </div>
+                                          <div className="text-[11px] text-muted-foreground">
+                                            ≈ {formatPrice(`R$ ${yearly.toFixed(2)}`, currency)}/ano
+                                            {savings > 0 && (
+                                              <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded bg-success/10 text-success font-semibold">
+                                                economize {formatPrice(`R$ ${savings.toFixed(2)}`, currency)}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        <button
+                                          onClick={() => buy(r)}
+                                          className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02] ${
+                                            r.available
+                                              ? "bg-gradient-primary text-primary-foreground shadow-glow-soft"
+                                              : isSuggestion
+                                                ? "bg-primary/10 text-primary hover:bg-primary/15"
+                                                : "bg-muted text-foreground hover:bg-muted/80"
+                                          }`}
+                                        >
+                                          <ShoppingCart className="h-4 w-4" /> Comprar
+                                        </button>
+                                      </div>
+                                    </>
+                                  );
+                                })()}
                               </div>
                             </div>
                           </motion.div>
