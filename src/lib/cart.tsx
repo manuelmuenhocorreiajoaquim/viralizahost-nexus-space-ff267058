@@ -120,6 +120,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 : undefined,
               billing:
                 item.billing === "annual" || item.billing === "monthly" ? item.billing : undefined,
+              metadata:
+                item.metadata && typeof item.metadata === "object" ? item.metadata : undefined,
             }))
             .filter((item: CartItem) => item.productId && Number.isFinite(item.qty) && item.qty > 0)
             .map((item: CartItem) => {
