@@ -409,29 +409,80 @@ export default function DomainSearchDialog({
                                 </div>
                               </div>
 
-                              <div className="relative mt-auto flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-                                <div>
-                                  <div className="text-xs text-muted-foreground">Preço anual</div>
-                                  <div className="text-lg font-bold text-foreground">
-                                    {formatPrice(`R$ ${r.priceBRL}`, currency)}
-                                    <span className="text-xs font-medium text-muted-foreground">
-                                      /ano
-                                    </span>
-                                  </div>
-                                </div>
+                              <div className="relative mt-auto space-y-3">
+                                {(() => {
+                                  const key = periodFor(r.domain);
+                                  const tier = tierFor(r, key);
+                                  const tier1y = tierFor(r, "1y");
+                                  const yearly = tier.price_final / tier.years;
+                                  const savings =
+                                    tier.years > 1
+                                      ? Math.max(0, tier1y.price_final * tier.years - tier.price_final)
+                                      : 0;
+                                  return (
+                                    <>
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        <span className="text-[10px] font-semibold text-muted-foreground mr-1">
+                                          Período:
+                                        </span>
+                                        {PERIOD_OPTIONS.map((opt) => {
+                                          const active = key === opt.key;
+                                          return (
+                                            <button
+                                              key={opt.key}
+                                              type="button"
+                                              onClick={() =>
+                                                setPeriodByDomain((p) => ({
+                                                  ...p,
+                                                  [r.domain]: opt.key,
+                                                }))
+                                              }
+                                              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all ${
+                                                active
+                                                  ? "border-primary bg-primary/15 text-primary"
+                                                  : "border-border bg-muted/40 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                                              }`}
+                                            >
+                                              {opt.label}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
 
-                                <button
-                                  onClick={() => buy(r)}
-                                  className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02] ${
-                                    r.available
-                                      ? "bg-gradient-primary text-primary-foreground shadow-glow-soft"
-                                      : isSuggestion
-                                        ? "bg-primary/10 text-primary hover:bg-primary/15"
-                                        : "bg-muted text-foreground hover:bg-muted/80"
-                                  }`}
-                                >
-                                  <ShoppingCart className="h-4 w-4" /> Comprar domínio
-                                </button>
+                                      <div className="flex items-end justify-between gap-3">
+                                        <div>
+                                          <div className="text-[11px] text-muted-foreground">
+                                            Total {tier.years === 1 ? "1 ano" : `${tier.years} anos`}
+                                          </div>
+                                          <div className="text-lg font-bold text-foreground leading-tight">
+                                            {formatPrice(`R$ ${tier.price_final.toFixed(2)}`, currency)}
+                                          </div>
+                                          <div className="text-[11px] text-muted-foreground">
+                                            ≈ {formatPrice(`R$ ${yearly.toFixed(2)}`, currency)}/ano
+                                            {savings > 0 && (
+                                              <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded bg-success/10 text-success font-semibold">
+                                                economize {formatPrice(`R$ ${savings.toFixed(2)}`, currency)}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        <button
+                                          onClick={() => buy(r)}
+                                          className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02] ${
+                                            r.available
+                                              ? "bg-gradient-primary text-primary-foreground shadow-glow-soft"
+                                              : isSuggestion
+                                                ? "bg-primary/10 text-primary hover:bg-primary/15"
+                                                : "bg-muted text-foreground hover:bg-muted/80"
+                                          }`}
+                                        >
+                                          <ShoppingCart className="h-4 w-4" /> Comprar
+                                        </button>
+                                      </div>
+                                    </>
+                                  );
+                                })()}
                               </div>
                             </div>
                           </motion.div>
