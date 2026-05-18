@@ -50,9 +50,10 @@ type ProviderProductRow = {
  * Does NOT call the Hostinger API.
  */
 export async function ensureProvisioningJobs(orderId: string) {
-  await syncHostingerVpsCatalogToProviderProducts().catch((e) => {
-    console.warn("[provisioning] Hostinger VPS catalog sync skipped", e);
-  });
+  await Promise.allSettled([
+    syncHostingerVpsCatalogToProviderProducts(),
+    syncHostingerDomainCatalogToProviderProducts(),
+  ]);
   const { data: order } = await supabaseAdmin
     .from("orders")
     .select("id, user_id, cycle, notes, status, payment_status")
@@ -60,11 +61,8 @@ export async function ensureProvisioningJobs(orderId: string) {
     .maybeSingle();
   if (!order) return { ok: false, reason: "order_not_found", jobs: [] as string[] };
 
-  // CRITICAL: jobs created BEFORE payment approval must be inert. They
-  // surface in /admin/provisioning for visibility but cannot be executed.
   const orderIsPaid =
     order.status === "paid" && order.payment_status === "approved";
-
 
   const { data: items } = await supabaseAdmin
     .from("order_items")
@@ -75,13 +73,29 @@ export async function ensureProvisioningJobs(orderId: string) {
 
   if (!items || items.length === 0) return { ok: true, jobs: [] as string[] };
 
-  const productIds = Array.from(new Set(items.map((it) => it.product_id)));
+  // For each item compute its lookup key:
+  //  - VPS / hosting / etc:  internal_product_id == order_item.product_id
+  //  - domain registration:  internal_product_id == "tld:<.ext>" derived from item.domain
+  const lookupKeys = new Set<string>();
+  const keyForItem = (it: OrderItemRow): string | null => {
+    if (it.product_type === "domain") {
+      const dom = (it.domain || it.product_id.replace(/^domain:/, "")).toLowerCase();
+      const ext = tldOfDomain(dom);
+      return ext ? `tld:${ext}` : null;
+    }
+    return it.product_id;
+  };
+  for (const it of items as OrderItemRow[]) {
+    const k = keyForItem(it);
+    if (k) lookupKeys.add(k);
+  }
+
   const { data: mappings } = await supabaseAdmin
     .from("provider_products")
     .select("*")
     .eq("provider", "hostinger")
     .eq("active", true)
-    .in("internal_product_id", productIds);
+    .in("internal_product_id", Array.from(lookupKeys));
 
   const byId = new Map<string, ProviderProductRow>();
   for (const m of mappings ?? []) byId.set(m.internal_product_id, m as any);
@@ -104,7 +118,8 @@ export async function ensureProvisioningJobs(orderId: string) {
   const createdJobs: string[] = [];
 
   for (const item of items as OrderItemRow[]) {
-    const mapping = byId.get(item.product_id);
+    const lookupKey = keyForItem(item);
+    const mapping = lookupKey ? byId.get(lookupKey) : null;
     if (!mapping) continue;
 
     const { data: existing } = await supabaseAdmin
@@ -372,6 +387,148 @@ export async function syncHostingerVpsCatalogToProviderProducts() {
   return { ok: true, catalog, mapped: Array.from(preferred.entries()).map(([slug, entry]) => ({ slug, item_id: entry.item_id })) };
 }
 
+// ============================================================
+// Hostinger DOMAIN catalog (TLDs)
+// ============================================================
+
+export type HostingerDomainCatalogEntry = {
+  item_id: string;
+  catalog_id: string;
+  tld: string;          // ".com", ".com.br", ".ao", ...
+  name: string;
+  price: number | null; // BRL units (Hostinger price)
+  currency: string | null;
+  period: number | null;
+  period_unit: string | null;
+  raw?: any;
+};
+
+export function tldOfDomain(domain: string): string | null {
+  const lower = (domain ?? "").toLowerCase();
+  const multi = lower.match(/\.(?:com\.br|co\.ao|com\.pt|com\.ao)$/);
+  if (multi) return multi[0];
+  const simple = lower.match(/\.[^.]+$/);
+  return simple ? simple[0] : null;
+}
+
+function extractTldFromCatalogName(name: string, itemId: string): string | null {
+  const source = `${name} ${itemId}`.toLowerCase();
+  // Try multi-part first
+  const multi = source.match(/\.(?:com\.br|co\.ao|com\.pt|com\.ao)\b/);
+  if (multi) return multi[0];
+  const simple = source.match(/\.[a-z]{2,10}\b/);
+  return simple ? simple[0] : null;
+}
+
+function isAnnualDomainEntry(entry: HostingerDomainCatalogEntry): boolean {
+  const unit = String(entry.period_unit ?? "").toLowerCase();
+  if (Number(entry.period) === 1 && (unit.startsWith("y") || unit.includes("ano") || unit.includes("year"))) return true;
+  if (/-1y\b|-12m\b/.test(entry.item_id)) return true;
+  return false;
+}
+
+export async function fetchHostingerDomainCatalog(): Promise<HostingerDomainCatalogEntry[]> {
+  const res = await hostinger.listCatalog();
+  if (!res.ok) return [];
+  const raw: any = res.data;
+  const list: any[] = Array.isArray(raw) ? raw : (raw?.data ?? raw?.items ?? []);
+  const out: HostingerDomainCatalogEntry[] = [];
+  for (const item of list) {
+    const category = String(item?.category ?? item?.type ?? "").toLowerCase();
+    const name = String(item?.name ?? item?.title ?? "");
+    const isDomain =
+      category.includes("domain") ||
+      /\.[a-z]{2,10}\b/.test(name.toLowerCase()) && !category.includes("vps");
+    if (!isDomain) continue;
+    const tld = extractTldFromCatalogName(name, String(item?.id ?? ""));
+    if (!tld) continue;
+    const prices: any[] = Array.isArray(item?.prices) ? item.prices : [];
+    if (prices.length === 0 && item?.id) {
+      out.push({
+        item_id: String(item.id),
+        catalog_id: String(item.id),
+        tld,
+        name,
+        price: typeof item.price === "number" ? item.price : null,
+        currency: item.currency ?? null,
+        period: item.period ?? null,
+        period_unit: item.period_unit ?? null,
+        raw: item,
+      });
+      continue;
+    }
+    for (const p of prices) {
+      if (!p?.id) continue;
+      out.push({
+        item_id: String(p.id),
+        catalog_id: String(item.id ?? ""),
+        tld,
+        name: `${name}${p.name ? ` — ${p.name}` : ""}`,
+        price: typeof p.first_period_price === "number"
+          ? p.first_period_price / 100
+          : typeof p.price === "number"
+            ? p.price / 100
+            : null,
+        currency: p.currency ?? item.currency ?? null,
+        period: p.period ?? null,
+        period_unit: p.period_unit ?? null,
+        raw: { item, price: p },
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * Upsert one provider_products row PER TLD using the cheapest annual entry.
+ * `internal_product_id = "tld:.com"`, `internal_price = hostinger_price * 2`.
+ */
+export async function syncHostingerDomainCatalogToProviderProducts() {
+  const catalog = await fetchHostingerDomainCatalog();
+  // Pick best entry per TLD (prefer annual, lowest price).
+  const best = new Map<string, HostingerDomainCatalogEntry>();
+  for (const entry of catalog) {
+    const cur = best.get(entry.tld);
+    if (!cur) { best.set(entry.tld, entry); continue; }
+    const curAnnual = isAnnualDomainEntry(cur);
+    const newAnnual = isAnnualDomainEntry(entry);
+    if (newAnnual && !curAnnual) { best.set(entry.tld, entry); continue; }
+    if (newAnnual === curAnnual && (entry.price ?? Infinity) < (cur.price ?? Infinity)) {
+      best.set(entry.tld, entry);
+    }
+  }
+  const mapped: Array<{ tld: string; item_id: string; price_hostinger: number | null; price_internal: number }> = [];
+  for (const [tld, entry] of best) {
+    const slug = `tld:${tld}`;
+    const internalPrice = entry.price != null ? Number((entry.price * 2).toFixed(2)) : 0;
+    await supabaseAdmin.from("provider_products").upsert(
+      {
+        internal_product_id: slug,
+        internal_product_name: `Domínio ${tld}`,
+        provider: "hostinger",
+        provider_service_type: "domain",
+        provider_price_id: entry.item_id,
+        provider_metadata: {
+          tld,
+          hostinger_name: entry.name,
+          hostinger_price: entry.price,
+          hostinger_currency: entry.currency,
+          billing_period: entry.period ? `${entry.period}${entry.period_unit ?? ""}` : null,
+          catalog: entry.raw ?? null,
+        },
+        auto_provision: true,
+        internal_price: internalPrice,
+        currency: entry.currency ?? "BRL",
+        active: true,
+      },
+      { onConflict: "provider,internal_product_id" },
+    );
+    mapped.push({ tld, item_id: entry.item_id, price_hostinger: entry.price, price_internal: internalPrice });
+  }
+  return { ok: true, catalog, mapped };
+}
+
+
 function generateRootPassword(): string {
   // 20-char password with upper/lower/digits/symbol.
   const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -559,12 +716,44 @@ export async function processProvisioningJob(jobId: string) {
         break;
       }
       case "domain": {
-        if (!domain) throw new Error("Missing domain name in order item");
-        if (!itemId) throw new Error("Mapping missing provider_price_id (item_id)");
-        result = await hostinger.buyDomain(
-          { item_id: itemId, domain, ...(req.metadata?.domain ?? {}) },
-          jobId,
-        );
+        if (!domain) throw new Error("Domínio em falta no item do pedido");
+        if (!itemId) throw new Error("Mapeamento de TLD sem item_id real — sincronize o catálogo de domínios no admin");
+
+        // Validate against live domain catalog
+        const domainCatalog = await fetchHostingerDomainCatalog();
+        const valid = domainCatalog.some((c) => c.item_id === itemId);
+        if (!valid) {
+          throw new Error(
+            `item_id "${itemId}" não existe no catálogo de domínios da Hostinger. ` +
+            `Sincronize em /admin/provider-products.`,
+          );
+        }
+
+        // Lookup customer profile for WHOIS contact (best-effort).
+        let contact: any = null;
+        if (job.user_id) {
+          const [{ data: userRes }, { data: profile }] = await Promise.all([
+            supabaseAdmin.auth.admin.getUserById(job.user_id),
+            supabaseAdmin.from("profiles").select("full_name, phone, country").eq("id", job.user_id).maybeSingle(),
+          ]);
+          contact = {
+            email: userRes?.user?.email ?? req.customer_email ?? null,
+            name: profile?.full_name ?? null,
+            phone: profile?.phone ?? null,
+            country: profile?.country ?? "BR",
+          };
+        }
+
+        builtPayload = {
+          item_id: itemId,
+          domain,
+          period: 1,
+          period_unit: "year",
+          contact,
+          ...(req.metadata?.domain ?? {}),
+        };
+        console.log("[provisioning] hostinger domain payload", { jobId, domain, itemId });
+        result = await hostinger.buyDomain(builtPayload as Record<string, unknown>, jobId);
         break;
       }
       default: {
@@ -628,6 +817,34 @@ export async function processProvisioningJob(jobId: string) {
     }
   } catch (e) {
     console.warn("[provisioning] could not insert service row", e);
+  }
+
+  // For domain provisioning: also register row in `domains` table so it
+  // appears in the customer's "Domínios" panel.
+  try {
+    if (job.user_id && job.provider_service_type === "domain" && domain) {
+      const expires =
+        result.data?.expires_at ??
+        result.data?.expiration_date ??
+        result.data?.data?.expires_at ??
+        null;
+      const { data: already } = await supabaseAdmin
+        .from("domains")
+        .select("id")
+        .eq("user_id", job.user_id)
+        .eq("domain", domain)
+        .maybeSingle();
+      if (!already) {
+        await supabaseAdmin.from("domains").insert({
+          user_id: job.user_id,
+          domain,
+          status: "active",
+          expires_at: expires,
+        });
+      }
+    }
+  } catch (e) {
+    console.warn("[provisioning] could not insert domain row", e);
   }
 
   return { ok: true };

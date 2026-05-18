@@ -16,6 +16,8 @@ import {
   adminListHostingerVpsCatalog,
   adminMapCatalogItem,
   adminSyncHostingerVpsCatalog,
+  adminSyncHostingerDomainCatalog,
+  adminListHostingerDomainCatalog,
 } from "@/lib/provisioning.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/provider-products")({
@@ -60,6 +62,8 @@ function Page() {
   const vpsCatalogFn = useServerFn(adminListHostingerVpsCatalog);
   const mapCatalogFn = useServerFn(adminMapCatalogItem);
   const syncCatalogFn = useServerFn(adminSyncHostingerVpsCatalog);
+  const syncDomainCatalogFn = useServerFn(adminSyncHostingerDomainCatalog);
+  const domainCatalogFn = useServerFn(adminListHostingerDomainCatalog);
 
   const [form, setForm] = useState<FormState | null>(null);
 
@@ -158,6 +162,23 @@ function Page() {
       qc.invalidateQueries({ queryKey: ["admin-hostinger-vps-catalog"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao sincronizar catálogo."),
+  });
+
+  const syncDomainCatalog = useMutation({
+    mutationFn: () => syncDomainCatalogFn(),
+    onSuccess: (res: any) => {
+      toast.success(`Catálogo de domínios sincronizado: ${res?.mapped?.length ?? 0} TLDs.`);
+      qc.invalidateQueries({ queryKey: ["admin-provider-products"] });
+      qc.invalidateQueries({ queryKey: ["admin-hostinger-domain-catalog"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao sincronizar domínios."),
+  });
+
+  const domainCatalogQuery = useQuery({
+    queryKey: ["admin-hostinger-domain-catalog"],
+    enabled: !!user && isAdmin && !roleLoading,
+    queryFn: () => domainCatalogFn(),
+    staleTime: 60_000,
   });
 
   if (loading || roleLoading) {

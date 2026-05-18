@@ -22,6 +22,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { searchDomainsHostinger } from "@/lib/provisioning.functions";
 import { useCurrency, formatPrice } from "@/lib/currency";
 import { useNavigate } from "@tanstack/react-router";
 import { useCart } from "@/lib/cart";
@@ -117,6 +119,7 @@ export default function DomainSearchDialog({
   const { add, setDomain, setCycle } = useCart();
 
   const cleanQuery = useMemo(() => sanitize(query), [query]);
+  const searchFn = useServerFn(searchDomainsHostinger);
 
   useEffect(() => {
     if (!open || !cleanQuery) return;
@@ -128,26 +131,28 @@ export default function DomainSearchDialog({
 
     (async () => {
       try {
-        console.log("[domain-search] start", { query: cleanQuery });
-        const { data, error } = await supabase.functions.invoke("domain-search", {
-          body: { query: cleanQuery },
-        });
+        console.log("[domain-search] start (hostinger)", { query: cleanQuery });
+        const hres: any = await searchFn({ data: { query: cleanQuery } });
         if (cancelled) return;
-        if (error) throw error;
-
-        console.log("[domain-search] response", data);
-        const nextResults = Array.isArray(data?.results) ? data.results : [];
-        setResults(nextResults.length > 0 ? nextResults : fallbackSuggestions(cleanQuery));
-        setWarning(
-          data?.warning ?? (nextResults.length ? null : "Não foi possível consultar o domínio."),
-        );
+        const hResults = Array.isArray(hres?.results) ? hres.results : [];
+        if (hResults.length > 0) {
+          setResults(hResults);
+          setWarning(hres?.warning ?? null);
+        } else {
+          // Fallback to legacy edge function
+          const { data, error } = await supabase.functions.invoke("domain-search", {
+            body: { query: cleanQuery },
+          });
+          if (error) throw error;
+          const nextResults = Array.isArray(data?.results) ? data.results : [];
+          setResults(nextResults.length > 0 ? nextResults : fallbackSuggestions(cleanQuery));
+          setWarning(data?.warning ?? null);
+        }
       } catch (e: unknown) {
         if (cancelled) return;
         console.error("[domain-search] failed", e);
         setResults(fallbackSuggestions(cleanQuery));
-        setWarning(
-          "Não foi possível consultar o domínio. Mostrando sugestões alternativas automáticas.",
-        );
+        setWarning("Não foi possível consultar o domínio. Mostrando sugestões alternativas.");
       } finally {
         if (!cancelled) setLoading(false);
       }
