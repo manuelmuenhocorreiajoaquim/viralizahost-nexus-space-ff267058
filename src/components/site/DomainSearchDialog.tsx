@@ -119,6 +119,7 @@ export default function DomainSearchDialog({
   const { add, setDomain, setCycle } = useCart();
 
   const cleanQuery = useMemo(() => sanitize(query), [query]);
+  const searchFn = useServerFn(searchDomainsHostinger);
 
   useEffect(() => {
     if (!open || !cleanQuery) return;
