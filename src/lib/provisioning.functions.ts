@@ -416,17 +416,20 @@ const DomainSearchSchema = z.object({
 });
 
 type DomainPeriod = 1 | 2 | 3;
-type DomainPricing = Record<"1y" | "2y" | "3y", {
+type DomainTier = {
   years: DomainPeriod;
   price_hostinger: number | null;
-  price_final: number;
+  price_final: number | null; // null => preço indisponível
   item_id: string | null;
-}>;
+  unavailable: boolean;
+};
+type DomainPricing = Record<"1y" | "2y" | "3y", DomainTier>;
 
 type DomainHit = {
   domain: string;
   ext: string;
-  priceBRL: number;          // backward-compat: 1y final price
+  priceBRL: number;          // backward-compat: 1y final price (0 quando indisponível)
+  price_hostinger: number | null;
   available: boolean;
   status: "available" | "taken" | "suggestion";
   source: string;
@@ -434,8 +437,19 @@ type DomainHit = {
   pricing: DomainPricing;
 };
 
-const MARKUP = 1.5; // +50% sobre Hostinger
+const MARKUP = 1.5; // +50% sobre Hostinger — regra obrigatória
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * Calcula preço final ViralizaHost = provider * 1.5, garantindo SEMPRE
+ * que final >= provider. Nunca retorna valor inventado.
+ */
+function applyMarkup(providerPrice: number | null | undefined): number | null {
+  if (providerPrice == null || !Number.isFinite(providerPrice) || providerPrice <= 0) return null;
+  const final = round2(providerPrice * MARKUP);
+  // Invariante: final nunca pode ser menor que provider.
+  return final >= providerPrice ? final : round2(providerPrice);
+}
 
 export const searchDomainsHostinger = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => DomainSearchSchema.parse(input))
@@ -467,7 +481,7 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
       if (!isYear) continue;
       const years = Number(entry.period);
       if (!(years === 1 || years === 2 || years === 3)) continue;
-      if (entry.price == null) continue;
+      if (entry.price == null || entry.price <= 0) continue;
       const tldMap = pricingByTld.get(entry.tld) ?? new Map();
       const existing = tldMap.get(years as DomainPeriod);
       if (!existing || entry.price < existing.price_hostinger) {
@@ -479,40 +493,36 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
       pricingByTld.set(entry.tld, tldMap);
     }
 
-    // Fallback annual prices in BRL (already with markup baseline).
-    const FALLBACK_FINAL_1Y: Record<string, number> = {
-      ".com": 89, ".net": 109, ".org": 109, ".com.br": 79,
-      ".ao": 599, ".co.ao": 799, ".cloud": 69, ".store": 69,
-      ".tech": 119, ".io": 449, ".app": 199, ".dev": 199,
-    };
     const POPULAR_TLDS = [".com", ".net", ".org", ".com.br", ".ao", ".co.ao", ".cloud", ".store", ".tech"];
     const tldsToCheck = Array.from(new Set([...POPULAR_TLDS, ...pricingByTld.keys()]));
 
-    const pricingFor = (ext: string): DomainPricing => {
-      const tldMap = pricingByTld.get(ext);
-      const make = (years: DomainPeriod) => {
-        const e = tldMap?.get(years);
-        if (e) {
-          return {
-            years,
-            price_hostinger: round2(e.price_hostinger),
-            price_final: round2(e.price_hostinger * MARKUP),
-            item_id: e.item_id,
-          };
-        }
-        // Fallback: extrapolate from 1y final (no Hostinger price exposed).
-        const base1y = FALLBACK_FINAL_1Y[ext] ?? 89;
-        // Apply small loyalty discount on multi-year (5% / 10%).
-        const discount = years === 2 ? 0.95 : years === 3 ? 0.9 : 1;
-        return {
-          years,
-          price_hostinger: null,
-          price_final: round2(base1y * years * discount),
-          item_id: null,
-        };
+    const tierFor = (ext: string, years: DomainPeriod): DomainTier => {
+      const e = pricingByTld.get(ext)?.get(years);
+      if (!e) {
+        return { years, price_hostinger: null, price_final: null, item_id: null, unavailable: true };
+      }
+      const provider = round2(e.price_hostinger);
+      const final = applyMarkup(provider);
+      console.log("[domain-pricing]", {
+        tld: ext, years, provider_price: provider, markup_percent: 50, final_price: final,
+      });
+      if (final == null || final < provider) {
+        return { years, price_hostinger: provider, price_final: null, item_id: e.item_id, unavailable: true };
+      }
+      return {
+        years,
+        price_hostinger: provider,
+        price_final: final,
+        item_id: e.item_id,
+        unavailable: false,
       };
-      return { "1y": make(1), "2y": make(2), "3y": make(3) };
     };
+
+    const pricingFor = (ext: string): DomainPricing => ({
+      "1y": tierFor(ext, 1),
+      "2y": tierFor(ext, 2),
+      "3y": tierFor(ext, 3),
+    });
 
     const results: DomainHit[] = [];
     let warning: string | null = null;
@@ -551,10 +561,12 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
       source: string,
     ) => {
       const pricing = pricingFor(ext);
+      const t1 = pricing["1y"];
       results.push({
         domain,
         ext,
-        priceBRL: pricing["1y"].price_final,
+        priceBRL: t1.price_final ?? 0,
+        price_hostinger: t1.price_hostinger,
         available,
         status: available ? (isAlternative ? "suggestion" : "available") : "taken",
         source,
@@ -573,7 +585,7 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
         pushHit(domain, ext, available, isAlternative, "hostinger");
       }
     } else {
-      warning = "Não foi possível consultar a Hostinger agora. Mostrando estimativas.";
+      warning = "Não foi possível consultar a Hostinger agora. Preço indisponível temporariamente.";
       for (const t of tldsToCheck) pushHit(`${base}${t}`, t, false, true, "fallback");
     }
 
