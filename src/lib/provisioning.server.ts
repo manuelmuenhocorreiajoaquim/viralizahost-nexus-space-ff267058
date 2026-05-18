@@ -55,10 +55,16 @@ export async function ensureProvisioningJobs(orderId: string) {
   });
   const { data: order } = await supabaseAdmin
     .from("orders")
-    .select("id, user_id, cycle, notes")
+    .select("id, user_id, cycle, notes, status, payment_status")
     .eq("id", orderId)
     .maybeSingle();
   if (!order) return { ok: false, reason: "order_not_found", jobs: [] as string[] };
+
+  // CRITICAL: jobs created BEFORE payment approval must be inert. They
+  // surface in /admin/provisioning for visibility but cannot be executed.
+  const orderIsPaid =
+    order.status === "paid" && order.payment_status === "approved";
+
 
   const { data: items } = await supabaseAdmin
     .from("order_items")
