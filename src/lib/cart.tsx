@@ -22,6 +22,7 @@ export type CartItem = {
   type?: Product["type"];
   priceBRL?: number;
   billing?: Product["billing"];
+  metadata?: Record<string, unknown>;
 };
 
 type Ctx = {
