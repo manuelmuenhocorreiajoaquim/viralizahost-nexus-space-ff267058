@@ -819,5 +819,33 @@ export async function processProvisioningJob(jobId: string) {
     console.warn("[provisioning] could not insert service row", e);
   }
 
+  // For domain provisioning: also register row in `domains` table so it
+  // appears in the customer's "Domínios" panel.
+  try {
+    if (job.user_id && job.provider_service_type === "domain" && domain) {
+      const expires =
+        result.data?.expires_at ??
+        result.data?.expiration_date ??
+        result.data?.data?.expires_at ??
+        null;
+      const { data: already } = await supabaseAdmin
+        .from("domains")
+        .select("id")
+        .eq("user_id", job.user_id)
+        .eq("domain", domain)
+        .maybeSingle();
+      if (!already) {
+        await supabaseAdmin.from("domains").insert({
+          user_id: job.user_id,
+          domain,
+          status: "active",
+          expires_at: expires,
+        });
+      }
+    }
+  } catch (e) {
+    console.warn("[provisioning] could not insert domain row", e);
+  }
+
   return { ok: true };
 }
