@@ -500,7 +500,8 @@ export async function syncHostingerDomainCatalogToProviderProducts() {
   const mapped: Array<{ tld: string; item_id: string; price_hostinger: number | null; price_internal: number }> = [];
   for (const [tld, entry] of best) {
     const slug = `tld:${tld}`;
-    const internalPrice = entry.price != null ? Number((entry.price * 2).toFixed(2)) : 0;
+    // Markup ViralizaHost = +50% sobre o preço Hostinger.
+    const internalPrice = entry.price != null ? Number((entry.price * 1.5).toFixed(2)) : 0;
     await supabaseAdmin.from("provider_products").upsert(
       {
         internal_product_id: slug,
