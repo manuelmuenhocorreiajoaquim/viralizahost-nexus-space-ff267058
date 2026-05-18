@@ -718,14 +718,37 @@ export async function processProvisioningJob(jobId: string) {
       }
       case "domain": {
         if (!domain) throw new Error("Domínio em falta no item do pedido");
-        if (!itemId) throw new Error("Mapeamento de TLD sem item_id real — sincronize o catálogo de domínios no admin");
 
-        // Validate against live domain catalog
+        // Resolve desired period (1 / 2 / 3 years). Default 1.
+        const requestedPeriodRaw = Number(
+          (req.metadata?.period ?? req.metadata?.years ?? req.metadata?.domain?.period) ?? 1,
+        );
+        const period: 1 | 2 | 3 =
+          requestedPeriodRaw === 2 ? 2 : requestedPeriodRaw === 3 ? 3 : 1;
+
+        // Always validate against the live domain catalog and pick the
+        // item_id that matches both the TLD and the chosen period.
+        const tld = tldOfDomain(domain);
         const domainCatalog = await fetchHostingerDomainCatalog();
-        const valid = domainCatalog.some((c) => c.item_id === itemId);
+        const tldEntries = domainCatalog.filter((c) => c.tld === tld);
+        const matchByPeriod = tldEntries.find(
+          (c) =>
+            Number(c.period) === period &&
+            String(c.period_unit ?? "").toLowerCase().startsWith("y"),
+        );
+        const resolvedItemId =
+          matchByPeriod?.item_id ??
+          (period === 1 ? itemId : null) ??
+          itemId;
+        if (!resolvedItemId) {
+          throw new Error(
+            `Sem item_id para ${tld} no período ${period}y. Sincronize o catálogo de domínios no admin.`,
+          );
+        }
+        const valid = domainCatalog.some((c) => c.item_id === resolvedItemId);
         if (!valid) {
           throw new Error(
-            `item_id "${itemId}" não existe no catálogo de domínios da Hostinger. ` +
+            `item_id "${resolvedItemId}" não existe no catálogo de domínios da Hostinger. ` +
             `Sincronize em /admin/provider-products.`,
           );
         }
@@ -746,14 +769,16 @@ export async function processProvisioningJob(jobId: string) {
         }
 
         builtPayload = {
-          item_id: itemId,
+          item_id: resolvedItemId,
           domain,
-          period: 1,
+          period,
           period_unit: "year",
           contact,
           ...(req.metadata?.domain ?? {}),
         };
-        console.log("[provisioning] hostinger domain payload", { jobId, domain, itemId });
+        console.log("[provisioning] hostinger domain payload", {
+          jobId, domain, itemId: resolvedItemId, period,
+        });
         result = await hostinger.buyDomain(builtPayload as Record<string, unknown>, jobId);
         break;
       }
