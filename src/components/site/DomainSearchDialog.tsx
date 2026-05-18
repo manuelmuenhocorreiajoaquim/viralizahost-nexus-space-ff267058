@@ -33,14 +33,16 @@ import { toast } from "sonner";
 export type DomainPricingTier = {
   years: 1 | 2 | 3;
   price_hostinger: number | null;
-  price_final: number;
+  price_final: number | null;
   item_id: string | null;
+  unavailable?: boolean;
 };
 
 export type DomainResult = {
   domain: string;
   ext: string;
   priceBRL: number;
+  price_hostinger?: number | null;
   available: boolean;
   status?: "available" | "taken" | "suggestion";
   source?: string;
@@ -69,30 +71,15 @@ function sanitize(input: string): string {
     .replace(/[^a-z0-9-]/g, "");
 }
 
+// Sugestões sem preço — nunca inventamos valor abaixo do provider.
 function fallbackSuggestions(query: string): DomainResult[] {
   const base = sanitize(query);
   if (!base) return [];
-  const variants = [
-    base,
-    `${base}angola`,
-    `${base}brasil`,
-    `${base}host`,
-    `get${base}`,
-    `use${base}`,
-  ];
-  const prices: Record<string, number> = {
-    ".com": 59,
-    ".net": 69,
-    ".org": 69,
-    ".com.br": 49,
-    ".ao": 250,
-    ".co.ao": 350,
-    ".tech": 99,
-    ".cloud": 129,
-    ".store": 99,
-  };
+  const variants = [base, `${base}angola`, `${base}brasil`, `${base}host`, `get${base}`, `use${base}`];
   const tlds = [".com", ".net", ".org", ".com.br", ".ao", ".co.ao", ".tech", ".cloud", ".store"];
-
+  const emptyTier = (years: 1 | 2 | 3): DomainPricingTier => ({
+    years, price_hostinger: null, price_final: null, item_id: null, unavailable: true,
+  });
   return Array.from(
     new Set(
       variants.flatMap((variant, index) => {
@@ -111,11 +98,13 @@ function fallbackSuggestions(query: string): DomainResult[] {
       return {
         domain,
         ext,
-        priceBRL: prices[ext] ?? 79,
+        priceBRL: 0,
+        price_hostinger: null,
         available: false,
         status: "suggestion" as const,
         source: "fallback",
         suggested: true,
+        pricing: { "1y": emptyTier(1), "2y": emptyTier(2), "3y": emptyTier(3) },
       };
     });
 }
