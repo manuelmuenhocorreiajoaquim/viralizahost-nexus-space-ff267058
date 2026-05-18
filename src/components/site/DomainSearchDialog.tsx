@@ -419,10 +419,12 @@ export default function DomainSearchDialog({
                                   const key = periodFor(r.domain);
                                   const tier = tierFor(r, key);
                                   const tier1y = tierFor(r, "1y");
-                                  const yearly = tier.price_final / tier.years;
+                                  const unavailable = tier.price_final == null || tier.unavailable;
+                                  const finalPrice = tier.price_final ?? 0;
+                                  const yearly = unavailable ? 0 : finalPrice / tier.years;
                                   const savings =
-                                    tier.years > 1
-                                      ? Math.max(0, tier1y.price_final * tier.years - tier.price_final)
+                                    !unavailable && tier.years > 1 && tier1y.price_final != null
+                                      ? Math.max(0, tier1y.price_final * tier.years - finalPrice)
                                       : 0;
                                   return (
                                     <>
@@ -459,30 +461,46 @@ export default function DomainSearchDialog({
                                           <div className="text-[11px] text-muted-foreground">
                                             Total {tier.years === 1 ? "1 ano" : `${tier.years} anos`}
                                           </div>
-                                          <div className="text-lg font-bold text-foreground leading-tight">
-                                            {formatPrice(`R$ ${tier.price_final.toFixed(2)}`, currency)}
-                                          </div>
-                                          <div className="text-[11px] text-muted-foreground">
-                                            ≈ {formatPrice(`R$ ${yearly.toFixed(2)}`, currency)}/ano
-                                            {savings > 0 && (
-                                              <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded bg-success/10 text-success font-semibold">
-                                                economize {formatPrice(`R$ ${savings.toFixed(2)}`, currency)}
-                                              </span>
-                                            )}
-                                          </div>
+                                          {unavailable ? (
+                                            <div className="text-sm font-semibold text-warning leading-tight">
+                                              Preço indisponível temporariamente
+                                            </div>
+                                          ) : (
+                                            <>
+                                              <div className="text-lg font-bold text-foreground leading-tight">
+                                                {formatPrice(`R$ ${finalPrice.toFixed(2)}`, currency)}
+                                              </div>
+                                              {tier.price_hostinger != null && (
+                                                <div className="text-[10px] text-muted-foreground line-through">
+                                                  Hostinger {formatPrice(`R$ ${(tier.price_hostinger * tier.years).toFixed(2)}`, currency)}
+                                                </div>
+                                              )}
+                                              <div className="text-[11px] text-muted-foreground">
+                                                ≈ {formatPrice(`R$ ${yearly.toFixed(2)}`, currency)}/ano
+                                                {savings > 0 && (
+                                                  <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded bg-success/10 text-success font-semibold">
+                                                    economize {formatPrice(`R$ ${savings.toFixed(2)}`, currency)}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </>
+                                          )}
                                         </div>
 
                                         <button
                                           onClick={() => buy(r)}
-                                          className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02] ${
-                                            r.available
-                                              ? "bg-gradient-primary text-primary-foreground shadow-glow-soft"
-                                              : isSuggestion
-                                                ? "bg-primary/10 text-primary hover:bg-primary/15"
-                                                : "bg-muted text-foreground hover:bg-muted/80"
+                                          disabled={unavailable}
+                                          className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                                            unavailable
+                                              ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+                                              : r.available
+                                                ? "bg-gradient-primary text-primary-foreground shadow-glow-soft hover:scale-[1.02]"
+                                                : isSuggestion
+                                                  ? "bg-primary/10 text-primary hover:bg-primary/15 hover:scale-[1.02]"
+                                                  : "bg-muted text-foreground hover:bg-muted/80 hover:scale-[1.02]"
                                           }`}
                                         >
-                                          <ShoppingCart className="h-4 w-4" /> Comprar
+                                          <ShoppingCart className="h-4 w-4" /> {unavailable ? "Indisponível" : "Comprar"}
                                         </button>
                                       </div>
                                     </>
