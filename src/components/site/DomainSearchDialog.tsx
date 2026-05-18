@@ -22,6 +22,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { searchDomainsHostinger } from "@/lib/provisioning.functions";
 import { useCurrency, formatPrice } from "@/lib/currency";
 import { useNavigate } from "@tanstack/react-router";
 import { useCart } from "@/lib/cart";
