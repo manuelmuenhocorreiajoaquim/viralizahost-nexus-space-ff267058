@@ -33,14 +33,16 @@ import { toast } from "sonner";
 export type DomainPricingTier = {
   years: 1 | 2 | 3;
   price_hostinger: number | null;
-  price_final: number;
+  price_final: number | null;
   item_id: string | null;
+  unavailable?: boolean;
 };
 
 export type DomainResult = {
   domain: string;
   ext: string;
   priceBRL: number;
+  price_hostinger?: number | null;
   available: boolean;
   status?: "available" | "taken" | "suggestion";
   source?: string;
@@ -69,30 +71,15 @@ function sanitize(input: string): string {
     .replace(/[^a-z0-9-]/g, "");
 }
 
+// Sugestões sem preço — nunca inventamos valor abaixo do provider.
 function fallbackSuggestions(query: string): DomainResult[] {
   const base = sanitize(query);
   if (!base) return [];
-  const variants = [
-    base,
-    `${base}angola`,
-    `${base}brasil`,
-    `${base}host`,
-    `get${base}`,
-    `use${base}`,
-  ];
-  const prices: Record<string, number> = {
-    ".com": 59,
-    ".net": 69,
-    ".org": 69,
-    ".com.br": 49,
-    ".ao": 250,
-    ".co.ao": 350,
-    ".tech": 99,
-    ".cloud": 129,
-    ".store": 99,
-  };
+  const variants = [base, `${base}angola`, `${base}brasil`, `${base}host`, `get${base}`, `use${base}`];
   const tlds = [".com", ".net", ".org", ".com.br", ".ao", ".co.ao", ".tech", ".cloud", ".store"];
-
+  const emptyTier = (years: 1 | 2 | 3): DomainPricingTier => ({
+    years, price_hostinger: null, price_final: null, item_id: null, unavailable: true,
+  });
   return Array.from(
     new Set(
       variants.flatMap((variant, index) => {
@@ -111,11 +98,13 @@ function fallbackSuggestions(query: string): DomainResult[] {
       return {
         domain,
         ext,
-        priceBRL: prices[ext] ?? 79,
+        priceBRL: 0,
+        price_hostinger: null,
         available: false,
         status: "suggestion" as const,
         source: "fallback",
         suggested: true,
+        pricing: { "1y": emptyTier(1), "2y": emptyTier(2), "3y": emptyTier(3) },
       };
     });
 }
@@ -188,21 +177,30 @@ export default function DomainSearchDialog({
 
   const tierFor = (r: DomainResult, key: PeriodKey): DomainPricingTier => {
     if (r.pricing) return r.pricing[key];
-    const years = key === "2y" ? 2 : key === "3y" ? 3 : 1;
-    const discount = years === 2 ? 0.95 : years === 3 ? 0.9 : 1;
+    const years = (key === "2y" ? 2 : key === "3y" ? 3 : 1) as 1 | 2 | 3;
+    // Sem dados de provider — preço indisponível (nunca inventamos valor).
     return {
-      years: years as 1 | 2 | 3,
+      years,
       price_hostinger: null,
-      price_final: Number((r.priceBRL * years * discount).toFixed(2)),
+      price_final: null,
       item_id: null,
+      unavailable: true,
     };
   };
 
   const buy = (r: DomainResult) => {
     const key = periodFor(r.domain);
     const tier = tierFor(r, key);
+    if (tier.price_final == null || tier.unavailable) {
+      toast.error("Preço indisponível temporariamente. Tente novamente em instantes.");
+      return;
+    }
+    // Invariante: final >= provider (validação no servidor, garantia no cliente).
+    if (tier.price_hostinger != null && tier.price_final < tier.price_hostinger) {
+      toast.error("Erro de preço. Recarregue a pesquisa.");
+      return;
+    }
     const totalPrice = Number(tier.price_final.toFixed(2));
-    // Register product with the TOTAL price for the chosen period (annual billing).
     const product = registerDomainProduct(r.domain, totalPrice);
     add(product.id, {
       domain: r.domain,
@@ -217,11 +215,18 @@ export default function DomainSearchDialog({
         tld: r.ext,
         price_hostinger: tier.price_hostinger,
         price_final: totalPrice,
+        markup_percent: 50,
         hostinger_item_id: tier.item_id,
       },
     });
     setDomain(product.id, r.domain);
-    console.log("[domain-cart] added", { domain: r.domain, period: tier.years, totalPrice });
+    console.log("[domain-cart] added", {
+      domain: r.domain,
+      period: tier.years,
+      provider_price: tier.price_hostinger,
+      markup_percent: 50,
+      final_price: totalPrice,
+    });
     toast.success(`${r.domain} (${tier.years} ${tier.years === 1 ? "ano" : "anos"}) adicionado ao carrinho`);
     onOpenChange(false);
     navigate({ to: "/checkout", search: { step: "cart" } });
@@ -414,10 +419,12 @@ export default function DomainSearchDialog({
                                   const key = periodFor(r.domain);
                                   const tier = tierFor(r, key);
                                   const tier1y = tierFor(r, "1y");
-                                  const yearly = tier.price_final / tier.years;
+                                  const unavailable = tier.price_final == null || tier.unavailable;
+                                  const finalPrice = tier.price_final ?? 0;
+                                  const yearly = unavailable ? 0 : finalPrice / tier.years;
                                   const savings =
-                                    tier.years > 1
-                                      ? Math.max(0, tier1y.price_final * tier.years - tier.price_final)
+                                    !unavailable && tier.years > 1 && tier1y.price_final != null
+                                      ? Math.max(0, tier1y.price_final * tier.years - finalPrice)
                                       : 0;
                                   return (
                                     <>
@@ -454,30 +461,46 @@ export default function DomainSearchDialog({
                                           <div className="text-[11px] text-muted-foreground">
                                             Total {tier.years === 1 ? "1 ano" : `${tier.years} anos`}
                                           </div>
-                                          <div className="text-lg font-bold text-foreground leading-tight">
-                                            {formatPrice(`R$ ${tier.price_final.toFixed(2)}`, currency)}
-                                          </div>
-                                          <div className="text-[11px] text-muted-foreground">
-                                            ≈ {formatPrice(`R$ ${yearly.toFixed(2)}`, currency)}/ano
-                                            {savings > 0 && (
-                                              <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded bg-success/10 text-success font-semibold">
-                                                economize {formatPrice(`R$ ${savings.toFixed(2)}`, currency)}
-                                              </span>
-                                            )}
-                                          </div>
+                                          {unavailable ? (
+                                            <div className="text-sm font-semibold text-warning leading-tight">
+                                              Preço indisponível temporariamente
+                                            </div>
+                                          ) : (
+                                            <>
+                                              <div className="text-lg font-bold text-foreground leading-tight">
+                                                {formatPrice(`R$ ${finalPrice.toFixed(2)}`, currency)}
+                                              </div>
+                                              {tier.price_hostinger != null && (
+                                                <div className="text-[10px] text-muted-foreground line-through">
+                                                  Hostinger {formatPrice(`R$ ${(tier.price_hostinger * tier.years).toFixed(2)}`, currency)}
+                                                </div>
+                                              )}
+                                              <div className="text-[11px] text-muted-foreground">
+                                                ≈ {formatPrice(`R$ ${yearly.toFixed(2)}`, currency)}/ano
+                                                {savings > 0 && (
+                                                  <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded bg-success/10 text-success font-semibold">
+                                                    economize {formatPrice(`R$ ${savings.toFixed(2)}`, currency)}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </>
+                                          )}
                                         </div>
 
                                         <button
                                           onClick={() => buy(r)}
-                                          className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02] ${
-                                            r.available
-                                              ? "bg-gradient-primary text-primary-foreground shadow-glow-soft"
-                                              : isSuggestion
-                                                ? "bg-primary/10 text-primary hover:bg-primary/15"
-                                                : "bg-muted text-foreground hover:bg-muted/80"
+                                          disabled={unavailable}
+                                          className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                                            unavailable
+                                              ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+                                              : r.available
+                                                ? "bg-gradient-primary text-primary-foreground shadow-glow-soft hover:scale-[1.02]"
+                                                : isSuggestion
+                                                  ? "bg-primary/10 text-primary hover:bg-primary/15 hover:scale-[1.02]"
+                                                  : "bg-muted text-foreground hover:bg-muted/80 hover:scale-[1.02]"
                                           }`}
                                         >
-                                          <ShoppingCart className="h-4 w-4" /> Comprar
+                                          <ShoppingCart className="h-4 w-4" /> {unavailable ? "Indisponível" : "Comprar"}
                                         </button>
                                       </div>
                                     </>
