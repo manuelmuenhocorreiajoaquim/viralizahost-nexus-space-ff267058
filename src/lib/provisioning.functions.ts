@@ -11,6 +11,9 @@ import {
   processProvisioningJob,
   fetchHostingerVpsCatalog,
   syncHostingerVpsCatalogToProviderProducts,
+  fetchHostingerDomainCatalog,
+  syncHostingerDomainCatalogToProviderProducts,
+  tldOfDomain,
 } from "@/lib/provisioning.server";
 
 async function assertAdmin(userId: string) {
