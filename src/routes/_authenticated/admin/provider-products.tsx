@@ -164,6 +164,23 @@ function Page() {
     onError: (e: any) => toast.error(e?.message ?? "Erro ao sincronizar catálogo."),
   });
 
+  const syncDomainCatalog = useMutation({
+    mutationFn: () => syncDomainCatalogFn(),
+    onSuccess: (res: any) => {
+      toast.success(`Catálogo de domínios sincronizado: ${res?.mapped?.length ?? 0} TLDs.`);
+      qc.invalidateQueries({ queryKey: ["admin-provider-products"] });
+      qc.invalidateQueries({ queryKey: ["admin-hostinger-domain-catalog"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao sincronizar domínios."),
+  });
+
+  const domainCatalogQuery = useQuery({
+    queryKey: ["admin-hostinger-domain-catalog"],
+    enabled: !!user && isAdmin && !roleLoading,
+    queryFn: () => domainCatalogFn(),
+    staleTime: 60_000,
+  });
+
   if (loading || roleLoading) {
     return <div className="p-8 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" /></div>;
   }
