@@ -118,7 +118,12 @@ export async function ensureProvisioningJobs(orderId: string) {
       continue;
     }
 
-    const initialStatus = mapping.auto_provision ? "pending" : "manual_review";
+    const initialStatus = !orderIsPaid
+      ? "waiting_payment"
+      : mapping.auto_provision
+        ? "pending"
+        : "manual_review";
+
 
     const providerRequest = {
       item_id: mapping.provider_price_id,
