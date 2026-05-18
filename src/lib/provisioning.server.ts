@@ -118,7 +118,8 @@ export async function ensureProvisioningJobs(orderId: string) {
   const createdJobs: string[] = [];
 
   for (const item of items as OrderItemRow[]) {
-    const mapping = byId.get(item.product_id);
+    const lookupKey = keyForItem(item);
+    const mapping = lookupKey ? byId.get(lookupKey) : null;
     if (!mapping) continue;
 
     const { data: existing } = await supabaseAdmin
