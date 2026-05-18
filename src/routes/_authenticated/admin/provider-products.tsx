@@ -16,6 +16,8 @@ import {
   adminListHostingerVpsCatalog,
   adminMapCatalogItem,
   adminSyncHostingerVpsCatalog,
+  adminSyncHostingerDomainCatalog,
+  adminListHostingerDomainCatalog,
 } from "@/lib/provisioning.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/provider-products")({
