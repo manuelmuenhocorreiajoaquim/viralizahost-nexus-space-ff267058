@@ -387,6 +387,148 @@ export async function syncHostingerVpsCatalogToProviderProducts() {
   return { ok: true, catalog, mapped: Array.from(preferred.entries()).map(([slug, entry]) => ({ slug, item_id: entry.item_id })) };
 }
 
+// ============================================================
+// Hostinger DOMAIN catalog (TLDs)
+// ============================================================
+
+export type HostingerDomainCatalogEntry = {
+  item_id: string;
+  catalog_id: string;
+  tld: string;          // ".com", ".com.br", ".ao", ...
+  name: string;
+  price: number | null; // BRL units (Hostinger price)
+  currency: string | null;
+  period: number | null;
+  period_unit: string | null;
+  raw?: any;
+};
+
+export function tldOfDomain(domain: string): string | null {
+  const lower = (domain ?? "").toLowerCase();
+  const multi = lower.match(/\.(?:com\.br|co\.ao|com\.pt|com\.ao)$/);
+  if (multi) return multi[0];
+  const simple = lower.match(/\.[^.]+$/);
+  return simple ? simple[0] : null;
+}
+
+function extractTldFromCatalogName(name: string, itemId: string): string | null {
+  const source = `${name} ${itemId}`.toLowerCase();
+  // Try multi-part first
+  const multi = source.match(/\.(?:com\.br|co\.ao|com\.pt|com\.ao)\b/);
+  if (multi) return multi[0];
+  const simple = source.match(/\.[a-z]{2,10}\b/);
+  return simple ? simple[0] : null;
+}
+
+function isAnnualDomainEntry(entry: HostingerDomainCatalogEntry): boolean {
+  const unit = String(entry.period_unit ?? "").toLowerCase();
+  if (Number(entry.period) === 1 && (unit.startsWith("y") || unit.includes("ano") || unit.includes("year"))) return true;
+  if (/-1y\b|-12m\b/.test(entry.item_id)) return true;
+  return false;
+}
+
+export async function fetchHostingerDomainCatalog(): Promise<HostingerDomainCatalogEntry[]> {
+  const res = await hostinger.listCatalog();
+  if (!res.ok) return [];
+  const raw: any = res.data;
+  const list: any[] = Array.isArray(raw) ? raw : (raw?.data ?? raw?.items ?? []);
+  const out: HostingerDomainCatalogEntry[] = [];
+  for (const item of list) {
+    const category = String(item?.category ?? item?.type ?? "").toLowerCase();
+    const name = String(item?.name ?? item?.title ?? "");
+    const isDomain =
+      category.includes("domain") ||
+      /\.[a-z]{2,10}\b/.test(name.toLowerCase()) && !category.includes("vps");
+    if (!isDomain) continue;
+    const tld = extractTldFromCatalogName(name, String(item?.id ?? ""));
+    if (!tld) continue;
+    const prices: any[] = Array.isArray(item?.prices) ? item.prices : [];
+    if (prices.length === 0 && item?.id) {
+      out.push({
+        item_id: String(item.id),
+        catalog_id: String(item.id),
+        tld,
+        name,
+        price: typeof item.price === "number" ? item.price : null,
+        currency: item.currency ?? null,
+        period: item.period ?? null,
+        period_unit: item.period_unit ?? null,
+        raw: item,
+      });
+      continue;
+    }
+    for (const p of prices) {
+      if (!p?.id) continue;
+      out.push({
+        item_id: String(p.id),
+        catalog_id: String(item.id ?? ""),
+        tld,
+        name: `${name}${p.name ? ` — ${p.name}` : ""}`,
+        price: typeof p.first_period_price === "number"
+          ? p.first_period_price / 100
+          : typeof p.price === "number"
+            ? p.price / 100
+            : null,
+        currency: p.currency ?? item.currency ?? null,
+        period: p.period ?? null,
+        period_unit: p.period_unit ?? null,
+        raw: { item, price: p },
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * Upsert one provider_products row PER TLD using the cheapest annual entry.
+ * `internal_product_id = "tld:.com"`, `internal_price = hostinger_price * 2`.
+ */
+export async function syncHostingerDomainCatalogToProviderProducts() {
+  const catalog = await fetchHostingerDomainCatalog();
+  // Pick best entry per TLD (prefer annual, lowest price).
+  const best = new Map<string, HostingerDomainCatalogEntry>();
+  for (const entry of catalog) {
+    const cur = best.get(entry.tld);
+    if (!cur) { best.set(entry.tld, entry); continue; }
+    const curAnnual = isAnnualDomainEntry(cur);
+    const newAnnual = isAnnualDomainEntry(entry);
+    if (newAnnual && !curAnnual) { best.set(entry.tld, entry); continue; }
+    if (newAnnual === curAnnual && (entry.price ?? Infinity) < (cur.price ?? Infinity)) {
+      best.set(entry.tld, entry);
+    }
+  }
+  const mapped: Array<{ tld: string; item_id: string; price_hostinger: number | null; price_internal: number }> = [];
+  for (const [tld, entry] of best) {
+    const slug = `tld:${tld}`;
+    const internalPrice = entry.price != null ? Number((entry.price * 2).toFixed(2)) : 0;
+    await supabaseAdmin.from("provider_products").upsert(
+      {
+        internal_product_id: slug,
+        internal_product_name: `Domínio ${tld}`,
+        provider: "hostinger",
+        provider_service_type: "domain",
+        provider_price_id: entry.item_id,
+        provider_metadata: {
+          tld,
+          hostinger_name: entry.name,
+          hostinger_price: entry.price,
+          hostinger_currency: entry.currency,
+          billing_period: entry.period ? `${entry.period}${entry.period_unit ?? ""}` : null,
+          catalog: entry.raw ?? null,
+        },
+        auto_provision: true,
+        internal_price: internalPrice,
+        currency: entry.currency ?? "BRL",
+        active: true,
+      },
+      { onConflict: "provider,internal_product_id" },
+    );
+    mapped.push({ tld, item_id: entry.item_id, price_hostinger: entry.price, price_internal: internalPrice });
+  }
+  return { ok: true, catalog, mapped };
+}
+
+
 function generateRootPassword(): string {
   // 20-char password with upper/lower/digits/symbol.
   const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
