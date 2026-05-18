@@ -50,9 +50,10 @@ type ProviderProductRow = {
  * Does NOT call the Hostinger API.
  */
 export async function ensureProvisioningJobs(orderId: string) {
-  await syncHostingerVpsCatalogToProviderProducts().catch((e) => {
-    console.warn("[provisioning] Hostinger VPS catalog sync skipped", e);
-  });
+  await Promise.allSettled([
+    syncHostingerVpsCatalogToProviderProducts(),
+    syncHostingerDomainCatalogToProviderProducts(),
+  ]);
   const { data: order } = await supabaseAdmin
     .from("orders")
     .select("id, user_id, cycle, notes, status, payment_status")
@@ -60,11 +61,8 @@ export async function ensureProvisioningJobs(orderId: string) {
     .maybeSingle();
   if (!order) return { ok: false, reason: "order_not_found", jobs: [] as string[] };
 
-  // CRITICAL: jobs created BEFORE payment approval must be inert. They
-  // surface in /admin/provisioning for visibility but cannot be executed.
   const orderIsPaid =
     order.status === "paid" && order.payment_status === "approved";
-
 
   const { data: items } = await supabaseAdmin
     .from("order_items")
@@ -75,13 +73,29 @@ export async function ensureProvisioningJobs(orderId: string) {
 
   if (!items || items.length === 0) return { ok: true, jobs: [] as string[] };
 
-  const productIds = Array.from(new Set(items.map((it) => it.product_id)));
+  // For each item compute its lookup key:
+  //  - VPS / hosting / etc:  internal_product_id == order_item.product_id
+  //  - domain registration:  internal_product_id == "tld:<.ext>" derived from item.domain
+  const lookupKeys = new Set<string>();
+  const keyForItem = (it: OrderItemRow): string | null => {
+    if (it.product_type === "domain") {
+      const dom = (it.domain || it.product_id.replace(/^domain:/, "")).toLowerCase();
+      const ext = tldOfDomain(dom);
+      return ext ? `tld:${ext}` : null;
+    }
+    return it.product_id;
+  };
+  for (const it of items as OrderItemRow[]) {
+    const k = keyForItem(it);
+    if (k) lookupKeys.add(k);
+  }
+
   const { data: mappings } = await supabaseAdmin
     .from("provider_products")
     .select("*")
     .eq("provider", "hostinger")
     .eq("active", true)
-    .in("internal_product_id", productIds);
+    .in("internal_product_id", Array.from(lookupKeys));
 
   const byId = new Map<string, ProviderProductRow>();
   for (const m of mappings ?? []) byId.set(m.internal_product_id, m as any);
