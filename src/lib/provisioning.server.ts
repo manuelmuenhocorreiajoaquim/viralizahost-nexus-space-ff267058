@@ -55,10 +55,16 @@ export async function ensureProvisioningJobs(orderId: string) {
   });
   const { data: order } = await supabaseAdmin
     .from("orders")
-    .select("id, user_id, cycle, notes")
+    .select("id, user_id, cycle, notes, status, payment_status")
     .eq("id", orderId)
     .maybeSingle();
   if (!order) return { ok: false, reason: "order_not_found", jobs: [] as string[] };
+
+  // CRITICAL: jobs created BEFORE payment approval must be inert. They
+  // surface in /admin/provisioning for visibility but cannot be executed.
+  const orderIsPaid =
+    order.status === "paid" && order.payment_status === "approved";
+
 
   const { data: items } = await supabaseAdmin
     .from("order_items")
@@ -112,7 +118,12 @@ export async function ensureProvisioningJobs(orderId: string) {
       continue;
     }
 
-    const initialStatus = mapping.auto_provision ? "pending" : "manual_review";
+    const initialStatus = !orderIsPaid
+      ? "waiting_payment"
+      : mapping.auto_provision
+        ? "pending"
+        : "manual_review";
+
 
     const providerRequest = {
       item_id: mapping.provider_price_id,
@@ -167,6 +178,29 @@ export async function ensureProvisioningJobs(orderId: string) {
  * Called after the payment is approved.
  */
 export async function runPendingProvisioningJobs(orderId: string) {
+  // Re-check payment status: never auto-run unless the order is fully paid.
+  const { data: order } = await supabaseAdmin
+    .from("orders")
+    .select("id, status, payment_status")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!order || order.status !== "paid" || order.payment_status !== "approved") {
+    console.warn("[provisioning] runPendingProvisioningJobs blocked: order not paid", {
+      orderId,
+      status: order?.status,
+      payment_status: order?.payment_status,
+    });
+    return { ok: false, reason: "order_not_paid", processed: [] as string[] };
+  }
+
+  // Flip any waiting_payment jobs to pending now that payment is confirmed.
+  await supabaseAdmin
+    .from("provisioning_jobs")
+    .update({ status: "pending" })
+    .eq("order_id", orderId)
+    .eq("provider", "hostinger")
+    .eq("status", "waiting_payment");
+
   const { data: jobs } = await supabaseAdmin
     .from("provisioning_jobs")
     .select("id, status")
@@ -181,6 +215,7 @@ export async function runPendingProvisioningJobs(orderId: string) {
   }
   return { ok: true, processed: ran };
 }
+
 
 /**
  * Backwards-compatible: ensure jobs exist + run any pending ones immediately.
@@ -411,6 +446,33 @@ export async function processProvisioningJob(jobId: string) {
   if ((job.attempts ?? 0) >= MAX_ATTEMPTS && job.status === "failed") {
     return { ok: false, error: `max_attempts_reached (${MAX_ATTEMPTS})` };
   }
+
+  // CRITICAL: never hit the Hostinger API unless the order is fully paid.
+  if (job.order_id) {
+    const { data: order } = await supabaseAdmin
+      .from("orders")
+      .select("id, status, payment_status")
+      .eq("id", job.order_id)
+      .maybeSingle();
+    const paid = order?.status === "paid" && order?.payment_status === "approved";
+    if (!paid) {
+      await supabaseAdmin
+        .from("provisioning_jobs")
+        .update({
+          status: "waiting_payment",
+          error_message: "Pagamento ainda não aprovado.",
+        })
+        .eq("id", jobId);
+      console.warn("[provisioning] blocked execution — payment not approved", {
+        jobId,
+        orderId: job.order_id,
+        status: order?.status,
+        payment_status: order?.payment_status,
+      });
+      return { ok: false, error: "Pagamento ainda não aprovado." };
+    }
+  }
+
 
   await supabaseAdmin
     .from("provisioning_jobs")

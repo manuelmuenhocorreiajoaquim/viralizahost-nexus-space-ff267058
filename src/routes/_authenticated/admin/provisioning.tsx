@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/admin/provisioning")({
   component: Page,
 });
 
-const STATUSES = ["", "pending", "processing", "provisioned", "failed", "manual_review"] as const;
+const STATUSES = ["", "waiting_payment", "pending", "processing", "provisioned", "failed", "manual_review"] as const;
 
 function statusBadge(s: string) {
   const base = "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold";
@@ -32,10 +32,13 @@ function statusBadge(s: string) {
       return <span className={`${base} bg-amber-100 text-amber-700`}><AlertTriangle className="h-3 w-3" />Manual</span>;
     case "processing":
       return <span className={`${base} bg-blue-100 text-blue-700`}><Loader2 className="h-3 w-3 animate-spin" />Em curso</span>;
+    case "waiting_payment":
+      return <span className={`${base} bg-slate-100 text-slate-600`}><Clock className="h-3 w-3" />Aguarda pagamento</span>;
     default:
       return <span className={`${base} bg-slate-100 text-slate-700`}><Clock className="h-3 w-3" />Pendente</span>;
   }
 }
+
 
 function Page() {
   const { user, isAdmin, loading, roleLoading } = useAuth();
