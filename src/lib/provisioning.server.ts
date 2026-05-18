@@ -447,6 +447,33 @@ export async function processProvisioningJob(jobId: string) {
     return { ok: false, error: `max_attempts_reached (${MAX_ATTEMPTS})` };
   }
 
+  // CRITICAL: never hit the Hostinger API unless the order is fully paid.
+  if (job.order_id) {
+    const { data: order } = await supabaseAdmin
+      .from("orders")
+      .select("id, status, payment_status")
+      .eq("id", job.order_id)
+      .maybeSingle();
+    const paid = order?.status === "paid" && order?.payment_status === "approved";
+    if (!paid) {
+      await supabaseAdmin
+        .from("provisioning_jobs")
+        .update({
+          status: "waiting_payment",
+          error_message: "Pagamento ainda não aprovado.",
+        })
+        .eq("id", jobId);
+      console.warn("[provisioning] blocked execution — payment not approved", {
+        jobId,
+        orderId: job.order_id,
+        status: order?.status,
+        payment_status: order?.payment_status,
+      });
+      return { ok: false, error: "Pagamento ainda não aprovado." };
+    }
+  }
+
+
   await supabaseAdmin
     .from("provisioning_jobs")
     .update({
