@@ -1,12 +1,12 @@
 import { motion } from "framer-motion";
 import {
-  Users, Target, Lightbulb, TrendingUp, Palette, Bot, Server, Share2, Video,
+  Users, Target, Lightbulb, TrendingUp, Palette, Server, Share2, Video,
   Rocket, Eye, Heart, Crown,
 } from "lucide-react";
 import manuel from "@/assets/team/manuel.jpeg";
 import lucas from "@/assets/team/lucas.jpeg";
 import jacob from "@/assets/team/jacob.jpeg";
-import felipe from "@/assets/team/felipe.png";
+
 import vladmiro from "@/assets/team/vladimiro.png";
 import israel from "@/assets/team/israel.png";
 import arnaldo from "@/assets/team/arnaldo.jpeg";
@@ -17,15 +17,14 @@ const BR = "https://flagcdn.com/w80/br.png";
 const team = [
   { photo: lucas,    name: "Lucas Marcelino",  role: "Tráfego Pago",                 icon: TrendingUp, desc: "Especialista em Meta Ads, Google Ads e estratégias de conversão e crescimento digital.", flag: BR, country: "Brasil" },
   { photo: jacob,    name: "Jacob Pessela",    role: "Design Gráfico",               icon: Palette,    desc: "Especialista em branding, identidade visual e comunicação criativa empresarial.", flag: AO, country: "Angola" },
-  { photo: felipe,   name: "Felipe Nóbrega",   role: "Automação IA",                 icon: Bot,        desc: "Especialista em Inteligência Artificial, automação de processos e soluções inteligentes.", flag: BR, country: "Brasil" },
   { photo: vladmiro, name: "Vladimiro Francisco", role: "Hosting & Infraestrutura",   icon: Server,     desc: "Especialista em servidores web, cloud hosting, e-mails corporativos e infraestrutura.", flag: AO, country: "Angola" },
   { photo: israel,   name: "Israel Soares",    role: "Crescimento Digital",          icon: Share2,     desc: "Especialista em crescimento digital, estratégias sociais e posicionamento online.", flag: BR, country: "Brasil" },
   { photo: arnaldo,  name: "Arnaldo Eduardo",  role: "Audiovisual",                  icon: Video,      desc: "Especialista em produção audiovisual, motion graphics e conteúdos digitais premium.", flag: AO, country: "Angola" },
 ];
 
 const stats = [
-  { icon: Users,      n: "7", t: "Especialistas",      s: "Profissionais dedicados" },
-  { icon: Target,     n: "6", t: "Áreas Estratégicas", s: "Cobertura completa" },
+  { icon: Users,      n: "6", t: "Especialistas",      s: "Profissionais dedicados" },
+  { icon: Target,     n: "5", t: "Áreas Estratégicas", s: "Cobertura completa" },
   { icon: Lightbulb,  n: "1", t: "Visão",              s: "Resultados extraordinários" },
 ];
 
@@ -210,15 +209,15 @@ export default function TeamSection() {
           <div className="org-v absolute left-1/2 -translate-x-1/2 top-0 h-12" />
           {/* node at CEO connection */}
           <div className="org-node absolute left-1/2 -translate-x-1/2 top-[-5px]" />
-          {/* horizontal trunk — spans the 6 column centers */}
+          {/* horizontal trunk — spans the 5 column centers */}
           <div
             className="org-h absolute top-12"
-            style={{ left: "8.333%", right: "8.333%" }}
+            style={{ left: "10%", right: "10%" }}
           />
           {/* node where vertical meets trunk */}
           <div className="org-node absolute left-1/2 -translate-x-1/2 top-[42px]" />
-          {/* vertical drops to each of the 6 specialist cards (centers at 1/12, 3/12, ... 11/12) */}
-          {[8.333, 25, 41.667, 58.333, 75, 91.667].map((leftPct) => (
+          {/* vertical drops to each of the 5 specialist cards */}
+          {[10, 30, 50, 70, 90].map((leftPct) => (
             <div key={leftPct}>
               <div
                 className="org-v absolute top-12 h-12"
@@ -233,7 +232,7 @@ export default function TeamSection() {
         </div>
 
         {/* Team grid — equal cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
           {team.map((m, i) => (
             <motion.div
               key={m.name}
