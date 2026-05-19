@@ -551,6 +551,18 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
       if (!payload) return [];
       if (Array.isArray(payload)) return payload;
       if (payload.domain || payload.name) return [payload];
+      const domainMap = (obj: any) =>
+        obj && typeof obj === "object"
+          ? Object.entries(obj)
+              .filter(([key]) => /^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(key))
+              .map(([domain, value]) =>
+                typeof value === "object" && value !== null
+                  ? { domain, ...(value as Record<string, unknown>) }
+                  : { domain, available: value },
+              )
+          : [];
+      const directMap = domainMap(payload);
+      if (directMap.length > 0) return directMap;
       if (Array.isArray(payload.data)) return payload.data;
       if (Array.isArray(payload.results)) return payload.results;
       if (Array.isArray(payload.domains)) return payload.domains;
@@ -559,6 +571,8 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
       if (payload.results?.domain || payload.results?.name) return [payload.results];
       if (payload.domains?.domain || payload.domains?.name) return [payload.domains];
       if (payload.availability?.domain || payload.availability?.name) return [payload.availability];
+      const nestedMap = domainMap(payload.data ?? payload.results ?? payload.domains ?? payload.availability);
+      if (nestedMap.length > 0) return nestedMap;
       if (payload.data && typeof payload.data === "object") return Object.values(payload.data);
       if (payload.results && typeof payload.results === "object") return Object.values(payload.results);
       if (payload.domains && typeof payload.domains === "object") return Object.values(payload.domains);
