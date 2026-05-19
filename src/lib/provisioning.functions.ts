@@ -537,15 +537,32 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
     const results: DomainHit[] = [];
     let warning: string | null = null;
 
-    const apiRes = await hostinger.call<any>("/api/domains/v1/availability", {
-      method: "POST",
-      body: {
-        domain: base,
-        tlds: tldsToCheck.map((t) => t.replace(/^\./, "")),
-        with_alternatives: true,
-      },
-      timeoutMs: 12_000,
-    });
+    // Hostinger: with_alternatives=true is ONLY accepted with a SINGLE TLD.
+    // Strategy: one call per TLD in parallel; ask for alternatives on the
+    // primary .com call. This also avoids the multi-TLD timeout we observed.
+    const PRIMARY_TLD = ".com";
+    const callOne = async (ext: string, withAlternatives: boolean) => {
+      const tldNoDot = ext.replace(/^\./, "");
+      const res = await hostinger.call<any>("/api/domains/v1/availability", {
+        method: "POST",
+        body: {
+          domain: base,
+          tlds: [tldNoDot],
+          with_alternatives: withAlternatives,
+        },
+        timeoutMs: 10_000,
+      });
+      console.log("[domain-search] hostinger.call", {
+        query: base, tld: ext,
+        endpoint: "/api/domains/v1/availability",
+        status: res.status, ok: res.ok, error: res.error ?? null,
+      });
+      return { ext, res };
+    };
+
+    const settled = await Promise.allSettled(
+      tldsToCheck.map((ext) => callOne(ext, ext === PRIMARY_TLD)),
+    );
 
     const parseList = (payload: any): any[] => {
       if (!payload) return [];
@@ -568,27 +585,11 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
       if (Array.isArray(payload.domains)) return payload.domains;
       if (Array.isArray(payload.availability)) return payload.availability;
       if (payload.data?.domain || payload.data?.name) return [payload.data];
-      if (payload.results?.domain || payload.results?.name) return [payload.results];
-      if (payload.domains?.domain || payload.domains?.name) return [payload.domains];
-      if (payload.availability?.domain || payload.availability?.name) return [payload.availability];
       const nestedMap = domainMap(payload.data ?? payload.results ?? payload.domains ?? payload.availability);
       if (nestedMap.length > 0) return nestedMap;
       if (payload.data && typeof payload.data === "object") return Object.values(payload.data);
-      if (payload.results && typeof payload.results === "object") return Object.values(payload.results);
-      if (payload.domains && typeof payload.domains === "object") return Object.values(payload.domains);
-      if (payload.availability && typeof payload.availability === "object") return Object.values(payload.availability);
       return [];
     };
-
-    const items = parseList(apiRes.data);
-    console.log("[domain-search] hostinger", {
-      query: base,
-      status: apiRes.status,
-      response: apiRes.data,
-      tlds: tldsToCheck,
-      count: items.length,
-      ms: Date.now() - started,
-    });
 
     const pushHit = (
       domain: string,
@@ -597,49 +598,65 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
       isAlternative: boolean,
       source: string,
     ) => {
+      if (results.find((r) => r.domain === domain)) return;
       const pricing = pricingFor(ext);
       const t1 = pricing["1y"];
       const status = available ? (isAlternative ? "suggestion" : "available") : "taken";
       console.log("[domain-search] result", {
-        domain,
-        status,
-        available,
-        source,
+        domain, status, available, source,
         provider_price: t1.price_hostinger,
         markup_percent: 50,
         final_price: t1.price_final,
       });
       results.push({
-        domain,
-        ext,
+        domain, ext,
         priceBRL: t1.price_final ?? 0,
         price_hostinger: t1.price_hostinger,
-        available,
-        status,
-        source,
+        available, status, source,
         suggested: isAlternative || undefined,
         pricing,
       });
     };
 
-    if (apiRes.ok && items.length > 0) {
+    let anyOk = false;
+    for (const s of settled) {
+      if (s.status !== "fulfilled") continue;
+      const { ext, res } = s.value;
+      if (!res.ok) continue;
+      anyOk = true;
+      const items = parseList(res.data);
+      const altItems = Array.isArray((res.data as any)?.alternatives)
+        ? (res.data as any).alternatives
+        : [];
       for (const it of items) {
         const domain = String(it.domain ?? it.name ?? "").toLowerCase();
         if (!domain) continue;
-        const ext = tldOfDomain(domain) ?? "";
-        const available = parseHostingerAvailability(it.available ?? it.is_available ?? it.status);
-        const isAlternative = Boolean(it.alternative ?? it.is_alternative);
-        pushHit(domain, ext, available, isAlternative, "hostinger");
+        const itemExt = tldOfDomain(domain) ?? ext;
+        const available = parseHostingerAvailability(
+          it.available ?? it.is_available ?? it.status,
+        );
+        pushHit(domain, itemExt, available, false, "hostinger");
       }
-    } else {
-      warning = "Consulta temporariamente indisponível";
-      console.warn("[domain-search] hostinger_unavailable", {
-        query: base,
-        status: apiRes.status,
-        error: apiRes.error,
-        ms: Date.now() - started,
-      });
-      return { results: [], warning };
+      for (const it of altItems) {
+        const domain = String(it.domain ?? it.name ?? "").toLowerCase();
+        if (!domain) continue;
+        const itemExt = tldOfDomain(domain) ?? "";
+        if (!itemExt) continue;
+        const available = parseHostingerAvailability(
+          it.available ?? it.is_available ?? it.status ?? true,
+        );
+        pushHit(domain, itemExt, available, true, "hostinger_alt");
+      }
+    }
+
+    console.log("[domain-search] summary", {
+      query: base, ms: Date.now() - started,
+      total_tlds: tldsToCheck.length,
+      results: results.length, any_ok: anyOk,
+    });
+
+    if (!anyOk) {
+      return { results: [], warning: "Consulta temporariamente indisponível" };
     }
 
     // If Hostinger omits a requested primary TLD, keep it visible but blocked.
