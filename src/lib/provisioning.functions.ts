@@ -710,8 +710,8 @@ export const adminTestHostingerDomainSearch = createServerFn({ method: "POST" })
           c.price != null &&
           c.price > 0,
       );
-      // Pick the HIGHEST-priced SKU so the base equals the public Hostinger price.
-      const entry = matches.sort((a, b) => (b.price ?? 0) - (a.price ?? 0))[0];
+      // Pick the LOWEST-priced SKU — preço público real cobrado pela Hostinger no período.
+      const entry = matches.sort((a, b) => (a.price ?? 0) - (b.price ?? 0))[0];
       const provider = entry?.price != null ? round2(entry.price) : null;
       const final = applyMarkup(provider);
       return { ext, provider_price: provider, markup_percent: 50, final_price: final, item_id: entry?.item_id ?? null };
