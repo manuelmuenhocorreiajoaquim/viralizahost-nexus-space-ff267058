@@ -2,7 +2,7 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Loader2, RefreshCw, CheckCircle2, AlertTriangle, Clock, FileSearch, X, Play } from "lucide-react";
+import { Loader2, RefreshCw, CheckCircle2, AlertTriangle, Clock, FileSearch, X, Play, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/use-auth";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
   adminRetryProvisioning,
   adminMarkProvisioned,
   adminGetJobLogs,
+  adminTestHostingerDomainSearch,
 } from "@/lib/provisioning.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/provisioning")({
@@ -47,9 +48,11 @@ function Page() {
   const retryFn = useServerFn(adminRetryProvisioning);
   const markFn = useServerFn(adminMarkProvisioned);
   const logsFn = useServerFn(adminGetJobLogs);
+  const domainTestFn = useServerFn(adminTestHostingerDomainSearch);
   const [filter, setFilter] = useState<string>("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [logsFor, setLogsFor] = useState<string | null>(null);
+  const [domainTest, setDomainTest] = useState<any>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-provisioning", filter],
@@ -113,6 +116,16 @@ function Page() {
     onSettled: () => setBusyId(null),
   });
 
+  const domainSearchTest = useMutation({
+    mutationFn: () => domainTestFn(),
+    onSuccess: (res: any) => {
+      setDomainTest(res);
+      if (res?.ok) toast.success("Teste de domínios concluído.");
+      else toast.warning("Teste concluído com erro da API Hostinger.");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao testar pesquisa de domínio."),
+  });
+
   if (loading || roleLoading) {
     return <div className="p-8 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" /></div>;
   }
@@ -127,6 +140,42 @@ function Page() {
         title="Provisionamentos Hostinger"
         subtitle="Acompanhe a fila de ativação de serviços comprados no ViralizaHost."
       />
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-semibold text-slate-900">Teste de pesquisa de domínio</h2>
+            <p className="text-xs text-slate-500">google.com, gustavomartins.com e viralizahostteste123.com</p>
+          </div>
+          <Button onClick={() => domainSearchTest.mutate()} disabled={domainSearchTest.isPending}>
+            {domainSearchTest.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+            Testar pesquisa domínio
+          </Button>
+        </div>
+
+        {domainTest?.checks?.length > 0 && (
+          <div className="grid gap-3">
+            {domainTest.checks.map((check: any) => (
+              <div key={check.domain} className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="font-semibold text-slate-900">{check.domain}</div>
+                  <div className={check.api_ok ? "text-emerald-700" : "text-red-700"}>
+                    API {check.status_code} · {check.availability_status}
+                  </div>
+                </div>
+                <div className="mt-2 grid sm:grid-cols-3 gap-2 text-slate-600">
+                  <span>Original: {check.provider_price != null ? `R$ ${Number(check.provider_price).toFixed(2)}` : "—"}</span>
+                  <span>Markup: {check.markup_percent}%</span>
+                  <span>ViralizaHost: {check.final_price != null ? `R$ ${Number(check.final_price).toFixed(2)}` : "—"}</span>
+                </div>
+                <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-white p-2 text-[10px] text-slate-600">
+                  {JSON.stringify({ payload: check.payload, response: check.raw_response, error: check.api_error }, null, 2)}
+                </pre>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-wrap items-center gap-2">
         {STATUSES.map((s) => (

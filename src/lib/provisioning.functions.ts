@@ -438,6 +438,8 @@ type DomainHit = {
 };
 
 const MARKUP = 1.5; // +50% sobre Hostinger — regra obrigatória
+const DOMAIN_TLDS = [".com", ".com.br", ".net", ".org", ".ao", ".co.ao"] as const;
+const CLIENT_DOMAIN_ERROR = "Não foi possível consultar agora. Tente novamente.";
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 function parseHostingerAvailability(value: unknown): boolean {
@@ -461,19 +463,64 @@ function applyMarkup(providerPrice: number | null | undefined): number | null {
   return final >= providerPrice ? final : round2(providerPrice);
 }
 
+function normalizeDomainQuery(input: string) {
+  const clean = input
+    .toLowerCase()
+    .trim()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/.*$/, "")
+    .replace(/[^a-z0-9.-]/g, "")
+    .replace(/^-+|-+$/g, "");
+  const requestedTld = tldOfDomain(clean);
+  const base = (requestedTld ? clean.slice(0, -requestedTld.length) : clean.replace(/\..*$/, ""))
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 63);
+  return { base, requestedTld };
+}
+
+function collectAvailabilityResources(
+  node: unknown,
+  inheritedDomain?: string,
+): Array<{ domain: string; available: boolean; isAlternative: boolean; raw: unknown }> {
+  if (!node) return [];
+  if (Array.isArray(node)) return node.flatMap((item) => collectAvailabilityResources(item, inheritedDomain));
+  if (typeof node === "boolean" && inheritedDomain) {
+    return [{ domain: inheritedDomain.toLowerCase(), available: node, isAlternative: false, raw: node }];
+  }
+  if (typeof node !== "object") return [];
+
+  const record = node as Record<string, unknown>;
+  const out: Array<{ domain: string; available: boolean; isAlternative: boolean; raw: unknown }> = [];
+  const directDomain = String(
+    record.domain ?? record.name ?? record.domain_name ?? inheritedDomain ?? "",
+  ).toLowerCase();
+  const hasAvailability = "is_available" in record || "available" in record || "status" in record;
+  if (directDomain && hasAvailability) {
+    out.push({
+      domain: directDomain,
+      available: parseHostingerAvailability(record.is_available ?? record.available ?? record.status),
+      isAlternative: record.is_alternative === true || record.isAlternative === true,
+      raw: record,
+    });
+  }
+
+  for (const [key, value] of Object.entries(record)) {
+    if (/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(key)) {
+      out.push(...collectAvailabilityResources(value, key.toLowerCase()));
+    } else if (["data", "results", "domains", "availability", "alternatives"].includes(key)) {
+      out.push(...collectAvailabilityResources(value, inheritedDomain));
+    }
+  }
+  return out;
+}
+
 export const searchDomainsHostinger = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => DomainSearchSchema.parse(input))
   .handler(async ({ data }) => {
     const started = Date.now();
-    const base = data.query
-      .toLowerCase()
-      .trim()
-      .replace(/^https?:\/\//, "")
-      .replace(/^www\./, "")
-      .replace(/\..*$/, "")
-      .replace(/[^a-z0-9-]/g, "")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 63);
+    const { base, requestedTld } = normalizeDomainQuery(data.query);
     if (!base) return { results: [], warning: "Domínio inválido." };
 
     // Load Hostinger domain catalog to extract per-period prices per TLD.
@@ -503,8 +550,7 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
       pricingByTld.set(entry.tld, tldMap);
     }
 
-    const POPULAR_TLDS = [".com", ".net", ".org", ".com.br", ".ao", ".co.ao", ".cloud", ".store", ".tech"];
-    const tldsToCheck = Array.from(new Set([...POPULAR_TLDS, ...pricingByTld.keys()]));
+    const tldsToCheck = Array.from(new Set(requestedTld ? [requestedTld, ...DOMAIN_TLDS] : DOMAIN_TLDS));
 
     const tierFor = (ext: string, years: DomainPeriod): DomainTier => {
       const e = pricingByTld.get(ext)?.get(years);
@@ -535,76 +581,29 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
     });
 
     const results: DomainHit[] = [];
+    const primaryTld = requestedTld ?? ".com";
 
-    // Hostinger CDN rate-limits aggressive parallel calls (error 1015 / HTTP 429).
-    // Strategy: minimise call count.
-    //   - Call A: ALL popular TLDs in a single multi-TLD POST (with_alternatives=false).
-    //   - Call B: primary .com only, with_alternatives=true (for suggestions).
-    // Both calls run sequentially with a small spacing to dodge 429.
-    const PRIMARY_TLD = ".com";
-
-    const callWithRetry = async (
-      tlds: string[],
-      withAlternatives: boolean,
-      label: string,
-    ) => {
-      const body = {
+    const callAvailability = async (tlds: string[], withAlternatives: boolean, label: string) => {
+      const payload = {
         domain: base,
         tlds: tlds.map((t) => t.replace(/^\./, "")),
         with_alternatives: withAlternatives,
       };
-      let attempt = 0;
-      let res: Awaited<ReturnType<typeof hostinger.call>> | null = null;
-      while (attempt < 3) {
-        res = await hostinger.call<any>("/api/domains/v1/availability", {
-          method: "POST",
-          body,
-          timeoutMs: 12_000,
-        });
-        console.log("[domain-search] hostinger.call", {
-          query: base, label, tlds, with_alternatives: withAlternatives,
-          status: res.status, ok: res.ok, attempt: attempt + 1,
-          error: res.error ?? null,
-        });
-        if (res.ok) break;
-        // 429/1015 — wait and retry; other errors: stop.
-        if (res.status !== 429 && res.status !== 0) break;
-        attempt += 1;
-        await new Promise((r) => setTimeout(r, 500 * attempt));
-      }
-      return res!;
-    };
-
-    const resAll = await callWithRetry(tldsToCheck, false, "multi-tld");
-    // brief spacing to avoid burst on the same CDN edge
-    await new Promise((r) => setTimeout(r, 250));
-    const resAlt = await callWithRetry([PRIMARY_TLD], true, "alternatives");
-
-    const parseList = (payload: any): any[] => {
-      if (!payload) return [];
-      if (Array.isArray(payload)) return payload;
-      if (payload.domain || payload.name) return [payload];
-      const domainMap = (obj: any) =>
-        obj && typeof obj === "object"
-          ? Object.entries(obj)
-              .filter(([key]) => /^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(key))
-              .map(([domain, value]) =>
-                typeof value === "object" && value !== null
-                  ? { domain, ...(value as Record<string, unknown>) }
-                  : { domain, available: value },
-              )
-          : [];
-      const directMap = domainMap(payload);
-      if (directMap.length > 0) return directMap;
-      if (Array.isArray(payload.data)) return payload.data;
-      if (Array.isArray(payload.results)) return payload.results;
-      if (Array.isArray(payload.domains)) return payload.domains;
-      if (Array.isArray(payload.availability)) return payload.availability;
-      if (payload.data?.domain || payload.data?.name) return [payload.data];
-      const nestedMap = domainMap(payload.data ?? payload.results ?? payload.domains ?? payload.availability);
-      if (nestedMap.length > 0) return nestedMap;
-      if (payload.data && typeof payload.data === "object") return Object.values(payload.data);
-      return [];
+      const res = await hostinger.call<any>("/api/domains/v1/availability", {
+        method: "POST",
+        body: payload,
+        timeoutMs: 15_000,
+      });
+      console.log("[domain-search] hostinger.call", {
+        query: base,
+        label,
+        endpoint: "/api/domains/v1/availability",
+        payload,
+        status: res.status,
+        ok: res.ok,
+        error: res.error ?? null,
+      });
+      return { ...res, payload, label };
     };
 
     const pushHit = (
@@ -634,58 +633,46 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
       });
     };
 
-    let anyOk = false;
+    const resAll = await callAvailability(tldsToCheck, false, "multi-tld");
+    let resAlt: Awaited<ReturnType<typeof callAvailability>> | null = null;
 
     if (resAll.ok) {
-      anyOk = true;
-      const items = parseList(resAll.data);
-      for (const it of items) {
-        const domain = String(it.domain ?? it.name ?? "").toLowerCase();
-        if (!domain) continue;
-        const itemExt = tldOfDomain(domain) ?? "";
-        if (!itemExt) continue;
-        const available = parseHostingerAvailability(
-          it.available ?? it.is_available ?? it.status,
-        );
-        pushHit(domain, itemExt, available, false, "hostinger");
+      for (const item of collectAvailabilityResources(resAll.data)) {
+        const ext = tldOfDomain(item.domain);
+        if (!ext) continue;
+        pushHit(item.domain, ext, item.available, item.isAlternative, "hostinger");
       }
-    }
 
-    if (resAlt.ok) {
-      anyOk = true;
-      const items = parseList(resAlt.data);
-      const altItems = Array.isArray((resAlt.data as any)?.alternatives)
-        ? (resAlt.data as any).alternatives
-        : [];
-      for (const it of items) {
-        const domain = String(it.domain ?? it.name ?? "").toLowerCase();
-        if (!domain) continue;
-        const itemExt = tldOfDomain(domain) ?? PRIMARY_TLD;
-        const available = parseHostingerAvailability(
-          it.available ?? it.is_available ?? it.status,
-        );
-        pushHit(domain, itemExt, available, false, "hostinger");
-      }
-      for (const it of altItems) {
-        const domain = String(it.domain ?? it.name ?? "").toLowerCase();
-        if (!domain) continue;
-        const itemExt = tldOfDomain(domain) ?? "";
-        if (!itemExt) continue;
-        const available = parseHostingerAvailability(
-          it.available ?? it.is_available ?? it.status ?? true,
-        );
-        pushHit(domain, itemExt, available, true, "hostinger_alt");
+      // Alternatives require exactly one TLD according to Hostinger docs.
+      // Only call it after the main check succeeds to avoid rate-limit loops.
+      resAlt = await callAvailability([primaryTld], true, "alternatives");
+      if (resAlt.ok) {
+        for (const item of collectAvailabilityResources(resAlt.data)) {
+          const ext = tldOfDomain(item.domain);
+          if (!ext) continue;
+          pushHit(item.domain, ext, item.available, item.isAlternative, item.isAlternative ? "hostinger_alt" : "hostinger");
+        }
       }
     }
 
     console.log("[domain-search] summary", {
       query: base, ms: Date.now() - started,
       total_tlds: tldsToCheck.length,
-      results: results.length, any_ok: anyOk,
+      results: results.length, any_ok: resAll.ok,
     });
 
-    if (!anyOk) {
-      return { results: [], warning: "Consulta temporariamente indisponível" };
+    if (!resAll.ok) {
+      return {
+        results: [],
+        warning: CLIENT_DOMAIN_ERROR,
+        adminError: {
+          endpoint: "/api/domains/v1/availability",
+          payload: resAll.payload,
+          status: resAll.status,
+          response: resAll.data,
+          message: resAll.error ?? "Hostinger availability failed",
+        },
+      };
     }
 
     // If Hostinger omits a requested primary TLD, keep it visible but blocked.
@@ -702,5 +689,59 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
     results.sort((a, b) => weight(a) - weight(b));
 
     return { results, warning: null as string | null };
+  });
+
+export const adminTestHostingerDomainSearch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const catalog = await fetchHostingerDomainCatalog();
+    const tests = ["google.com", "gustavomartins.com", "viralizahostteste123.com"];
+
+    const priceFor = (domain: string) => {
+      const ext = tldOfDomain(domain);
+      const entry = catalog.find(
+        (c) =>
+          c.tld === ext &&
+          Number(c.period) === 1 &&
+          String(c.period_unit ?? "").toLowerCase().startsWith("y") &&
+          c.price != null &&
+          c.price > 0,
+      );
+      const provider = entry?.price != null ? round2(entry.price) : null;
+      const final = applyMarkup(provider);
+      return { ext, provider_price: provider, markup_percent: 50, final_price: final, item_id: entry?.item_id ?? null };
+    };
+
+    const checks = [];
+    for (const domain of tests) {
+      const ext = tldOfDomain(domain);
+      const base = ext ? domain.slice(0, -ext.length) : domain.split(".")[0];
+      const payload = { domain: base, tlds: ext ? [ext.replace(/^\./, "")] : ["com"], with_alternatives: false };
+      const res = await hostinger.call<any>("/api/domains/v1/availability", {
+        method: "POST",
+        body: payload,
+        timeoutMs: 15_000,
+      });
+      const match = collectAvailabilityResources(res.data).find((item) => item.domain === domain);
+      const pricing = priceFor(domain);
+      checks.push({
+        domain,
+        endpoint: "/api/domains/v1/availability",
+        payload,
+        api_ok: res.ok,
+        status_code: res.status,
+        api_error: res.error ?? null,
+        raw_response: res.data,
+        availability_status: res.ok ? (match?.available ? "available" : "taken") : "error",
+        available: res.ok ? match?.available === true : false,
+        provider_price: pricing.provider_price,
+        markup_percent: 50,
+        final_price: pricing.final_price,
+        item_id: pricing.item_id,
+      });
+    }
+
+    return { ok: checks.every((c) => c.api_ok), checks };
   });
 

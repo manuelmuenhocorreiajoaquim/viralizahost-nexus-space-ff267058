@@ -105,12 +105,12 @@ export default function DomainSearchDialog({
         if (cancelled) return;
         const hResults = Array.isArray(hres?.results) ? hres.results : [];
         setResults(hResults);
-        setWarning(hres?.warning ?? (hResults.length === 0 ? "Consulta temporariamente indisponível" : null));
+        setWarning(hres?.warning ?? (hResults.length === 0 ? "Não foi possível consultar agora. Tente novamente." : null));
       } catch (e: unknown) {
         if (cancelled) return;
         console.error("[domain-search] failed", e);
         setResults([]);
-        setWarning("Consulta temporariamente indisponível");
+        setWarning("Não foi possível consultar agora. Tente novamente.");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -415,7 +415,7 @@ export default function DomainSearchDialog({
                                               </div>
                                               {tier.price_hostinger != null && (
                                                 <div className="text-[10px] text-muted-foreground line-through">
-                                                  Hostinger {formatPrice(`R$ ${(tier.price_hostinger * tier.years).toFixed(2)}`, currency)}
+                                                   Hostinger {formatPrice(`R$ ${tier.price_hostinger.toFixed(2)}`, currency)}
                                                 </div>
                                               )}
                                               <div className="text-[11px] text-muted-foreground">
@@ -456,7 +456,7 @@ export default function DomainSearchDialog({
 
                     {visibleResults.length === 0 && (
                       <div className="py-10 text-center text-sm text-muted-foreground">
-                        Não foi possível consultar o domínio. Tente pesquisar novamente.
+                        Não foi possível consultar agora. Tente novamente.
                       </div>
                     )}
                   </motion.div>

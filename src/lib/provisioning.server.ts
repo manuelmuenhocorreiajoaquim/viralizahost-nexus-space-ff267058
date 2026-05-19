@@ -794,7 +794,7 @@ export async function processProvisioningJob(jobId: string) {
           jobId,
           timeoutMs: 12_000,
         });
-        if (!availability.ok) throw new Error("Consulta temporariamente indisponível");
+        if (!availability.ok) throw new Error("Não foi possível consultar agora. Tente novamente.");
         const confirmed = collectHostingerAvailability(availability.data).find((item) => item.domain === domain);
         console.log("[provisioning] domain validation", {
           jobId, domain, status: confirmed?.available ? "available" : "taken", provider_price: providerPrice, markup_percent: 50, final_price: finalPrice,
