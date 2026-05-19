@@ -440,6 +440,16 @@ type DomainHit = {
 const MARKUP = 1.5; // +50% sobre Hostinger — regra obrigatória
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
+function parseHostingerAvailability(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  if (typeof value === "string") {
+    const v = value.toLowerCase().trim();
+    return ["available", "true", "yes", "1"].includes(v);
+  }
+  return false;
+}
+
 /**
  * Calcula preço final ViralizaHost = provider * 1.5, garantindo SEMPRE
  * que final >= provider. Nunca retorna valor inventado.
@@ -544,6 +554,10 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
       if (Array.isArray(payload.results)) return payload.results;
       if (Array.isArray(payload.domains)) return payload.domains;
       if (Array.isArray(payload.availability)) return payload.availability;
+      if (payload.data && typeof payload.data === "object") return Object.values(payload.data);
+      if (payload.results && typeof payload.results === "object") return Object.values(payload.results);
+      if (payload.domains && typeof payload.domains === "object") return Object.values(payload.domains);
+      if (payload.availability && typeof payload.availability === "object") return Object.values(payload.availability);
       if (payload.domain || payload.name) return [payload];
       return [];
     };
@@ -595,7 +609,7 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
         const domain = String(it.domain ?? it.name ?? "").toLowerCase();
         if (!domain) continue;
         const ext = tldOfDomain(domain) ?? "";
-        const available = Boolean(it.available ?? it.is_available ?? it.status === "available");
+        const available = parseHostingerAvailability(it.available ?? it.is_available ?? it.status);
         const isAlternative = Boolean(it.alternative ?? it.is_alternative);
         pushHit(domain, ext, available, isAlternative, "hostinger");
       }
