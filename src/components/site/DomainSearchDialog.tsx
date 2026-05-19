@@ -415,7 +415,7 @@ export default function DomainSearchDialog({
                                               </div>
                                               {tier.price_hostinger != null && (
                                                 <div className="text-[10px] text-muted-foreground line-through">
-                                                  Hostinger {formatPrice(`R$ ${(tier.price_hostinger * tier.years).toFixed(2)}`, currency)}
+                                                   Hostinger {formatPrice(`R$ ${tier.price_hostinger.toFixed(2)}`, currency)}
                                                 </div>
                                               )}
                                               <div className="text-[11px] text-muted-foreground">
