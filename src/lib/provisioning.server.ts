@@ -521,7 +521,7 @@ export async function syncHostingerDomainCatalogToProviderProducts() {
     const curAnnual = isAnnualDomainEntry(cur);
     const newAnnual = isAnnualDomainEntry(entry);
     if (newAnnual && !curAnnual) { best.set(entry.tld, entry); continue; }
-    if (newAnnual === curAnnual && (entry.price ?? Infinity) < (cur.price ?? Infinity)) {
+    if (newAnnual === curAnnual && (entry.price ?? 0) > (cur.price ?? 0)) {
       best.set(entry.tld, entry);
     }
   }
