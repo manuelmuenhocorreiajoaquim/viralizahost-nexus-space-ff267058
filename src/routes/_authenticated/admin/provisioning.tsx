@@ -13,6 +13,7 @@ import {
   adminRetryProvisioning,
   adminMarkProvisioned,
   adminGetJobLogs,
+  adminTestHostingerDomainSearch,
 } from "@/lib/provisioning.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/provisioning")({
@@ -47,9 +48,11 @@ function Page() {
   const retryFn = useServerFn(adminRetryProvisioning);
   const markFn = useServerFn(adminMarkProvisioned);
   const logsFn = useServerFn(adminGetJobLogs);
+  const domainTestFn = useServerFn(adminTestHostingerDomainSearch);
   const [filter, setFilter] = useState<string>("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [logsFor, setLogsFor] = useState<string | null>(null);
+  const [domainTest, setDomainTest] = useState<any>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-provisioning", filter],
@@ -111,6 +114,16 @@ function Page() {
     },
     onError: (e: any) => toast.error(e?.message ?? "Falha."),
     onSettled: () => setBusyId(null),
+  });
+
+  const domainSearchTest = useMutation({
+    mutationFn: () => domainTestFn(),
+    onSuccess: (res: any) => {
+      setDomainTest(res);
+      if (res?.ok) toast.success("Teste de domínios concluído.");
+      else toast.warning("Teste concluído com erro da API Hostinger.");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Falha ao testar pesquisa de domínio."),
   });
 
   if (loading || roleLoading) {
