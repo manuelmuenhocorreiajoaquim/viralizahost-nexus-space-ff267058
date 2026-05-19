@@ -104,24 +104,13 @@ export default function DomainSearchDialog({
         const hres: any = await searchFn({ data: { query: cleanQuery } });
         if (cancelled) return;
         const hResults = Array.isArray(hres?.results) ? hres.results : [];
-        if (hResults.length > 0) {
-          setResults(hResults);
-          setWarning(hres?.warning ?? null);
-        } else {
-          // Fallback to legacy edge function
-          const { data, error } = await supabase.functions.invoke("domain-search", {
-            body: { query: cleanQuery },
-          });
-          if (error) throw error;
-          const nextResults = Array.isArray(data?.results) ? data.results : [];
-          setResults(nextResults.length > 0 ? nextResults : fallbackSuggestions(cleanQuery));
-          setWarning(data?.warning ?? null);
-        }
+        setResults(hResults);
+        setWarning(hres?.warning ?? (hResults.length === 0 ? "Consulta temporariamente indisponível" : null));
       } catch (e: unknown) {
         if (cancelled) return;
         console.error("[domain-search] failed", e);
-        setResults(fallbackSuggestions(cleanQuery));
-        setWarning("Não foi possível consultar o domínio. Mostrando sugestões alternativas.");
+        setResults([]);
+        setWarning("Consulta temporariamente indisponível");
       } finally {
         if (!cancelled) setLoading(false);
       }
