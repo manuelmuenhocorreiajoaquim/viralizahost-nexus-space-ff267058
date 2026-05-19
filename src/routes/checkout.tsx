@@ -124,6 +124,18 @@ function brl(n: number, currency: "BRL" | "AKZ") {
   return formatPrice(n.toFixed(2), currency);
 }
 
+function domainCartIssue(item: { productId: string; domain?: string; metadata?: Record<string, unknown>; priceBRL?: number }) {
+  if (!item.productId.startsWith("domain:")) return null;
+  const meta = item.metadata ?? {};
+  const provider = Number(meta.price_hostinger);
+  const final = Number(meta.price_final ?? item.priceBRL);
+  if (meta.availability_confirmed !== true) return "Pesquise novamente este domínio para confirmar disponibilidade na Hostinger.";
+  if (meta.availability_status !== "available" && meta.availability_status !== "suggestion") return "Domínio ocupado ou não confirmado.";
+  if (!Number.isFinite(provider) || provider <= 0 || !Number.isFinite(final) || final <= 0) return "Preço Hostinger indisponível.";
+  if (final + 0.01 < provider * 1.5) return "Preço abaixo do mínimo Hostinger + 50%.";
+  return null;
+}
+
 const CHECKOUT_CUSTOMER_KEY = "vh.checkout.customer.v1";
 
 function useHostingerItemIds(productIds: string[]) {
