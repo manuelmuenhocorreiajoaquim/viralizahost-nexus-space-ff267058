@@ -484,13 +484,12 @@ export async function fetchHostingerDomainCatalog(): Promise<HostingerDomainCata
     }
     for (const p of prices) {
       if (!p?.id) continue;
-      // Hostinger expõe `first_period_price` (promo do 1º período) e `price` (renovação).
-      // Para garantir que ViralizaHost NUNCA fique abaixo do preço público da Hostinger,
-      // usamos sempre o MAIOR dos dois como "preço Hostinger" base do markup +50%.
+      // Preço Hostinger real do período (ex.: .com 1 ano = R$ 49,99).
+      // Usamos `first_period_price` (preço público pago pelo cliente naquele período).
+      // Fallback para `price` apenas se `first_period_price` não vier.
       const fpp = typeof p.first_period_price === "number" ? p.first_period_price / 100 : null;
       const rnw = typeof p.price === "number" ? p.price / 100 : null;
-      const candidates = [fpp, rnw].filter((v): v is number => typeof v === "number" && v > 0);
-      const basePrice = candidates.length ? Math.max(...candidates) : null;
+      const basePrice = fpp && fpp > 0 ? fpp : rnw && rnw > 0 ? rnw : null;
       out.push({
         item_id: String(p.id),
         catalog_id: String(item.id ?? ""),
