@@ -530,6 +530,7 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
   const { currency } = useCurrency();
   const [showAdd, setShowAdd] = useState(false);
   const hostingerIds = useHostingerItemIds(cart.items.map((i) => i.productId));
+  const domainIssues = cart.items.map(domainCartIssue).filter(Boolean);
 
   if (cart.items.length === 0) {
     return (
@@ -587,6 +588,11 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
                   {p.type === "vps" && normalizeProductId(p.id).startsWith("vps-nvme-") && (
                     <div className="text-[10px] text-slate-400 font-mono truncate mt-0.5">
                       item_id: {hostingerIds.data?.[normalizeProductId(p.id)] ?? "a sincronizar…"}
+                    </div>
+                  )}
+                  {domainCartIssue(it) && (
+                    <div className="text-[11px] text-rose-600 font-semibold mt-1">
+                      {domainCartIssue(it)}
                     </div>
                   )}
                 </div>
@@ -653,7 +659,12 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
         </div>
         <Summary />
       </div>
-      <Footer onBack={onBack} onNext={onNext} />
+      <Footer
+        onBack={onBack}
+        onNext={onNext}
+        nextDisabled={domainIssues.length > 0}
+        nextHint="Remova e pesquise novamente domínios sem confirmação real da Hostinger."
+      />
     </div>
   );
 }
