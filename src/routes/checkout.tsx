@@ -1286,6 +1286,11 @@ function PaymentStep({
       toast.error("Total do pedido inválido. Revise seu carrinho.");
       return;
     }
+    const domainIssue = cart.items.map(domainCartIssue).find(Boolean);
+    if (domainIssue) {
+      toast.error(domainIssue);
+      return;
+    }
 
     setLoading(true);
     try {
