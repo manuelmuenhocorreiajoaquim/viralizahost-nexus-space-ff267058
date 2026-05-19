@@ -672,6 +672,6 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
       r.available ? 0 : r.status === "suggestion" || r.suggested ? 1 : 2;
     results.sort((a, b) => weight(a) - weight(b));
 
-    return { results, warning };
+    return { results, warning: null as string | null };
   });
 
