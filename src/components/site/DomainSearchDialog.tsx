@@ -141,6 +141,10 @@ export default function DomainSearchDialog({
   const buy = (r: DomainResult) => {
     const key = periodFor(r.domain);
     const tier = tierFor(r, key);
+    if (!r.available) {
+      toast.error("Domínio ocupado ou não confirmado pela Hostinger.");
+      return;
+    }
     if (tier.price_final == null || tier.unavailable) {
       toast.error("Preço indisponível temporariamente. Tente novamente em instantes.");
       return;
@@ -167,6 +171,9 @@ export default function DomainSearchDialog({
         price_final: totalPrice,
         markup_percent: 50,
         hostinger_item_id: tier.item_id,
+        availability_confirmed: true,
+        availability_source: r.source ?? "hostinger",
+        availability_status: r.status ?? "available",
       },
     });
     setDomain(product.id, r.domain);
@@ -183,10 +190,10 @@ export default function DomainSearchDialog({
   };
 
   const availableCount = results.filter((r) => r.available).length;
-  const takenCount = results.filter((r) => !r.available && r.status !== "suggestion").length;
-  const suggestionCount = results.filter((r) => r.suggested || r.status === "suggestion").length;
+  const takenCount = results.filter((r) => !r.available).length;
+  const suggestionCount = results.filter((r) => r.available && (r.suggested || r.status === "suggestion")).length;
   const visibleResults = showAlternatives
-    ? results.filter((r) => r.available || r.suggested || r.status === "suggestion")
+    ? results.filter((r) => r.available && (r.suggested || r.status === "suggestion"))
     : results;
 
   return (
