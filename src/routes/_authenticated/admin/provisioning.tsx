@@ -141,6 +141,42 @@ function Page() {
         subtitle="Acompanhe a fila de ativação de serviços comprados no ViralizaHost."
       />
 
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-semibold text-slate-900">Teste de pesquisa de domínio</h2>
+            <p className="text-xs text-slate-500">google.com, gustavomartins.com e viralizahostteste123.com</p>
+          </div>
+          <Button onClick={() => domainSearchTest.mutate()} disabled={domainSearchTest.isPending}>
+            {domainSearchTest.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+            Testar pesquisa domínio
+          </Button>
+        </div>
+
+        {domainTest?.checks?.length > 0 && (
+          <div className="grid gap-3">
+            {domainTest.checks.map((check: any) => (
+              <div key={check.domain} className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="font-semibold text-slate-900">{check.domain}</div>
+                  <div className={check.api_ok ? "text-emerald-700" : "text-red-700"}>
+                    API {check.status_code} · {check.availability_status}
+                  </div>
+                </div>
+                <div className="mt-2 grid sm:grid-cols-3 gap-2 text-slate-600">
+                  <span>Original: {check.provider_price != null ? `R$ ${Number(check.provider_price).toFixed(2)}` : "—"}</span>
+                  <span>Markup: {check.markup_percent}%</span>
+                  <span>ViralizaHost: {check.final_price != null ? `R$ ${Number(check.final_price).toFixed(2)}` : "—"}</span>
+                </div>
+                <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-white p-2 text-[10px] text-slate-600">
+                  {JSON.stringify({ payload: check.payload, response: check.raw_response, error: check.api_error }, null, 2)}
+                </pre>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
         {STATUSES.map((s) => (
           <button
