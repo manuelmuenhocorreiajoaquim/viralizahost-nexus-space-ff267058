@@ -541,11 +541,9 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
       if (entry.price == null || entry.price <= 0) continue;
       const tldMap = pricingByTld.get(entry.tld) ?? new Map();
       const existing = tldMap.get(years as DomainPeriod);
-      // Use the HIGHEST price across SKUs for the same TLD/period so the
-      // ViralizaHost price (provider × 1.5) is NEVER below the public
-      // Hostinger consumer price (which is the higher renewal/regular SKU,
-      // not the promotional first-period one).
-      if (!existing || entry.price > existing.price_hostinger) {
+      // Use the LOWEST price across SKUs for the same TLD/period — esse é o
+      // preço público real que a Hostinger cobra do cliente naquele período.
+      if (!existing || entry.price < existing.price_hostinger) {
         tldMap.set(years as DomainPeriod, {
           price_hostinger: entry.price,
           item_id: entry.item_id,
