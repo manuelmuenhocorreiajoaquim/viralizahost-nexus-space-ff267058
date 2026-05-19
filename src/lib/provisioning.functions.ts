@@ -691,3 +691,57 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
     return { results, warning: null as string | null };
   });
 
+export const adminTestHostingerDomainSearch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const catalog = await fetchHostingerDomainCatalog();
+    const tests = ["google.com", "gustavomartins.com", "viralizahostteste123.com"];
+
+    const priceFor = (domain: string) => {
+      const ext = tldOfDomain(domain);
+      const entry = catalog.find(
+        (c) =>
+          c.tld === ext &&
+          Number(c.period) === 1 &&
+          String(c.period_unit ?? "").toLowerCase().startsWith("y") &&
+          c.price != null &&
+          c.price > 0,
+      );
+      const provider = entry?.price != null ? round2(entry.price) : null;
+      const final = applyMarkup(provider);
+      return { ext, provider_price: provider, markup_percent: 50, final_price: final, item_id: entry?.item_id ?? null };
+    };
+
+    const checks = [];
+    for (const domain of tests) {
+      const ext = tldOfDomain(domain);
+      const base = ext ? domain.slice(0, -ext.length) : domain.split(".")[0];
+      const payload = { domain: base, tlds: ext ? [ext.replace(/^\./, "")] : ["com"], with_alternatives: false };
+      const res = await hostinger.call<any>("/api/domains/v1/availability", {
+        method: "POST",
+        body: payload,
+        timeoutMs: 15_000,
+      });
+      const match = collectAvailabilityResources(res.data).find((item) => item.domain === domain);
+      const pricing = priceFor(domain);
+      checks.push({
+        domain,
+        endpoint: "/api/domains/v1/availability",
+        payload,
+        api_ok: res.ok,
+        status_code: res.status,
+        api_error: res.error ?? null,
+        raw_response: res.data,
+        availability_status: res.ok ? (match?.available ? "available" : "taken") : "error",
+        available: res.ok ? match?.available === true : false,
+        provider_price: pricing.provider_price,
+        markup_percent: 50,
+        final_price: pricing.final_price,
+        item_id: pricing.item_id,
+      });
+    }
+
+    return { ok: checks.every((c) => c.api_ok), checks };
+  });
+
