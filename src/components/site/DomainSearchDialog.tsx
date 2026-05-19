@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { searchDomainsHostinger } from "@/lib/provisioning.functions";
 import { useCurrency, formatPrice } from "@/lib/currency";
@@ -69,44 +68,6 @@ function sanitize(input: string): string {
     .replace(/^www\./, "")
     .replace(/\..*$/, "")
     .replace(/[^a-z0-9-]/g, "");
-}
-
-// Sugestões sem preço — nunca inventamos valor abaixo do provider.
-function fallbackSuggestions(query: string): DomainResult[] {
-  const base = sanitize(query);
-  if (!base) return [];
-  const variants = [base, `${base}angola`, `${base}brasil`, `${base}host`, `get${base}`, `use${base}`];
-  const tlds = [".com", ".net", ".org", ".com.br", ".ao", ".co.ao", ".tech", ".cloud", ".store"];
-  const emptyTier = (years: 1 | 2 | 3): DomainPricingTier => ({
-    years, price_hostinger: null, price_final: null, item_id: null, unavailable: true,
-  });
-  return Array.from(
-    new Set(
-      variants.flatMap((variant, index) => {
-        const scope = index === 0 ? tlds : [".com", ".net", ".com.br", ".cloud"];
-        return scope.map((ext) => `${variant}${ext}`);
-      }),
-    ),
-  )
-    .slice(0, 24)
-    .map((domain) => {
-      const ext = domain.endsWith(".com.br")
-        ? ".com.br"
-        : domain.endsWith(".co.ao")
-          ? ".co.ao"
-          : (domain.match(/\.[^.]+$/)?.[0] ?? ".com");
-      return {
-        domain,
-        ext,
-        priceBRL: 0,
-        price_hostinger: null,
-        available: false,
-        status: "suggestion" as const,
-        source: "fallback",
-        suggested: true,
-        pricing: { "1y": emptyTier(1), "2y": emptyTier(2), "3y": emptyTier(3) },
-      };
-    });
 }
 
 export default function DomainSearchDialog({
