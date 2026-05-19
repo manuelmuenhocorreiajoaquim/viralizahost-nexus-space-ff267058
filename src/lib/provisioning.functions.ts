@@ -550,15 +550,19 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
     const parseList = (payload: any): any[] => {
       if (!payload) return [];
       if (Array.isArray(payload)) return payload;
+      if (payload.domain || payload.name) return [payload];
       if (Array.isArray(payload.data)) return payload.data;
       if (Array.isArray(payload.results)) return payload.results;
       if (Array.isArray(payload.domains)) return payload.domains;
       if (Array.isArray(payload.availability)) return payload.availability;
+      if (payload.data?.domain || payload.data?.name) return [payload.data];
+      if (payload.results?.domain || payload.results?.name) return [payload.results];
+      if (payload.domains?.domain || payload.domains?.name) return [payload.domains];
+      if (payload.availability?.domain || payload.availability?.name) return [payload.availability];
       if (payload.data && typeof payload.data === "object") return Object.values(payload.data);
       if (payload.results && typeof payload.results === "object") return Object.values(payload.results);
       if (payload.domains && typeof payload.domains === "object") return Object.values(payload.domains);
       if (payload.availability && typeof payload.availability === "object") return Object.values(payload.availability);
-      if (payload.domain || payload.name) return [payload];
       return [];
     };
 
