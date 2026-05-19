@@ -411,6 +411,31 @@ export function tldOfDomain(domain: string): string | null {
   return simple ? simple[0] : null;
 }
 
+function parseHostingerDomainAvailability(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  if (typeof value === "string") return ["available", "true", "yes", "1"].includes(value.toLowerCase().trim());
+  return false;
+}
+
+function collectHostingerAvailability(node: unknown, inheritedDomain?: string): Array<{ domain: string; available: boolean }> {
+  if (!node) return [];
+  if (Array.isArray(node)) return node.flatMap((item) => collectHostingerAvailability(item, inheritedDomain));
+  if (typeof node === "boolean" && inheritedDomain) return [{ domain: inheritedDomain, available: node }];
+  if (typeof node !== "object") return [];
+  const record = node as Record<string, unknown>;
+  const directDomain = String(record.domain ?? record.name ?? record.domain_name ?? inheritedDomain ?? "").toLowerCase();
+  const out: Array<{ domain: string; available: boolean }> = [];
+  if (directDomain && ("available" in record || "is_available" in record || "status" in record)) {
+    out.push({ domain: directDomain, available: parseHostingerDomainAvailability(record.available ?? record.is_available ?? record.status) });
+  }
+  for (const [key, value] of Object.entries(record)) {
+    if (/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(key)) out.push(...collectHostingerAvailability(value, key.toLowerCase()));
+    else if (["data", "results", "domains", "availability"].includes(key)) out.push(...collectHostingerAvailability(value, inheritedDomain));
+  }
+  return out;
+}
+
 function extractTldFromCatalogName(name: string, itemId: string): string | null {
   const source = `${name} ${itemId}`.toLowerCase();
   // Try multi-part first
