@@ -55,6 +55,7 @@ import BankTransferDialog from "@/components/checkout/BankTransferDialog";
 import bicLogoImg from "@/assets/banco-bic-logo.png";
 import DomainSearchDialog from "@/components/site/DomainSearchDialog";
 import { createCheckoutOrder } from "@/lib/payments.functions";
+import { searchDomainsHostinger } from "@/lib/provisioning.functions";
 
 /* Sanitize raw domain input → lowercase, no protocol/path/www/spaces. */
 function sanitizeDomain(input: string): string {
@@ -801,6 +802,7 @@ function DomainPicker({
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [checking, setChecking] = useState(false);
+  const checkDomainFn = useServerFn(searchDomainsHostinger);
   const [status, setStatus] = useState<
     | { kind: "idle" }
     | { kind: "ok"; domain: string }
@@ -856,11 +858,7 @@ function DomainPicker({
     }
     setChecking(true);
     try {
-      const base = cleaned.split(".")[0];
-      const { data, error } = await supabase.functions.invoke("domain-search", {
-        body: { query: base },
-      });
-      if (error) throw error;
+      const data: any = await checkDomainFn({ data: { query: cleaned } });
       const results: Array<{ domain: string; available: boolean }> = Array.isArray(data?.results)
         ? data.results
         : [];
