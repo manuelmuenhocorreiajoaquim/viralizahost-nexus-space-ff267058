@@ -6,7 +6,7 @@ import {
 import manuel from "@/assets/team/manuel.jpeg";
 import lucas from "@/assets/team/lucas.jpeg";
 import jacob from "@/assets/team/jacob.jpeg";
-import felipe from "@/assets/team/felipe.png";
+
 import vladmiro from "@/assets/team/vladimiro.png";
 import israel from "@/assets/team/israel.png";
 import arnaldo from "@/assets/team/arnaldo.jpeg";
@@ -17,7 +17,6 @@ const BR = "https://flagcdn.com/w80/br.png";
 const team = [
   { photo: lucas,    name: "Lucas Marcelino",  role: "Tráfego Pago",                 icon: TrendingUp, desc: "Especialista em Meta Ads, Google Ads e estratégias de conversão e crescimento digital.", flag: BR, country: "Brasil" },
   { photo: jacob,    name: "Jacob Pessela",    role: "Design Gráfico",               icon: Palette,    desc: "Especialista em branding, identidade visual e comunicação criativa empresarial.", flag: AO, country: "Angola" },
-  { photo: felipe,   name: "Felipe Nóbrega",   role: "Automação IA",                 icon: Bot,        desc: "Especialista em Inteligência Artificial, automação de processos e soluções inteligentes.", flag: BR, country: "Brasil" },
   { photo: vladmiro, name: "Vladimiro Francisco", role: "Hosting & Infraestrutura",   icon: Server,     desc: "Especialista em servidores web, cloud hosting, e-mails corporativos e infraestrutura.", flag: AO, country: "Angola" },
   { photo: israel,   name: "Israel Soares",    role: "Crescimento Digital",          icon: Share2,     desc: "Especialista em crescimento digital, estratégias sociais e posicionamento online.", flag: BR, country: "Brasil" },
   { photo: arnaldo,  name: "Arnaldo Eduardo",  role: "Audiovisual",                  icon: Video,      desc: "Especialista em produção audiovisual, motion graphics e conteúdos digitais premium.", flag: AO, country: "Angola" },
