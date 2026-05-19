@@ -343,11 +343,7 @@ export default function DomainSearchDialog({
                                   <div className="mt-1 flex flex-wrap items-center gap-2">
                                     {r.available ? (
                                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success/10 text-success text-[10px] font-bold border border-success/20">
-                                        <Check className="h-3 w-3" /> Disponível
-                                      </span>
-                                    ) : isSuggestion ? (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold border border-primary/20">
-                                        <Sparkles className="h-3 w-3" /> Sugestão
+                                        <Check className="h-3 w-3" /> {isSuggestion ? "Sugestão disponível" : "Disponível"}
                                       </span>
                                     ) : (
                                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 text-destructive text-[10px] font-bold border border-destructive/20">
@@ -366,7 +362,7 @@ export default function DomainSearchDialog({
                                   const key = periodFor(r.domain);
                                   const tier = tierFor(r, key);
                                   const tier1y = tierFor(r, "1y");
-                                  const unavailable = tier.price_final == null || tier.unavailable;
+                                  const unavailable = !r.available || tier.price_final == null || tier.unavailable;
                                   const finalPrice = tier.price_final ?? 0;
                                   const yearly = unavailable ? 0 : finalPrice / tier.years;
                                   const savings =
@@ -410,7 +406,7 @@ export default function DomainSearchDialog({
                                           </div>
                                           {unavailable ? (
                                             <div className="text-sm font-semibold text-warning leading-tight">
-                                              Preço indisponível temporariamente
+                                              {r.available ? "Preço indisponível temporariamente" : "Domínio ocupado"}
                                             </div>
                                           ) : (
                                             <>
@@ -442,12 +438,10 @@ export default function DomainSearchDialog({
                                               ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
                                               : r.available
                                                 ? "bg-gradient-primary text-primary-foreground shadow-glow-soft hover:scale-[1.02]"
-                                                : isSuggestion
-                                                  ? "bg-primary/10 text-primary hover:bg-primary/15 hover:scale-[1.02]"
-                                                  : "bg-muted text-foreground hover:bg-muted/80 hover:scale-[1.02]"
+                                                : "bg-muted text-foreground hover:bg-muted/80 hover:scale-[1.02]"
                                           }`}
                                         >
-                                          <ShoppingCart className="h-4 w-4" /> {unavailable ? "Indisponível" : "Comprar"}
+                                          <ShoppingCart className="h-4 w-4" /> {unavailable ? "Bloqueado" : "Comprar"}
                                         </button>
                                       </div>
                                     </>
