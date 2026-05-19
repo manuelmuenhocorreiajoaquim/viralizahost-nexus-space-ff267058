@@ -272,6 +272,7 @@ export const createPixPayment = createServerFn({ method: "POST" })
       console.error("[pix] order items lookup error", itemsErr);
       throw new Error(itemsErr.message);
     }
+    await validateOrderDomainItems(order.id);
 
     const mpItems = (orderItems ?? []).map((item) => {
       const title = String(item.domain || item.product_name || "")
@@ -542,6 +543,7 @@ async function loadOrderForCharge(orderId: string) {
     (Number.isFinite(itemsAmount) && itemsAmount > 0 ? itemsAmount : orderAmount).toFixed(2),
   );
   if (!Number.isFinite(amount) || amount <= 0) throw new Error("Valor do pedido inválido");
+  await validateOrderDomainItems(order.id);
 
   let accountEmail: string | undefined;
   if (order.user_id) {
