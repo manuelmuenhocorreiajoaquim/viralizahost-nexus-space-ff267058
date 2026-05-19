@@ -118,6 +118,26 @@ async function validateHostingerDomainForPayment(input: {
   if (!match?.available) throw new Error(`Domínio ${domain} está ocupado ou não confirmado pela Hostinger.`);
 }
 
+async function validateOrderDomainItems(orderId: string) {
+  const { data: items, error } = await supabaseAdmin
+    .from("order_items")
+    .select("product_type, unit_price, quantity, total, domain, metadata")
+    .eq("order_id", orderId)
+    .eq("product_type", "domain");
+  if (error) throw new Error(error.message);
+  for (const item of items ?? []) {
+    const domain = String(item.domain ?? "").trim();
+    if (!domain) throw new Error("Domínio em falta no pedido.");
+    await validateHostingerDomainForPayment({
+      domain,
+      unitPrice: Number(item.unit_price),
+      total: Number(item.total),
+      quantity: Math.max(1, Math.trunc(Number(item.quantity)) || 1),
+      metadata: item.metadata as Record<string, any> | null,
+    });
+  }
+}
+
 export const createCheckoutOrder = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => CreateCheckoutOrderSchema.parse(input))
   .handler(async ({ data }) => {
@@ -135,6 +155,18 @@ export const createCheckoutOrder = createServerFn({ method: "POST" })
       total: data.total,
       items: data.items.length,
     });
+
+    for (const item of data.items) {
+      if (item.type !== "domain") continue;
+      const domain = String(item.domain || item.name || item.id.replace(/^domain:/, "")).trim();
+      await validateHostingerDomainForPayment({
+        domain,
+        unitPrice: Number(item.price),
+        total: Number(item.total ?? item.price * item.quantity),
+        quantity: item.quantity,
+        metadata: item.metadata ?? null,
+      });
+    }
 
     const { data: order, error: orderErr } = await supabaseAdmin
       .from("orders")
