@@ -438,6 +438,8 @@ type DomainHit = {
 };
 
 const MARKUP = 1.5; // +50% sobre Hostinger — regra obrigatória
+const DOMAIN_TLDS = [".com", ".com.br", ".net", ".org", ".ao", ".co.ao"] as const;
+const CLIENT_DOMAIN_ERROR = "Não foi possível consultar agora. Tente novamente.";
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 function parseHostingerAvailability(value: unknown): boolean {
@@ -459,6 +461,59 @@ function applyMarkup(providerPrice: number | null | undefined): number | null {
   const final = round2(providerPrice * MARKUP);
   // Invariante: final nunca pode ser menor que provider.
   return final >= providerPrice ? final : round2(providerPrice);
+}
+
+function normalizeDomainQuery(input: string) {
+  const clean = input
+    .toLowerCase()
+    .trim()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/.*$/, "")
+    .replace(/[^a-z0-9.-]/g, "")
+    .replace(/^-+|-+$/g, "");
+  const requestedTld = tldOfDomain(clean);
+  const base = (requestedTld ? clean.slice(0, -requestedTld.length) : clean.replace(/\..*$/, ""))
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 63);
+  return { base, requestedTld };
+}
+
+function collectAvailabilityResources(
+  node: unknown,
+  inheritedDomain?: string,
+): Array<{ domain: string; available: boolean; isAlternative: boolean; raw: unknown }> {
+  if (!node) return [];
+  if (Array.isArray(node)) return node.flatMap((item) => collectAvailabilityResources(item, inheritedDomain));
+  if (typeof node === "boolean" && inheritedDomain) {
+    return [{ domain: inheritedDomain.toLowerCase(), available: node, isAlternative: false, raw: node }];
+  }
+  if (typeof node !== "object") return [];
+
+  const record = node as Record<string, unknown>;
+  const out: Array<{ domain: string; available: boolean; isAlternative: boolean; raw: unknown }> = [];
+  const directDomain = String(
+    record.domain ?? record.name ?? record.domain_name ?? inheritedDomain ?? "",
+  ).toLowerCase();
+  const hasAvailability = "is_available" in record || "available" in record || "status" in record;
+  if (directDomain && hasAvailability) {
+    out.push({
+      domain: directDomain,
+      available: parseHostingerAvailability(record.is_available ?? record.available ?? record.status),
+      isAlternative: record.is_alternative === true || record.isAlternative === true,
+      raw: record,
+    });
+  }
+
+  for (const [key, value] of Object.entries(record)) {
+    if (/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(key)) {
+      out.push(...collectAvailabilityResources(value, key.toLowerCase()));
+    } else if (["data", "results", "domains", "availability", "alternatives"].includes(key)) {
+      out.push(...collectAvailabilityResources(value, inheritedDomain));
+    }
+  }
+  return out;
 }
 
 export const searchDomainsHostinger = createServerFn({ method: "POST" })
