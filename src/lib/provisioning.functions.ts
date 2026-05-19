@@ -535,7 +535,7 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
     });
 
     const results: DomainHit[] = [];
-    let warning: string | null = null;
+    
 
     // Hostinger: with_alternatives=true is ONLY accepted with a SINGLE TLD.
     // Strategy: one call per TLD in parallel; ask for alternatives on the
