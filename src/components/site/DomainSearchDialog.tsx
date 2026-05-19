@@ -308,7 +308,7 @@ export default function DomainSearchDialog({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {visibleResults.map((r, i) => {
                         const isSuggestion =
-                          !r.available && (r.status === "suggestion" || r.suggested);
+                          r.available && (r.status === "suggestion" || r.suggested);
                         return (
                           <motion.div
                             key={`${r.domain}-${i}`}
@@ -319,9 +319,7 @@ export default function DomainSearchDialog({
                             className={`group relative overflow-hidden rounded-2xl bg-card border p-4 transition-all ${
                               r.available
                                 ? "border-success/35 shadow-glow-success hover:shadow-glow-success"
-                                : isSuggestion
-                                  ? "border-primary/20 hover:border-primary/40 hover:shadow-glow-soft"
-                                  : "border-destructive/20 hover:border-destructive/35"
+                                : "border-destructive/20 hover:border-destructive/35"
                             }`}
                           >
                             {r.available && (
@@ -333,18 +331,10 @@ export default function DomainSearchDialog({
                                   className={`h-10 w-10 rounded-xl grid place-items-center shrink-0 ${
                                     r.available
                                       ? "bg-success/10 text-success"
-                                      : isSuggestion
-                                        ? "bg-primary/10 text-primary"
-                                        : "bg-destructive/10 text-destructive"
+                                      : "bg-destructive/10 text-destructive"
                                   }`}
                                 >
-                                  {r.available ? (
-                                    <Check className="h-5 w-5" />
-                                  ) : isSuggestion ? (
-                                    <Sparkles className="h-5 w-5" />
-                                  ) : (
-                                    <X className="h-5 w-5" />
-                                  )}
+                                  {r.available ? <Check className="h-5 w-5" /> : <X className="h-5 w-5" />}
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <div className="font-semibold text-foreground break-words">
