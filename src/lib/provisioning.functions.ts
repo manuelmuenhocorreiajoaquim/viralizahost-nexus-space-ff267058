@@ -535,34 +535,50 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
     });
 
     const results: DomainHit[] = [];
-    
 
-    // Hostinger: with_alternatives=true is ONLY accepted with a SINGLE TLD.
-    // Strategy: one call per TLD in parallel; ask for alternatives on the
-    // primary .com call. This also avoids the multi-TLD timeout we observed.
+    // Hostinger CDN rate-limits aggressive parallel calls (error 1015 / HTTP 429).
+    // Strategy: minimise call count.
+    //   - Call A: ALL popular TLDs in a single multi-TLD POST (with_alternatives=false).
+    //   - Call B: primary .com only, with_alternatives=true (for suggestions).
+    // Both calls run sequentially with a small spacing to dodge 429.
     const PRIMARY_TLD = ".com";
-    const callOne = async (ext: string, withAlternatives: boolean) => {
-      const tldNoDot = ext.replace(/^\./, "");
-      const res = await hostinger.call<any>("/api/domains/v1/availability", {
-        method: "POST",
-        body: {
-          domain: base,
-          tlds: [tldNoDot],
-          with_alternatives: withAlternatives,
-        },
-        timeoutMs: 10_000,
-      });
-      console.log("[domain-search] hostinger.call", {
-        query: base, tld: ext,
-        endpoint: "/api/domains/v1/availability",
-        status: res.status, ok: res.ok, error: res.error ?? null,
-      });
-      return { ext, res };
+
+    const callWithRetry = async (
+      tlds: string[],
+      withAlternatives: boolean,
+      label: string,
+    ) => {
+      const body = {
+        domain: base,
+        tlds: tlds.map((t) => t.replace(/^\./, "")),
+        with_alternatives: withAlternatives,
+      };
+      let attempt = 0;
+      let res: Awaited<ReturnType<typeof hostinger.call>> | null = null;
+      while (attempt < 3) {
+        res = await hostinger.call<any>("/api/domains/v1/availability", {
+          method: "POST",
+          body,
+          timeoutMs: 12_000,
+        });
+        console.log("[domain-search] hostinger.call", {
+          query: base, label, tlds, with_alternatives: withAlternatives,
+          status: res.status, ok: res.ok, attempt: attempt + 1,
+          error: res.error ?? null,
+        });
+        if (res.ok) break;
+        // 429/1015 — wait and retry; other errors: stop.
+        if (res.status !== 429 && res.status !== 0) break;
+        attempt += 1;
+        await new Promise((r) => setTimeout(r, 500 * attempt));
+      }
+      return res!;
     };
 
-    const settled = await Promise.allSettled(
-      tldsToCheck.map((ext) => callOne(ext, ext === PRIMARY_TLD)),
-    );
+    const resAll = await callWithRetry(tldsToCheck, false, "multi-tld");
+    // brief spacing to avoid burst on the same CDN edge
+    await new Promise((r) => setTimeout(r, 250));
+    const resAlt = await callWithRetry([PRIMARY_TLD], true, "alternatives");
 
     const parseList = (payload: any): any[] => {
       if (!payload) return [];
@@ -619,19 +635,32 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
     };
 
     let anyOk = false;
-    for (const s of settled) {
-      if (s.status !== "fulfilled") continue;
-      const { ext, res } = s.value;
-      if (!res.ok) continue;
+
+    if (resAll.ok) {
       anyOk = true;
-      const items = parseList(res.data);
-      const altItems = Array.isArray((res.data as any)?.alternatives)
-        ? (res.data as any).alternatives
+      const items = parseList(resAll.data);
+      for (const it of items) {
+        const domain = String(it.domain ?? it.name ?? "").toLowerCase();
+        if (!domain) continue;
+        const itemExt = tldOfDomain(domain) ?? "";
+        if (!itemExt) continue;
+        const available = parseHostingerAvailability(
+          it.available ?? it.is_available ?? it.status,
+        );
+        pushHit(domain, itemExt, available, false, "hostinger");
+      }
+    }
+
+    if (resAlt.ok) {
+      anyOk = true;
+      const items = parseList(resAlt.data);
+      const altItems = Array.isArray((resAlt.data as any)?.alternatives)
+        ? (resAlt.data as any).alternatives
         : [];
       for (const it of items) {
         const domain = String(it.domain ?? it.name ?? "").toLowerCase();
         if (!domain) continue;
-        const itemExt = tldOfDomain(domain) ?? ext;
+        const itemExt = tldOfDomain(domain) ?? PRIMARY_TLD;
         const available = parseHostingerAvailability(
           it.available ?? it.is_available ?? it.status,
         );
