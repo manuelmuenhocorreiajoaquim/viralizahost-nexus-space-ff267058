@@ -778,6 +778,29 @@ export async function processProvisioningJob(jobId: string) {
           );
         }
 
+        const providerPrice = Number(matchByPeriod?.price ?? req.metadata?.price_hostinger ?? 0);
+        const finalPrice = Number((providerPrice * 1.5).toFixed(2));
+        const charged = Number(req.unit_price ?? req.amount ?? 0);
+        console.log("[provisioning] domain validation", {
+          jobId, domain, status: "checking", provider_price: providerPrice, markup_percent: 50, final_price: finalPrice,
+        });
+        if (!Number.isFinite(providerPrice) || providerPrice <= 0 || charged + 0.01 < finalPrice) {
+          throw new Error("Preço do domínio inválido ou abaixo de Hostinger + 50%.");
+        }
+        const baseDomain = domain.slice(0, -(tld?.length ?? 0));
+        const availability = await hostinger.call<any>("/api/domains/v1/availability", {
+          method: "POST",
+          body: { domain: baseDomain, tlds: [String(tld).replace(/^\./, "")], with_alternatives: false },
+          jobId,
+          timeoutMs: 12_000,
+        });
+        if (!availability.ok) throw new Error("Consulta temporariamente indisponível");
+        const confirmed = collectHostingerAvailability(availability.data).find((item) => item.domain === domain);
+        console.log("[provisioning] domain validation", {
+          jobId, domain, status: confirmed?.available ? "available" : "taken", provider_price: providerPrice, markup_percent: 50, final_price: finalPrice,
+        });
+        if (!confirmed?.available) throw new Error(`Domínio ${domain} está ocupado ou não confirmado pela Hostinger.`);
+
         // Lookup customer profile for WHOIS contact (best-effort).
         let contact: any = null;
         if (job.user_id) {
