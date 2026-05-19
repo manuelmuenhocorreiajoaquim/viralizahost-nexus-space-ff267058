@@ -81,7 +81,7 @@ async function validateHostingerDomainForPayment(input: {
     c.tld === tld && Number(c.period) === period && String(c.period_unit ?? "").toLowerCase().startsWith("y"),
   );
   if (!entry?.item_id || entry.price == null || entry.price <= 0) {
-    throw new Error("Consulta temporariamente indisponível");
+    throw new Error("Não foi possível consultar agora. Tente novamente.");
   }
   const providerPrice = domainRound2(entry.price);
   const finalPrice = domainRound2(providerPrice * DOMAIN_MARKUP);
@@ -106,7 +106,7 @@ async function validateHostingerDomainForPayment(input: {
     body: { domain: base, tlds: [tld.replace(/^\./, "")], with_alternatives: false },
     timeoutMs: 12_000,
   });
-  if (!res.ok) throw new Error("Consulta temporariamente indisponível");
+  if (!res.ok) throw new Error("Não foi possível consultar agora. Tente novamente.");
   const match = collectAvailabilityItems(res.data).find((item) => item.domain.toLowerCase() === domain);
   console.log("[domain-payment-validation] availability", {
     domain,
