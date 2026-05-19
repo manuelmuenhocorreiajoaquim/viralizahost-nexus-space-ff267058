@@ -23,8 +23,8 @@ const team = [
 ];
 
 const stats = [
-  { icon: Users,      n: "7", t: "Especialistas",      s: "Profissionais dedicados" },
-  { icon: Target,     n: "6", t: "Áreas Estratégicas", s: "Cobertura completa" },
+  { icon: Users,      n: "6", t: "Especialistas",      s: "Profissionais dedicados" },
+  { icon: Target,     n: "5", t: "Áreas Estratégicas", s: "Cobertura completa" },
   { icon: Lightbulb,  n: "1", t: "Visão",              s: "Resultados extraordinários" },
 ];
 
