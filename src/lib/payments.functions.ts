@@ -9,7 +9,8 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getProvider } from "@/integrations/payments/mercadopago/client.server";
 import { activateOrderAfterPayment } from "@/lib/payments-activation.server";
-import { ensureProvisioningJobs } from "@/lib/provisioning.server";
+import { ensureProvisioningJobs, fetchHostingerDomainCatalog, tldOfDomain } from "@/lib/provisioning.server";
+import { hostinger } from "@/integrations/hostinger/client.server";
 
 const OrderItemSchema = z.object({
   id: z.string().min(1),
@@ -35,6 +36,108 @@ const CreateCheckoutOrderSchema = z.object({
   items: z.array(OrderItemSchema).min(1),
 });
 
+const DOMAIN_MARKUP = 1.5;
+const domainRound2 = (n: number) => Math.round(n * 100) / 100;
+
+function parseDomainAvailability(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  if (typeof value === "string") return ["available", "true", "yes", "1"].includes(value.toLowerCase().trim());
+  return false;
+}
+
+function collectAvailabilityItems(node: unknown, inheritedDomain?: string): Array<{ domain: string; available: boolean }> {
+  const out: Array<{ domain: string; available: boolean }> = [];
+  if (!node) return out;
+  if (Array.isArray(node)) return node.flatMap((item) => collectAvailabilityItems(item, inheritedDomain));
+  if (typeof node === "boolean" && inheritedDomain) return [{ domain: inheritedDomain, available: node }];
+  if (typeof node !== "object") return out;
+  const record = node as Record<string, unknown>;
+  const directDomain = String(record.domain ?? record.name ?? record.domain_name ?? inheritedDomain ?? "").toLowerCase();
+  if (directDomain && ("available" in record || "is_available" in record || "status" in record)) {
+    out.push({ domain: directDomain, available: parseDomainAvailability(record.available ?? record.is_available ?? record.status) });
+  }
+  for (const [key, value] of Object.entries(record)) {
+    if (/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(key)) out.push(...collectAvailabilityItems(value, key.toLowerCase()));
+    else if (["data", "results", "domains", "availability"].includes(key)) out.push(...collectAvailabilityItems(value, inheritedDomain));
+  }
+  return out;
+}
+
+async function validateHostingerDomainForPayment(input: {
+  domain: string;
+  unitPrice: number;
+  total: number;
+  quantity: number;
+  metadata?: Record<string, any> | null;
+}) {
+  const domain = input.domain.toLowerCase().trim();
+  const tld = tldOfDomain(domain);
+  if (!tld) throw new Error(`Domínio inválido no carrinho: ${domain}`);
+  const periodRaw = Number(input.metadata?.period ?? input.metadata?.years ?? 1);
+  const period = periodRaw === 2 ? 2 : periodRaw === 3 ? 3 : 1;
+  const catalog = await fetchHostingerDomainCatalog();
+  const entry = catalog.find((c) =>
+    c.tld === tld && Number(c.period) === period && String(c.period_unit ?? "").toLowerCase().startsWith("y"),
+  );
+  if (!entry?.item_id || entry.price == null || entry.price <= 0) {
+    throw new Error("Consulta temporariamente indisponível");
+  }
+  const providerPrice = domainRound2(entry.price);
+  const finalPrice = domainRound2(providerPrice * DOMAIN_MARKUP);
+  const chargedUnit = domainRound2(input.unitPrice);
+  const chargedTotal = domainRound2(input.total);
+  console.log("[domain-payment-validation] pricing", {
+    domain,
+    status: "pending_availability_check",
+    provider_price: providerPrice,
+    markup_percent: 50,
+    final_price: finalPrice,
+    charged_unit: chargedUnit,
+    charged_total: chargedTotal,
+  });
+  if (chargedUnit < finalPrice - 0.01 || chargedTotal < finalPrice * Math.max(1, input.quantity) - 0.01) {
+    throw new Error("Preço do domínio abaixo do valor oficial da Hostinger. Pesquise novamente.");
+  }
+
+  const base = domain.slice(0, -tld.length);
+  const res = await hostinger.call<any>("/api/domains/v1/availability", {
+    method: "POST",
+    body: { domain: base, tlds: [tld.replace(/^\./, "")], with_alternatives: false },
+    timeoutMs: 12_000,
+  });
+  if (!res.ok) throw new Error("Consulta temporariamente indisponível");
+  const match = collectAvailabilityItems(res.data).find((item) => item.domain.toLowerCase() === domain);
+  console.log("[domain-payment-validation] availability", {
+    domain,
+    status: match?.available ? "available" : "taken",
+    provider_price: providerPrice,
+    markup_percent: 50,
+    final_price: finalPrice,
+  });
+  if (!match?.available) throw new Error(`Domínio ${domain} está ocupado ou não confirmado pela Hostinger.`);
+}
+
+async function validateOrderDomainItems(orderId: string) {
+  const { data: items, error } = await supabaseAdmin
+    .from("order_items")
+    .select("product_type, unit_price, quantity, total, domain, metadata")
+    .eq("order_id", orderId)
+    .eq("product_type", "domain");
+  if (error) throw new Error(error.message);
+  for (const item of items ?? []) {
+    const domain = String(item.domain ?? "").trim();
+    if (!domain) throw new Error("Domínio em falta no pedido.");
+    await validateHostingerDomainForPayment({
+      domain,
+      unitPrice: Number(item.unit_price),
+      total: Number(item.total),
+      quantity: Math.max(1, Math.trunc(Number(item.quantity)) || 1),
+      metadata: item.metadata as Record<string, any> | null,
+    });
+  }
+}
+
 export const createCheckoutOrder = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => CreateCheckoutOrderSchema.parse(input))
   .handler(async ({ data }) => {
@@ -52,6 +155,18 @@ export const createCheckoutOrder = createServerFn({ method: "POST" })
       total: data.total,
       items: data.items.length,
     });
+
+    for (const item of data.items) {
+      if (item.type !== "domain") continue;
+      const domain = String(item.domain || item.name || item.id.replace(/^domain:/, "")).trim();
+      await validateHostingerDomainForPayment({
+        domain,
+        unitPrice: Number(item.price),
+        total: Number(item.total ?? item.price * item.quantity),
+        quantity: item.quantity,
+        metadata: item.metadata ?? null,
+      });
+    }
 
     const { data: order, error: orderErr } = await supabaseAdmin
       .from("orders")
@@ -157,6 +272,7 @@ export const createPixPayment = createServerFn({ method: "POST" })
       console.error("[pix] order items lookup error", itemsErr);
       throw new Error(itemsErr.message);
     }
+    await validateOrderDomainItems(order.id);
 
     const mpItems = (orderItems ?? []).map((item) => {
       const title = String(item.domain || item.product_name || "")
@@ -427,6 +543,7 @@ async function loadOrderForCharge(orderId: string) {
     (Number.isFinite(itemsAmount) && itemsAmount > 0 ? itemsAmount : orderAmount).toFixed(2),
   );
   if (!Number.isFinite(amount) || amount <= 0) throw new Error("Valor do pedido inválido");
+  await validateOrderDomainItems(order.id);
 
   let accountEmail: string | undefined;
   if (order.user_id) {

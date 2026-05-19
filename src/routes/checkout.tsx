@@ -124,6 +124,18 @@ function brl(n: number, currency: "BRL" | "AKZ") {
   return formatPrice(n.toFixed(2), currency);
 }
 
+function domainCartIssue(item: { productId: string; domain?: string; metadata?: Record<string, unknown>; priceBRL?: number }) {
+  if (!item.productId.startsWith("domain:")) return null;
+  const meta = item.metadata ?? {};
+  const provider = Number(meta.price_hostinger);
+  const final = Number(meta.price_final ?? item.priceBRL);
+  if (meta.availability_confirmed !== true) return "Pesquise novamente este domínio para confirmar disponibilidade na Hostinger.";
+  if (meta.availability_status !== "available" && meta.availability_status !== "suggestion") return "Domínio ocupado ou não confirmado.";
+  if (!Number.isFinite(provider) || provider <= 0 || !Number.isFinite(final) || final <= 0) return "Preço Hostinger indisponível.";
+  if (final + 0.01 < provider * 1.5) return "Preço abaixo do mínimo Hostinger + 50%.";
+  return null;
+}
+
 const CHECKOUT_CUSTOMER_KEY = "vh.checkout.customer.v1";
 
 function useHostingerItemIds(productIds: string[]) {
@@ -518,6 +530,7 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
   const { currency } = useCurrency();
   const [showAdd, setShowAdd] = useState(false);
   const hostingerIds = useHostingerItemIds(cart.items.map((i) => i.productId));
+  const domainIssues = cart.items.map(domainCartIssue).filter(Boolean);
 
   if (cart.items.length === 0) {
     return (
@@ -575,6 +588,11 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
                   {p.type === "vps" && normalizeProductId(p.id).startsWith("vps-nvme-") && (
                     <div className="text-[10px] text-slate-400 font-mono truncate mt-0.5">
                       item_id: {hostingerIds.data?.[normalizeProductId(p.id)] ?? "a sincronizar…"}
+                    </div>
+                  )}
+                  {domainCartIssue(it) && (
+                    <div className="text-[11px] text-rose-600 font-semibold mt-1">
+                      {domainCartIssue(it)}
                     </div>
                   )}
                 </div>
@@ -641,7 +659,12 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
         </div>
         <Summary />
       </div>
-      <Footer onBack={onBack} onNext={onNext} />
+      <Footer
+        onBack={onBack}
+        onNext={onNext}
+        nextDisabled={domainIssues.length > 0}
+        nextHint="Remova e pesquise novamente domínios sem confirmação real da Hostinger."
+      />
     </div>
   );
 }
@@ -1261,6 +1284,11 @@ function PaymentStep({
     const total = Number(Number(cart.totals.total).toFixed(2));
     if (!Number.isFinite(total) || total <= 0) {
       toast.error("Total do pedido inválido. Revise seu carrinho.");
+      return;
+    }
+    const domainIssue = cart.items.map(domainCartIssue).find(Boolean);
+    if (domainIssue) {
+      toast.error(domainIssue);
       return;
     }
 

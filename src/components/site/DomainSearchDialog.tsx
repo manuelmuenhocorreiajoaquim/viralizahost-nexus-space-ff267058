@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { searchDomainsHostinger } from "@/lib/provisioning.functions";
 import { useCurrency, formatPrice } from "@/lib/currency";
@@ -71,44 +70,6 @@ function sanitize(input: string): string {
     .replace(/[^a-z0-9-]/g, "");
 }
 
-// Sugestões sem preço — nunca inventamos valor abaixo do provider.
-function fallbackSuggestions(query: string): DomainResult[] {
-  const base = sanitize(query);
-  if (!base) return [];
-  const variants = [base, `${base}angola`, `${base}brasil`, `${base}host`, `get${base}`, `use${base}`];
-  const tlds = [".com", ".net", ".org", ".com.br", ".ao", ".co.ao", ".tech", ".cloud", ".store"];
-  const emptyTier = (years: 1 | 2 | 3): DomainPricingTier => ({
-    years, price_hostinger: null, price_final: null, item_id: null, unavailable: true,
-  });
-  return Array.from(
-    new Set(
-      variants.flatMap((variant, index) => {
-        const scope = index === 0 ? tlds : [".com", ".net", ".com.br", ".cloud"];
-        return scope.map((ext) => `${variant}${ext}`);
-      }),
-    ),
-  )
-    .slice(0, 24)
-    .map((domain) => {
-      const ext = domain.endsWith(".com.br")
-        ? ".com.br"
-        : domain.endsWith(".co.ao")
-          ? ".co.ao"
-          : (domain.match(/\.[^.]+$/)?.[0] ?? ".com");
-      return {
-        domain,
-        ext,
-        priceBRL: 0,
-        price_hostinger: null,
-        available: false,
-        status: "suggestion" as const,
-        source: "fallback",
-        suggested: true,
-        pricing: { "1y": emptyTier(1), "2y": emptyTier(2), "3y": emptyTier(3) },
-      };
-    });
-}
-
 export default function DomainSearchDialog({
   open,
   onOpenChange,
@@ -143,24 +104,13 @@ export default function DomainSearchDialog({
         const hres: any = await searchFn({ data: { query: cleanQuery } });
         if (cancelled) return;
         const hResults = Array.isArray(hres?.results) ? hres.results : [];
-        if (hResults.length > 0) {
-          setResults(hResults);
-          setWarning(hres?.warning ?? null);
-        } else {
-          // Fallback to legacy edge function
-          const { data, error } = await supabase.functions.invoke("domain-search", {
-            body: { query: cleanQuery },
-          });
-          if (error) throw error;
-          const nextResults = Array.isArray(data?.results) ? data.results : [];
-          setResults(nextResults.length > 0 ? nextResults : fallbackSuggestions(cleanQuery));
-          setWarning(data?.warning ?? null);
-        }
+        setResults(hResults);
+        setWarning(hres?.warning ?? (hResults.length === 0 ? "Consulta temporariamente indisponível" : null));
       } catch (e: unknown) {
         if (cancelled) return;
         console.error("[domain-search] failed", e);
-        setResults(fallbackSuggestions(cleanQuery));
-        setWarning("Não foi possível consultar o domínio. Mostrando sugestões alternativas.");
+        setResults([]);
+        setWarning("Consulta temporariamente indisponível");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -191,6 +141,10 @@ export default function DomainSearchDialog({
   const buy = (r: DomainResult) => {
     const key = periodFor(r.domain);
     const tier = tierFor(r, key);
+    if (!r.available) {
+      toast.error("Domínio ocupado ou não confirmado pela Hostinger.");
+      return;
+    }
     if (tier.price_final == null || tier.unavailable) {
       toast.error("Preço indisponível temporariamente. Tente novamente em instantes.");
       return;
@@ -217,6 +171,9 @@ export default function DomainSearchDialog({
         price_final: totalPrice,
         markup_percent: 50,
         hostinger_item_id: tier.item_id,
+        availability_confirmed: true,
+        availability_source: r.source ?? "hostinger",
+        availability_status: r.status ?? "available",
       },
     });
     setDomain(product.id, r.domain);
@@ -233,10 +190,10 @@ export default function DomainSearchDialog({
   };
 
   const availableCount = results.filter((r) => r.available).length;
-  const takenCount = results.filter((r) => !r.available && r.status !== "suggestion").length;
-  const suggestionCount = results.filter((r) => r.suggested || r.status === "suggestion").length;
+  const takenCount = results.filter((r) => !r.available).length;
+  const suggestionCount = results.filter((r) => r.available && (r.suggested || r.status === "suggestion")).length;
   const visibleResults = showAlternatives
-    ? results.filter((r) => r.available || r.suggested || r.status === "suggestion")
+    ? results.filter((r) => r.available && (r.suggested || r.status === "suggestion"))
     : results;
 
   return (
@@ -351,7 +308,7 @@ export default function DomainSearchDialog({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {visibleResults.map((r, i) => {
                         const isSuggestion =
-                          !r.available && (r.status === "suggestion" || r.suggested);
+                          r.available && (r.status === "suggestion" || r.suggested);
                         return (
                           <motion.div
                             key={`${r.domain}-${i}`}
@@ -362,9 +319,7 @@ export default function DomainSearchDialog({
                             className={`group relative overflow-hidden rounded-2xl bg-card border p-4 transition-all ${
                               r.available
                                 ? "border-success/35 shadow-glow-success hover:shadow-glow-success"
-                                : isSuggestion
-                                  ? "border-primary/20 hover:border-primary/40 hover:shadow-glow-soft"
-                                  : "border-destructive/20 hover:border-destructive/35"
+                                : "border-destructive/20 hover:border-destructive/35"
                             }`}
                           >
                             {r.available && (
@@ -376,18 +331,10 @@ export default function DomainSearchDialog({
                                   className={`h-10 w-10 rounded-xl grid place-items-center shrink-0 ${
                                     r.available
                                       ? "bg-success/10 text-success"
-                                      : isSuggestion
-                                        ? "bg-primary/10 text-primary"
-                                        : "bg-destructive/10 text-destructive"
+                                      : "bg-destructive/10 text-destructive"
                                   }`}
                                 >
-                                  {r.available ? (
-                                    <Check className="h-5 w-5" />
-                                  ) : isSuggestion ? (
-                                    <Sparkles className="h-5 w-5" />
-                                  ) : (
-                                    <X className="h-5 w-5" />
-                                  )}
+                                  {r.available ? <Check className="h-5 w-5" /> : <X className="h-5 w-5" />}
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <div className="font-semibold text-foreground break-words">
@@ -396,11 +343,7 @@ export default function DomainSearchDialog({
                                   <div className="mt-1 flex flex-wrap items-center gap-2">
                                     {r.available ? (
                                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success/10 text-success text-[10px] font-bold border border-success/20">
-                                        <Check className="h-3 w-3" /> Disponível
-                                      </span>
-                                    ) : isSuggestion ? (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold border border-primary/20">
-                                        <Sparkles className="h-3 w-3" /> Sugestão
+                                        <Check className="h-3 w-3" /> {isSuggestion ? "Sugestão disponível" : "Disponível"}
                                       </span>
                                     ) : (
                                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 text-destructive text-[10px] font-bold border border-destructive/20">
@@ -419,7 +362,7 @@ export default function DomainSearchDialog({
                                   const key = periodFor(r.domain);
                                   const tier = tierFor(r, key);
                                   const tier1y = tierFor(r, "1y");
-                                  const unavailable = tier.price_final == null || tier.unavailable;
+                                  const unavailable = !r.available || tier.price_final == null || tier.unavailable;
                                   const finalPrice = tier.price_final ?? 0;
                                   const yearly = unavailable ? 0 : finalPrice / tier.years;
                                   const savings =
@@ -463,7 +406,7 @@ export default function DomainSearchDialog({
                                           </div>
                                           {unavailable ? (
                                             <div className="text-sm font-semibold text-warning leading-tight">
-                                              Preço indisponível temporariamente
+                                              {r.available ? "Preço indisponível temporariamente" : "Domínio ocupado"}
                                             </div>
                                           ) : (
                                             <>
@@ -495,12 +438,10 @@ export default function DomainSearchDialog({
                                               ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
                                               : r.available
                                                 ? "bg-gradient-primary text-primary-foreground shadow-glow-soft hover:scale-[1.02]"
-                                                : isSuggestion
-                                                  ? "bg-primary/10 text-primary hover:bg-primary/15 hover:scale-[1.02]"
-                                                  : "bg-muted text-foreground hover:bg-muted/80 hover:scale-[1.02]"
+                                                : "bg-muted text-foreground hover:bg-muted/80 hover:scale-[1.02]"
                                           }`}
                                         >
-                                          <ShoppingCart className="h-4 w-4" /> {unavailable ? "Indisponível" : "Comprar"}
+                                          <ShoppingCart className="h-4 w-4" /> {unavailable ? "Bloqueado" : "Comprar"}
                                         </button>
                                       </div>
                                     </>

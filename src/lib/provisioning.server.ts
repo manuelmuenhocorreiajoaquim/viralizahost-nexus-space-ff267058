@@ -411,6 +411,31 @@ export function tldOfDomain(domain: string): string | null {
   return simple ? simple[0] : null;
 }
 
+function parseHostingerDomainAvailability(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  if (typeof value === "string") return ["available", "true", "yes", "1"].includes(value.toLowerCase().trim());
+  return false;
+}
+
+function collectHostingerAvailability(node: unknown, inheritedDomain?: string): Array<{ domain: string; available: boolean }> {
+  if (!node) return [];
+  if (Array.isArray(node)) return node.flatMap((item) => collectHostingerAvailability(item, inheritedDomain));
+  if (typeof node === "boolean" && inheritedDomain) return [{ domain: inheritedDomain, available: node }];
+  if (typeof node !== "object") return [];
+  const record = node as Record<string, unknown>;
+  const directDomain = String(record.domain ?? record.name ?? record.domain_name ?? inheritedDomain ?? "").toLowerCase();
+  const out: Array<{ domain: string; available: boolean }> = [];
+  if (directDomain && ("available" in record || "is_available" in record || "status" in record)) {
+    out.push({ domain: directDomain, available: parseHostingerDomainAvailability(record.available ?? record.is_available ?? record.status) });
+  }
+  for (const [key, value] of Object.entries(record)) {
+    if (/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(key)) out.push(...collectHostingerAvailability(value, key.toLowerCase()));
+    else if (["data", "results", "domains", "availability"].includes(key)) out.push(...collectHostingerAvailability(value, inheritedDomain));
+  }
+  return out;
+}
+
 function extractTldFromCatalogName(name: string, itemId: string): string | null {
   const source = `${name} ${itemId}`.toLowerCase();
   // Try multi-part first
@@ -752,6 +777,29 @@ export async function processProvisioningJob(jobId: string) {
             `Sincronize em /admin/provider-products.`,
           );
         }
+
+        const providerPrice = Number(matchByPeriod?.price ?? req.metadata?.price_hostinger ?? 0);
+        const finalPrice = Number((providerPrice * 1.5).toFixed(2));
+        const charged = Number(req.unit_price ?? req.amount ?? 0);
+        console.log("[provisioning] domain validation", {
+          jobId, domain, status: "checking", provider_price: providerPrice, markup_percent: 50, final_price: finalPrice,
+        });
+        if (!Number.isFinite(providerPrice) || providerPrice <= 0 || charged + 0.01 < finalPrice) {
+          throw new Error("Preço do domínio inválido ou abaixo de Hostinger + 50%.");
+        }
+        const baseDomain = domain.slice(0, -(tld?.length ?? 0));
+        const availability = await hostinger.call<any>("/api/domains/v1/availability", {
+          method: "POST",
+          body: { domain: baseDomain, tlds: [String(tld).replace(/^\./, "")], with_alternatives: false },
+          jobId,
+          timeoutMs: 12_000,
+        });
+        if (!availability.ok) throw new Error("Consulta temporariamente indisponível");
+        const confirmed = collectHostingerAvailability(availability.data).find((item) => item.domain === domain);
+        console.log("[provisioning] domain validation", {
+          jobId, domain, status: confirmed?.available ? "available" : "taken", provider_price: providerPrice, markup_percent: 50, final_price: finalPrice,
+        });
+        if (!confirmed?.available) throw new Error(`Domínio ${domain} está ocupado ou não confirmado pela Hostinger.`);
 
         // Lookup customer profile for WHOIS contact (best-effort).
         let contact: any = null;

@@ -440,6 +440,16 @@ type DomainHit = {
 const MARKUP = 1.5; // +50% sobre Hostinger — regra obrigatória
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
+function parseHostingerAvailability(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  if (typeof value === "string") {
+    const v = value.toLowerCase().trim();
+    return ["available", "true", "yes", "1"].includes(v);
+  }
+  return false;
+}
+
 /**
  * Calcula preço final ViralizaHost = provider * 1.5, garantindo SEMPRE
  * que final >= provider. Nunca retorna valor inventado.
@@ -540,17 +550,44 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
     const parseList = (payload: any): any[] => {
       if (!payload) return [];
       if (Array.isArray(payload)) return payload;
+      if (payload.domain || payload.name) return [payload];
+      const domainMap = (obj: any) =>
+        obj && typeof obj === "object"
+          ? Object.entries(obj)
+              .filter(([key]) => /^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(key))
+              .map(([domain, value]) =>
+                typeof value === "object" && value !== null
+                  ? { domain, ...(value as Record<string, unknown>) }
+                  : { domain, available: value },
+              )
+          : [];
+      const directMap = domainMap(payload);
+      if (directMap.length > 0) return directMap;
       if (Array.isArray(payload.data)) return payload.data;
       if (Array.isArray(payload.results)) return payload.results;
       if (Array.isArray(payload.domains)) return payload.domains;
       if (Array.isArray(payload.availability)) return payload.availability;
-      if (payload.domain || payload.name) return [payload];
+      if (payload.data?.domain || payload.data?.name) return [payload.data];
+      if (payload.results?.domain || payload.results?.name) return [payload.results];
+      if (payload.domains?.domain || payload.domains?.name) return [payload.domains];
+      if (payload.availability?.domain || payload.availability?.name) return [payload.availability];
+      const nestedMap = domainMap(payload.data ?? payload.results ?? payload.domains ?? payload.availability);
+      if (nestedMap.length > 0) return nestedMap;
+      if (payload.data && typeof payload.data === "object") return Object.values(payload.data);
+      if (payload.results && typeof payload.results === "object") return Object.values(payload.results);
+      if (payload.domains && typeof payload.domains === "object") return Object.values(payload.domains);
+      if (payload.availability && typeof payload.availability === "object") return Object.values(payload.availability);
       return [];
     };
 
     const items = parseList(apiRes.data);
     console.log("[domain-search] hostinger", {
-      query: base, status: apiRes.status, count: items.length, ms: Date.now() - started,
+      query: base,
+      status: apiRes.status,
+      response: apiRes.data,
+      tlds: tldsToCheck,
+      count: items.length,
+      ms: Date.now() - started,
     });
 
     const pushHit = (
@@ -562,13 +599,23 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
     ) => {
       const pricing = pricingFor(ext);
       const t1 = pricing["1y"];
+      const status = available ? (isAlternative ? "suggestion" : "available") : "taken";
+      console.log("[domain-search] result", {
+        domain,
+        status,
+        available,
+        source,
+        provider_price: t1.price_hostinger,
+        markup_percent: 50,
+        final_price: t1.price_final,
+      });
       results.push({
         domain,
         ext,
         priceBRL: t1.price_final ?? 0,
         price_hostinger: t1.price_hostinger,
         available,
-        status: available ? (isAlternative ? "suggestion" : "available") : "taken",
+        status,
         source,
         suggested: isAlternative || undefined,
         pricing,
@@ -580,20 +627,27 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
         const domain = String(it.domain ?? it.name ?? "").toLowerCase();
         if (!domain) continue;
         const ext = tldOfDomain(domain) ?? "";
-        const available = Boolean(it.available ?? it.is_available ?? it.status === "available");
+        const available = parseHostingerAvailability(it.available ?? it.is_available ?? it.status);
         const isAlternative = Boolean(it.alternative ?? it.is_alternative);
         pushHit(domain, ext, available, isAlternative, "hostinger");
       }
     } else {
-      warning = "Não foi possível consultar a Hostinger agora. Preço indisponível temporariamente.";
-      for (const t of tldsToCheck) pushHit(`${base}${t}`, t, false, true, "fallback");
+      warning = "Consulta temporariamente indisponível";
+      console.warn("[domain-search] hostinger_unavailable", {
+        query: base,
+        status: apiRes.status,
+        error: apiRes.error,
+        ms: Date.now() - started,
+      });
+      return { results: [], warning };
     }
 
-    // Ensure primary TLDs always appear.
+    // If Hostinger omits a requested primary TLD, keep it visible but blocked.
+    // Omitted entries are NOT purchasable because availability was not confirmed.
     for (const t of tldsToCheck) {
       const domain = `${base}${t}`;
       if (!results.find((r) => r.domain === domain)) {
-        pushHit(domain, t, false, true, "fallback");
+        pushHit(domain, t, false, false, "hostinger_unconfirmed");
       }
     }
 
