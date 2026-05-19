@@ -550,7 +550,12 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
 
     const items = parseList(apiRes.data);
     console.log("[domain-search] hostinger", {
-      query: base, status: apiRes.status, count: items.length, ms: Date.now() - started,
+      query: base,
+      status: apiRes.status,
+      response: apiRes.data,
+      tlds: tldsToCheck,
+      count: items.length,
+      ms: Date.now() - started,
     });
 
     const pushHit = (
@@ -562,13 +567,23 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
     ) => {
       const pricing = pricingFor(ext);
       const t1 = pricing["1y"];
+      const status = available ? (isAlternative ? "suggestion" : "available") : "taken";
+      console.log("[domain-search] result", {
+        domain,
+        status,
+        available,
+        source,
+        provider_price: t1.price_hostinger,
+        markup_percent: 50,
+        final_price: t1.price_final,
+      });
       results.push({
         domain,
         ext,
         priceBRL: t1.price_final ?? 0,
         price_hostinger: t1.price_hostinger,
         available,
-        status: available ? (isAlternative ? "suggestion" : "available") : "taken",
+        status,
         source,
         suggested: isAlternative || undefined,
         pricing,
@@ -585,15 +600,22 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
         pushHit(domain, ext, available, isAlternative, "hostinger");
       }
     } else {
-      warning = "Não foi possível consultar a Hostinger agora. Preço indisponível temporariamente.";
-      for (const t of tldsToCheck) pushHit(`${base}${t}`, t, false, true, "fallback");
+      warning = "Consulta temporariamente indisponível";
+      console.warn("[domain-search] hostinger_unavailable", {
+        query: base,
+        status: apiRes.status,
+        error: apiRes.error,
+        ms: Date.now() - started,
+      });
+      return { results: [], warning };
     }
 
-    // Ensure primary TLDs always appear.
+    // If Hostinger omits a requested primary TLD, keep it visible but blocked.
+    // Omitted entries are NOT purchasable because availability was not confirmed.
     for (const t of tldsToCheck) {
       const domain = `${base}${t}`;
       if (!results.find((r) => r.domain === domain)) {
-        pushHit(domain, t, false, true, "fallback");
+        pushHit(domain, t, false, false, "hostinger_unconfirmed");
       }
     }
 
