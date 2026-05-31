@@ -243,13 +243,20 @@ export default function Navbar() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "tween", duration: 0.3, ease: "easeOut" }}
-              className="xl:hidden fixed top-0 right-0 bottom-0 flex flex-col text-white"
+              className="xl:hidden text-white"
               style={{
+                position: "fixed",
+                top: 0,
+                right: 0,
+                bottom: 0,
+                height: "100vh",
                 width: "min(88vw, 380px)",
                 backgroundColor: "#050C18",
                 borderLeft: "1px solid rgba(255,255,255,0.1)",
                 boxShadow: "0 20px 60px -15px rgba(0,0,0,0.6)",
                 zIndex: 100,
+                display: "flex",
+                flexDirection: "column",
               }}
             >
               <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
