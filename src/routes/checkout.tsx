@@ -44,7 +44,7 @@ import {
   type CycleId,
   type Product,
 } from "@/lib/catalog";
-import { useCurrency, formatPrice } from "@/lib/currency";
+import { useCurrency, formatPrice, type Currency } from "@/lib/currency";
 import { useAuth } from "@/lib/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import PixPaymentDialog from "@/components/checkout/PixPaymentDialog";
