@@ -121,8 +121,8 @@ export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout — ViralizaHost" }] }),
 });
 
-function brl(n: number, currency: "BRL" | "AKZ") {
-  return formatPrice(n.toFixed(2), currency);
+function brl(n: number, currency: Currency, rates?: Parameters<typeof formatPrice>[2]) {
+  return formatPrice(n.toFixed(2), currency, rates);
 }
 
 function domainCartIssue(item: { productId: string; domain?: string; metadata?: Record<string, unknown>; priceBRL?: number }) {
