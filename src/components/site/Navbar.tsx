@@ -235,16 +235,31 @@ export default function Navbar() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={() => setMobileOpen(false)}
-              className="xl:hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
+              className="xl:hidden fixed inset-0"
+              style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", zIndex: 90 }}
             />
             <motion.aside
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "tween", duration: 0.3, ease: "easeOut" }}
-              className="xl:hidden fixed top-0 right-0 bottom-0 z-50 w-[88vw] max-w-[380px] bg-[#050C18] border-l border-white/10 shadow-2xl flex flex-col"
+              className="xl:hidden text-white"
+              style={{
+                position: "fixed",
+                top: 0,
+                right: 0,
+                bottom: 0,
+                height: "100vh",
+                width: "min(88vw, 380px)",
+                backgroundColor: "#050C18",
+                borderLeft: "1px solid rgba(255,255,255,0.1)",
+                boxShadow: "0 20px 60px -15px rgba(0,0,0,0.6)",
+                zIndex: 100,
+                display: "flex",
+                flexDirection: "column",
+              }}
             >
-              <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+              <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
                 <Link to="/" onClick={() => { setMobileOpen(false); clearCheckoutState(); }} className="flex items-center">
                   <img src={logo} alt="ViralizaHost" className="h-9 w-auto object-contain" />
                 </Link>
