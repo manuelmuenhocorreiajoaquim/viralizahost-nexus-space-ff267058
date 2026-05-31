@@ -351,7 +351,7 @@ function Stepper({ current, activeSteps }: { current: StepId; activeSteps: StepI
 /* ====================== STEP 1 — CYCLE ====================== */
 function CycleStep({ onNext }: { onNext: () => void }) {
   const cart = useCart();
-  const { currency } = useCurrency();
+  const { currency, rates } = useCurrency();
   const recurringItems = cart.items.filter((i) => {
     const p = findProduct(i.productId);
     return p && !isAnnualProduct(p);
@@ -468,7 +468,7 @@ function CycleStep({ onNext }: { onNext: () => void }) {
                     {currency === "AKZ" ? "Kz" : "R$"}
                   </span>
                   <span className="text-[34px] leading-none font-extrabold tracking-tight text-slate-900 tabular-nums">
-                    {brl(monthly, currency).replace(/^[^\d]+/, "")}
+                    {brl(monthly, currency, rates).replace(/^[^\d]+/, "")}
                   </span>
                   <span className="text-xs text-slate-500 font-medium">/mês</span>
                 </div>
@@ -476,13 +476,13 @@ function CycleStep({ onNext }: { onNext: () => void }) {
                 <div className="mt-4 pt-4 border-t border-slate-100 space-y-1.5 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500">Total</span>
-                    <span className="font-semibold text-slate-900 tabular-nums">{brl(total, currency)}</span>
+                    <span className="font-semibold text-slate-900 tabular-nums">{brl(total, currency, rates)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500">Economia</span>
                     {save > 0 ? (
                       <span className="font-semibold text-emerald-600 tabular-nums">
-                        {brl(save, currency)}
+                        {brl(save, currency, rates)}
                       </span>
                     ) : (
                       <span className="text-slate-400">—</span>
@@ -528,7 +528,7 @@ function CycleStep({ onNext }: { onNext: () => void }) {
 /* ====================== STEP 2 — CART ====================== */
 function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
   const cart = useCart();
-  const { currency } = useCurrency();
+  const { currency, rates } = useCurrency();
   const [showAdd, setShowAdd] = useState(false);
   const hostingerIds = useHostingerItemIds(cart.items.map((i) => i.productId));
   const domainIssues = cart.items.map(domainCartIssue).filter(Boolean);
@@ -562,10 +562,10 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
             const total = lineTotal(it.productId, cart.cycle, it.qty);
             const unit = lineUnit(it.productId, cart.cycle);
             const subLabel = oneTime
-              ? `${p.type} · ${brl(unit, currency)} · projeto`
+              ? `${p.type} · ${brl(unit, currency, rates)} · projeto`
               : annual
-                ? `${p.type} · ${brl(unit, currency)}/ano`
-                : `${p.type} · ${brl(unit, currency)}/mês`;
+                ? `${p.type} · ${brl(unit, currency, rates)}/ano`
+                : `${p.type} · ${brl(unit, currency, rates)}/mês`;
             return (
               <div
                 key={it.productId}
@@ -619,7 +619,7 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
                   </div>
                 )}
                 <div className="text-right shrink-0">
-                  <div className="font-bold text-slate-900">{brl(total, currency)}</div>
+                  <div className="font-bold text-slate-900">{brl(total, currency, rates)}</div>
                   <button
                     onClick={() => cart.remove(it.productId)}
                     className="text-xs text-slate-400 hover:text-red-500 inline-flex items-center gap-1 mt-1"
@@ -651,7 +651,7 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
                 >
                   <div className="text-sm font-semibold">{p.name}</div>
                   <div className="text-xs text-slate-500 capitalize">
-                    {p.type} · {brl(p.basePriceBRL, currency)}/mês
+                    {p.type} · {brl(p.basePriceBRL, currency, rates)}/mês
                   </div>
                 </button>
               ))}
@@ -673,7 +673,7 @@ function CartStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
 /* ====================== STEP 3 — DOMAIN ====================== */
 function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
   const cart = useCart();
-  const { currency } = useCurrency();
+  const { currency, rates } = useCurrency();
   const itemsNeedingDomain = cart.items.filter((i) => findProduct(i.productId)?.needsDomain);
   const domainItemsOnly = cart.items.filter((i) => findProduct(i.productId)?.type === "domain");
   const hasDomainInCart = domainItemsOnly.length > 0;
@@ -740,7 +740,7 @@ function DomainStep({ onBack, onNext }: { onBack: () => void; onNext: () => void
                 <div className="text-right shrink-0">
                   <div className="text-[11px] text-slate-500">Preço</div>
                   <div className="font-bold text-slate-900">
-                    {brl(total, currency)}
+                    {brl(total, currency, rates)}
                     <span className="text-[11px] font-medium text-slate-500">/ano</span>
                   </div>
                 </div>
@@ -1050,7 +1050,7 @@ function DomainPicker({
 /* ====================== STEP 4 — EMAIL UPSELL ====================== */
 function EmailStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
   const cart = useCart();
-  const { currency } = useCurrency();
+  const { currency, rates } = useCurrency();
   const has = cart.items.some((i) => findProduct(i.productId)?.type === "email");
   const emailPlans = CATALOG.filter((p) => p.type === "email");
 
@@ -1078,7 +1078,7 @@ function EmailStep({ onBack, onNext }: { onBack: () => void; onNext: () => void 
             >
               <div className="font-bold text-lg text-slate-900">{p.name}</div>
               <div className="mt-2 text-2xl font-bold text-gradient-primary">
-                {brl(p.basePriceBRL, currency)}
+                {brl(p.basePriceBRL, currency, rates)}
                 <span className="text-xs text-slate-500 font-normal">/mês</span>
               </div>
               <div className="mt-4 inline-flex items-center gap-1 text-xs text-primary font-semibold">
@@ -1259,7 +1259,7 @@ function PaymentStep({
 }) {
   const cart = useCart();
   const { user } = useAuth();
-  const { currency } = useCurrency();
+  const { currency, rates } = useCurrency();
   const createOrderFn = useServerFn(createCheckoutOrder);
   const hostingerIds = useHostingerItemIds(cart.items.map((i) => i.productId));
   const [method, setMethod] = useState<"pix" | "card" | "boleto" | "paypal" | "bank_bic">("pix");
@@ -1792,7 +1792,7 @@ function Footer({
 
 function Summary({ children }: { children?: React.ReactNode }) {
   const cart = useCart();
-  const { currency } = useCurrency();
+  const { currency, rates } = useCurrency();
   const c = findCycle(cart.cycle);
   return (
     <aside
@@ -1827,20 +1827,20 @@ function Summary({ children }: { children?: React.ReactNode }) {
                   <span className="block text-[11px] text-slate-400 truncate">{it.domain}</span>
                 )}
               </span>
-              <span className="font-semibold text-slate-900 shrink-0">{brl(total, currency)}</span>
+              <span className="font-semibold text-slate-900 shrink-0">{brl(total, currency, rates)}</span>
             </div>
           );
         })}
       </div>
       <div className="border-t border-slate-200 pt-3 space-y-1.5 text-sm">
-        <Row label="Subtotal" value={brl(cart.totals.subtotal, currency)} />
+        <Row label="Subtotal" value={brl(cart.totals.subtotal, currency, rates)} />
         {cart.totals.discount > 0 && (
-          <Row label="Desconto" value={`- ${brl(cart.totals.discount, currency)}`} highlight />
+          <Row label="Desconto" value={`- ${brl(cart.totals.discount, currency, rates)}`} highlight />
         )}
         <div className="flex justify-between items-baseline pt-2 mt-1 border-t border-slate-200">
           <span className="text-sm font-semibold text-slate-700">Total</span>
           <span className="text-2xl font-extrabold text-gradient-primary tracking-tight">
-            {brl(cart.totals.total, currency)}
+            {brl(cart.totals.total, currency, rates)}
           </span>
         </div>
       </div>
