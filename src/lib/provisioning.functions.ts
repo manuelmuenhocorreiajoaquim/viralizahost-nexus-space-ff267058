@@ -15,6 +15,7 @@ import {
   syncHostingerDomainCatalogToProviderProducts,
   tldOfDomain,
 } from "@/lib/provisioning.server";
+import { applyDomainMargin, getDomainMarginPercent } from "@/config/domainMargins";
 
 async function assertAdmin(userId: string) {
   const { data } = await supabaseAdmin
@@ -419,6 +420,11 @@ type DomainPeriod = 1 | 2 | 3;
 type DomainTier = {
   years: DomainPeriod;
   price_hostinger: number | null;
+  renewal_price: number | null;
+  promotional_price: number | null;
+  icann_fee: number | null;
+  whois_price: number | null;
+  margin_percent: number;
   price_final: number | null; // null => preço indisponível
   item_id: string | null;
   unavailable: boolean;
@@ -430,6 +436,7 @@ type DomainHit = {
   ext: string;
   priceBRL: number;          // backward-compat: 1y final price (0 quando indisponível)
   price_hostinger: number | null;
+  margin_percent: number;
   available: boolean;
   status: "available" | "taken" | "suggestion";
   source: string;
