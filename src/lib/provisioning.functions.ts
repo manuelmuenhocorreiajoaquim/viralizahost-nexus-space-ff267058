@@ -558,21 +558,27 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
     const tldsToCheck = Array.from(new Set(requestedTld ? [requestedTld, ...DOMAIN_TLDS] : DOMAIN_TLDS));
 
     const tierFor = (ext: string, years: DomainPeriod): DomainTier => {
+      const marginPercent = getDomainMarginPercent(ext);
       const e = pricingByTld.get(ext)?.get(years);
       if (!e) {
-        return { years, price_hostinger: null, price_final: null, item_id: null, unavailable: true };
+        return { years, price_hostinger: null, renewal_price: null, promotional_price: null, icann_fee: null, whois_price: null, margin_percent: marginPercent, price_final: null, item_id: null, unavailable: true };
       }
       const provider = round2(e.price_hostinger);
-      const final = applyMarkup(provider);
+      const final = applyDomainMargin(provider, ext);
       console.log("[domain-pricing]", {
-        tld: ext, years, provider_price: provider, markup_percent: 50, final_price: final,
+        tld: ext, years, provider_price: provider, margin_percent: marginPercent, final_price: final,
       });
       if (final == null || final < provider) {
-        return { years, price_hostinger: provider, price_final: null, item_id: e.item_id, unavailable: true };
+        return { years, price_hostinger: provider, renewal_price: e.renewal_price, promotional_price: e.promotional_price, icann_fee: e.icann_fee, whois_price: e.whois_price, margin_percent: marginPercent, price_final: null, item_id: e.item_id, unavailable: true };
       }
       return {
         years,
         price_hostinger: provider,
+        renewal_price: e.renewal_price,
+        promotional_price: e.promotional_price,
+        icann_fee: e.icann_fee,
+        whois_price: e.whois_price,
+        margin_percent: marginPercent,
         price_final: final,
         item_id: e.item_id,
         unavailable: false,
