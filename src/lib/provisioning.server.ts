@@ -19,6 +19,7 @@
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { hostinger } from "@/integrations/hostinger/client.server";
+import { applyDomainMargin, getDomainMarginPercent } from "@/config/domainMargins";
 
 type OrderItemRow = {
   id: string;
@@ -397,11 +398,25 @@ export type HostingerDomainCatalogEntry = {
   tld: string;          // ".com", ".com.br", ".ao", ...
   name: string;
   price: number | null; // BRL units (Hostinger price)
+  renewal_price: number | null;
+  promotional_price: number | null;
+  icann_fee: number | null;
+  whois_price: number | null;
   currency: string | null;
   period: number | null;
   period_unit: string | null;
   raw?: any;
 };
+
+function hostingerMoney(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return null;
+  return value > 1000 ? value / 100 : value;
+}
+
+function maxMoney(...values: Array<number | null>): number | null {
+  const valid = values.filter((v): v is number => v != null && Number.isFinite(v) && v > 0);
+  return valid.length > 0 ? Math.max(...valid) : null;
+}
 
 export function tldOfDomain(domain: string): string | null {
   const lower = (domain ?? "").toLowerCase();
