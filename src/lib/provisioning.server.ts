@@ -19,6 +19,7 @@
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { hostinger } from "@/integrations/hostinger/client.server";
+import { applyDomainMargin, getDomainMarginPercent } from "@/config/domainMargins";
 
 type OrderItemRow = {
   id: string;
@@ -397,11 +398,20 @@ export type HostingerDomainCatalogEntry = {
   tld: string;          // ".com", ".com.br", ".ao", ...
   name: string;
   price: number | null; // BRL units (Hostinger price)
+  renewal_price: number | null;
+  promotional_price: number | null;
+  icann_fee: number | null;
+  whois_price: number | null;
   currency: string | null;
   period: number | null;
   period_unit: string | null;
   raw?: any;
 };
+
+function hostingerMoney(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return null;
+  return value > 1000 ? value / 100 : value;
+}
 
 export function tldOfDomain(domain: string): string | null {
   const lower = (domain ?? "").toLowerCase();
@@ -469,12 +479,21 @@ export async function fetchHostingerDomainCatalog(): Promise<HostingerDomainCata
     if (!tld) continue;
     const prices: any[] = Array.isArray(item?.prices) ? item.prices : [];
     if (prices.length === 0 && item?.id) {
+      const itemPrice = hostingerMoney(item.price);
+      const itemRenewal = hostingerMoney(item.renewal_price ?? item.renewalPrice ?? item.renew_price);
+      const itemPromo = hostingerMoney(item.first_period_price ?? item.promotional_price ?? item.promo_price);
+      const itemIcann = hostingerMoney(item.icann_fee ?? item.icannFee);
+      const itemWhois = hostingerMoney(item.whois_price ?? item.whoisPrice ?? item.privacy_price);
       out.push({
         item_id: String(item.id),
         catalog_id: String(item.id),
         tld,
         name,
-        price: typeof item.price === "number" ? item.price : null,
+        price: itemPrice ?? itemRenewal ?? itemPromo,
+        renewal_price: itemRenewal,
+        promotional_price: itemPromo,
+        icann_fee: itemIcann,
+        whois_price: itemWhois,
         currency: item.currency ?? null,
         period: item.period ?? null,
         period_unit: item.period_unit ?? null,
@@ -484,18 +503,22 @@ export async function fetchHostingerDomainCatalog(): Promise<HostingerDomainCata
     }
     for (const p of prices) {
       if (!p?.id) continue;
-      // Preço Hostinger real do período (ex.: .com 1 ano = R$ 49,99).
-      // Usamos `first_period_price` (preço público pago pelo cliente naquele período).
-      // Fallback para `price` apenas se `first_period_price` não vier.
-      const fpp = typeof p.first_period_price === "number" ? p.first_period_price / 100 : null;
-      const rnw = typeof p.price === "number" ? p.price / 100 : null;
-      const basePrice = fpp && fpp > 0 ? fpp : rnw && rnw > 0 ? rnw : null;
+      const promotionalPrice = hostingerMoney(p.first_period_price ?? p.promotional_price ?? p.promo_price);
+      const renewalPrice = hostingerMoney(p.renewal_price ?? p.renewalPrice ?? p.renew_price ?? p.price);
+      const currentPrice = hostingerMoney(p.price ?? item.price);
+      const icannFee = hostingerMoney(p.icann_fee ?? p.icannFee ?? item.icann_fee ?? item.icannFee);
+      const whoisPrice = hostingerMoney(p.whois_price ?? p.whoisPrice ?? p.privacy_price ?? item.whois_price ?? item.privacy_price);
+      const basePrice = currentPrice ?? renewalPrice ?? promotionalPrice;
       out.push({
         item_id: String(p.id),
         catalog_id: String(item.id ?? ""),
         tld,
         name: `${name}${p.name ? ` — ${p.name}` : ""}`,
         price: basePrice,
+        renewal_price: renewalPrice,
+        promotional_price: promotionalPrice,
+        icann_fee: icannFee,
+        whois_price: whoisPrice,
         currency: p.currency ?? item.currency ?? null,
         period: p.period ?? null,
         period_unit: p.period_unit ?? null,
@@ -507,8 +530,8 @@ export async function fetchHostingerDomainCatalog(): Promise<HostingerDomainCata
 }
 
 /**
- * Upsert one provider_products row PER TLD using the cheapest annual entry.
- * `internal_product_id = "tld:.com"`, `internal_price = hostinger_price * 2`.
+ * Upsert one provider_products row PER TLD using the live annual Hostinger entry.
+ * `internal_product_id = "tld:.com"`, `internal_price = hostinger_price + dynamic margin`.
  */
 export async function syncHostingerDomainCatalogToProviderProducts() {
   const catalog = await fetchHostingerDomainCatalog();
@@ -527,8 +550,8 @@ export async function syncHostingerDomainCatalogToProviderProducts() {
   const mapped: Array<{ tld: string; item_id: string; price_hostinger: number | null; price_internal: number }> = [];
   for (const [tld, entry] of best) {
     const slug = `tld:${tld}`;
-    // Markup ViralizaHost = +50% sobre o preço Hostinger.
-    const internalPrice = entry.price != null ? Number((entry.price * 1.5).toFixed(2)) : 0;
+    const marginPercent = getDomainMarginPercent(tld);
+    const internalPrice = entry.price != null ? applyDomainMargin(entry.price, tld) : 0;
     await supabaseAdmin.from("provider_products").upsert(
       {
         internal_product_id: slug,
@@ -540,6 +563,11 @@ export async function syncHostingerDomainCatalogToProviderProducts() {
           tld,
           hostinger_name: entry.name,
           hostinger_price: entry.price,
+          hostinger_renewal_price: entry.renewal_price,
+          hostinger_promotional_price: entry.promotional_price,
+          hostinger_icann_fee: entry.icann_fee,
+          hostinger_whois_price: entry.whois_price,
+          margin_percent: marginPercent,
           hostinger_currency: entry.currency,
           billing_period: entry.period ? `${entry.period}${entry.period_unit ?? ""}` : null,
           catalog: entry.raw ?? null,
@@ -756,6 +784,7 @@ export async function processProvisioningJob(jobId: string) {
         // Always validate against the live domain catalog and pick the
         // item_id that matches both the TLD and the chosen period.
         const tld = tldOfDomain(domain);
+        if (!tld) throw new Error(`Domínio inválido para provisionamento: ${domain}`);
         const domainCatalog = await fetchHostingerDomainCatalog();
         const tldEntries = domainCatalog.filter((c) => c.tld === tld);
         const matchByPeriod = tldEntries.find(
@@ -781,13 +810,14 @@ export async function processProvisioningJob(jobId: string) {
         }
 
         const providerPrice = Number(matchByPeriod?.price ?? req.metadata?.price_hostinger ?? 0);
-        const finalPrice = Number((providerPrice * 1.5).toFixed(2));
+        const marginPercent = getDomainMarginPercent(tld);
+        const finalPrice = Number((providerPrice > 0 ? applyDomainMargin(providerPrice, tld) : 0).toFixed(2));
         const charged = Number(req.unit_price ?? req.amount ?? 0);
         console.log("[provisioning] domain validation", {
-          jobId, domain, status: "checking", provider_price: providerPrice, markup_percent: 50, final_price: finalPrice,
+          jobId, domain, status: "checking", provider_price: providerPrice, margin_percent: marginPercent, final_price: finalPrice,
         });
         if (!Number.isFinite(providerPrice) || providerPrice <= 0 || charged + 0.01 < finalPrice) {
-          throw new Error("Preço do domínio inválido ou abaixo de Hostinger + 50%.");
+          throw new Error("Preço do domínio inválido ou abaixo de Hostinger + margem ViralizaHost.");
         }
         const baseDomain = domain.slice(0, -(tld?.length ?? 0));
         const availability = await hostinger.call<any>("/api/domains/v1/availability", {
@@ -799,7 +829,7 @@ export async function processProvisioningJob(jobId: string) {
         if (!availability.ok) throw new Error("Não foi possível consultar agora. Tente novamente.");
         const confirmed = collectHostingerAvailability(availability.data).find((item) => item.domain === domain);
         console.log("[provisioning] domain validation", {
-          jobId, domain, status: confirmed?.available ? "available" : "taken", provider_price: providerPrice, markup_percent: 50, final_price: finalPrice,
+          jobId, domain, status: confirmed?.available ? "available" : "taken", provider_price: providerPrice, margin_percent: marginPercent, final_price: finalPrice,
         });
         if (!confirmed?.available) throw new Error(`Domínio ${domain} está ocupado ou não confirmado pela Hostinger.`);
 

@@ -15,6 +15,7 @@ import {
   syncHostingerDomainCatalogToProviderProducts,
   tldOfDomain,
 } from "@/lib/provisioning.server";
+import { applyDomainMargin, getDomainMarginPercent } from "@/config/domainMargins";
 
 async function assertAdmin(userId: string) {
   const { data } = await supabaseAdmin
@@ -419,6 +420,11 @@ type DomainPeriod = 1 | 2 | 3;
 type DomainTier = {
   years: DomainPeriod;
   price_hostinger: number | null;
+  renewal_price: number | null;
+  promotional_price: number | null;
+  icann_fee: number | null;
+  whois_price: number | null;
+  margin_percent: number;
   price_final: number | null; // null => preço indisponível
   item_id: string | null;
   unavailable: boolean;
@@ -430,6 +436,7 @@ type DomainHit = {
   ext: string;
   priceBRL: number;          // backward-compat: 1y final price (0 quando indisponível)
   price_hostinger: number | null;
+  margin_percent: number;
   available: boolean;
   status: "available" | "taken" | "suggestion";
   source: string;
@@ -437,7 +444,6 @@ type DomainHit = {
   pricing: DomainPricing;
 };
 
-const MARKUP = 1.5; // +50% sobre Hostinger — regra obrigatória
 const DOMAIN_TLDS = [".com", ".com.br", ".net", ".org", ".ao", ".co.ao"] as const;
 const CLIENT_DOMAIN_ERROR = "Não foi possível consultar agora. Tente novamente.";
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -453,16 +459,9 @@ function parseHostingerAvailability(value: unknown): boolean {
 }
 
 /**
- * Calcula preço final ViralizaHost = provider * 1.5, garantindo SEMPRE
- * que final >= provider. Nunca retorna valor inventado.
+ * Calcula preço final ViralizaHost = Hostinger + margem dinâmica por TLD,
+ * garantindo SEMPRE que final >= provider. Nunca retorna valor inventado.
  */
-function applyMarkup(providerPrice: number | null | undefined): number | null {
-  if (providerPrice == null || !Number.isFinite(providerPrice) || providerPrice <= 0) return null;
-  const final = round2(providerPrice * MARKUP);
-  // Invariante: final nunca pode ser menor que provider.
-  return final >= providerPrice ? final : round2(providerPrice);
-}
-
 function normalizeDomainQuery(input: string) {
   const clean = input
     .toLowerCase()
@@ -529,7 +528,7 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
     // Build pricingByTld: tld -> period -> { hostinger price, item_id }
     const pricingByTld = new Map<
       string,
-      Map<DomainPeriod, { price_hostinger: number; item_id: string }>
+      Map<DomainPeriod, { price_hostinger: number; renewal_price: number | null; promotional_price: number | null; icann_fee: number | null; whois_price: number | null; item_id: string }>
     >();
     for (const entry of catalog) {
       const unit = String(entry.period_unit ?? "").toLowerCase();
@@ -546,6 +545,10 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
       if (!existing || entry.price < existing.price_hostinger) {
         tldMap.set(years as DomainPeriod, {
           price_hostinger: entry.price,
+          renewal_price: entry.renewal_price,
+          promotional_price: entry.promotional_price,
+          icann_fee: entry.icann_fee,
+          whois_price: entry.whois_price,
           item_id: entry.item_id,
         });
       }
@@ -555,21 +558,27 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
     const tldsToCheck = Array.from(new Set(requestedTld ? [requestedTld, ...DOMAIN_TLDS] : DOMAIN_TLDS));
 
     const tierFor = (ext: string, years: DomainPeriod): DomainTier => {
+      const marginPercent = getDomainMarginPercent(ext);
       const e = pricingByTld.get(ext)?.get(years);
       if (!e) {
-        return { years, price_hostinger: null, price_final: null, item_id: null, unavailable: true };
+        return { years, price_hostinger: null, renewal_price: null, promotional_price: null, icann_fee: null, whois_price: null, margin_percent: marginPercent, price_final: null, item_id: null, unavailable: true };
       }
       const provider = round2(e.price_hostinger);
-      const final = applyMarkup(provider);
+      const final = applyDomainMargin(provider, ext);
       console.log("[domain-pricing]", {
-        tld: ext, years, provider_price: provider, markup_percent: 50, final_price: final,
+        tld: ext, years, provider_price: provider, margin_percent: marginPercent, final_price: final,
       });
       if (final == null || final < provider) {
-        return { years, price_hostinger: provider, price_final: null, item_id: e.item_id, unavailable: true };
+        return { years, price_hostinger: provider, renewal_price: e.renewal_price, promotional_price: e.promotional_price, icann_fee: e.icann_fee, whois_price: e.whois_price, margin_percent: marginPercent, price_final: null, item_id: e.item_id, unavailable: true };
       }
       return {
         years,
         price_hostinger: provider,
+        renewal_price: e.renewal_price,
+        promotional_price: e.promotional_price,
+        icann_fee: e.icann_fee,
+        whois_price: e.whois_price,
+        margin_percent: marginPercent,
         price_final: final,
         item_id: e.item_id,
         unavailable: false,
@@ -622,13 +631,14 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
       console.log("[domain-search] result", {
         domain, status, available, source,
         provider_price: t1.price_hostinger,
-        markup_percent: 50,
+        margin_percent: t1.margin_percent,
         final_price: t1.price_final,
       });
       results.push({
         domain, ext,
         priceBRL: t1.price_final ?? 0,
         price_hostinger: t1.price_hostinger,
+        margin_percent: t1.margin_percent,
         available, status, source,
         suggested: isAlternative || undefined,
         pricing,
@@ -713,8 +723,9 @@ export const adminTestHostingerDomainSearch = createServerFn({ method: "POST" })
       // Pick the LOWEST-priced SKU — preço público real cobrado pela Hostinger no período.
       const entry = matches.sort((a, b) => (a.price ?? 0) - (b.price ?? 0))[0];
       const provider = entry?.price != null ? round2(entry.price) : null;
-      const final = applyMarkup(provider);
-      return { ext, provider_price: provider, markup_percent: 50, final_price: final, item_id: entry?.item_id ?? null };
+      const marginPercent = getDomainMarginPercent(ext);
+      const final = provider != null && ext ? applyDomainMargin(provider, ext) : null;
+      return { ext, provider_price: provider, margin_percent: marginPercent, final_price: final, item_id: entry?.item_id ?? null };
     };
 
     const checks = [];
@@ -740,7 +751,7 @@ export const adminTestHostingerDomainSearch = createServerFn({ method: "POST" })
         availability_status: res.ok ? (match?.available ? "available" : "taken") : "error",
         available: res.ok ? match?.available === true : false,
         provider_price: pricing.provider_price,
-        markup_percent: 50,
+        margin_percent: pricing.margin_percent,
         final_price: pricing.final_price,
         item_id: pricing.item_id,
       });

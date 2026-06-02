@@ -32,6 +32,11 @@ import { toast } from "sonner";
 export type DomainPricingTier = {
   years: 1 | 2 | 3;
   price_hostinger: number | null;
+  renewal_price?: number | null;
+  promotional_price?: number | null;
+  icann_fee?: number | null;
+  whois_price?: number | null;
+  margin_percent?: number;
   price_final: number | null;
   item_id: string | null;
   unavailable?: boolean;
@@ -168,8 +173,12 @@ export default function DomainSearchDialog({
         period_unit: "year",
         tld: r.ext,
         price_hostinger: tier.price_hostinger,
+        renewal_price: tier.renewal_price ?? null,
+        promotional_price: tier.promotional_price ?? null,
+        icann_fee: tier.icann_fee ?? null,
+        whois_price: tier.whois_price ?? null,
         price_final: totalPrice,
-        markup_percent: 50,
+        margin_percent: tier.margin_percent ?? null,
         hostinger_item_id: tier.item_id,
         availability_confirmed: true,
         availability_source: r.source ?? "hostinger",
@@ -181,7 +190,7 @@ export default function DomainSearchDialog({
       domain: r.domain,
       period: tier.years,
       provider_price: tier.price_hostinger,
-      markup_percent: 50,
+      margin_percent: tier.margin_percent ?? null,
       final_price: totalPrice,
     });
     toast.success(`${r.domain} (${tier.years} ${tier.years === 1 ? "ano" : "anos"}) adicionado ao carrinho`);

@@ -5,7 +5,6 @@ import { Globe, Search, Sparkles, Shield, Zap } from "lucide-react";
 import Navbar from "@/components/site/Navbar";
 import CTAFooter from "@/components/site/CTAFooter";
 import DomainSearchDialog from "@/components/site/DomainSearchDialog";
-import { formatPrice, useCurrency } from "@/lib/currency";
 
 export const Route = createFileRoute("/dominios/registrar")({
   head: () => ({
@@ -27,12 +26,12 @@ export const Route = createFileRoute("/dominios/registrar")({
 });
 
 const popularExt = [
-  { ext: ".com", price: "R$ 59", per: "/ano", popular: true },
-  { ext: ".com.br", price: "R$ 49", per: "/ano" },
-  { ext: ".ao", price: "R$ 250", per: "/ano" },
-  { ext: ".co.ao", price: "R$ 350", per: "/ano" },
-  { ext: ".net", price: "R$ 69", per: "/ano" },
-  { ext: ".org", price: "R$ 69", per: "/ano" },
+  { ext: ".com", popular: true },
+  { ext: ".com.br" },
+  { ext: ".ao" },
+  { ext: ".co.ao" },
+  { ext: ".net" },
+  { ext: ".org" },
 ];
 
 const benefits = [
@@ -42,7 +41,6 @@ const benefits = [
 ];
 
 function RegistrarPage() {
-  const { currency } = useCurrency();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
 
@@ -129,8 +127,7 @@ function RegistrarPage() {
                   )}
                   <div className="text-2xl font-display font-bold text-gradient-primary">{d.ext}</div>
                   <div className="mt-2 text-sm">
-                    <span className="font-bold text-foreground">{formatPrice(d.price, currency)}</span>
-                    <span className="text-muted-foreground">{d.per}</span>
+                    <span className="font-bold text-foreground">Preço em tempo real</span>
                   </div>
                 </motion.div>
               ))}
