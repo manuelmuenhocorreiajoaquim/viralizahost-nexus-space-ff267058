@@ -444,7 +444,6 @@ type DomainHit = {
   pricing: DomainPricing;
 };
 
-const MARKUP = 1.5; // +50% sobre Hostinger — regra obrigatória
 const DOMAIN_TLDS = [".com", ".com.br", ".net", ".org", ".ao", ".co.ao"] as const;
 const CLIENT_DOMAIN_ERROR = "Não foi possível consultar agora. Tente novamente.";
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -463,13 +462,6 @@ function parseHostingerAvailability(value: unknown): boolean {
  * Calcula preço final ViralizaHost = provider * 1.5, garantindo SEMPRE
  * que final >= provider. Nunca retorna valor inventado.
  */
-function applyMarkup(providerPrice: number | null | undefined): number | null {
-  if (providerPrice == null || !Number.isFinite(providerPrice) || providerPrice <= 0) return null;
-  const final = round2(providerPrice * MARKUP);
-  // Invariante: final nunca pode ser menor que provider.
-  return final >= providerPrice ? final : round2(providerPrice);
-}
-
 function normalizeDomainQuery(input: string) {
   const clean = input
     .toLowerCase()
@@ -536,7 +528,7 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
     // Build pricingByTld: tld -> period -> { hostinger price, item_id }
     const pricingByTld = new Map<
       string,
-      Map<DomainPeriod, { price_hostinger: number; item_id: string }>
+      Map<DomainPeriod, { price_hostinger: number; renewal_price: number | null; promotional_price: number | null; icann_fee: number | null; whois_price: number | null; item_id: string }>
     >();
     for (const entry of catalog) {
       const unit = String(entry.period_unit ?? "").toLowerCase();
@@ -553,6 +545,10 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
       if (!existing || entry.price < existing.price_hostinger) {
         tldMap.set(years as DomainPeriod, {
           price_hostinger: entry.price,
+          renewal_price: entry.renewal_price,
+          promotional_price: entry.promotional_price,
+          icann_fee: entry.icann_fee,
+          whois_price: entry.whois_price,
           item_id: entry.item_id,
         });
       }
