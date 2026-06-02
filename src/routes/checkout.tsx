@@ -56,6 +56,7 @@ import bicLogoImg from "@/assets/banco-bic-logo.png";
 import DomainSearchDialog from "@/components/site/DomainSearchDialog";
 import { createCheckoutOrder } from "@/lib/payments.functions";
 import { searchDomainsHostinger } from "@/lib/provisioning.functions";
+import { getDomainMarginPercent } from "@/config/domainMargins";
 
 /* Sanitize raw domain input → lowercase, no protocol/path/www/spaces. */
 function sanitizeDomain(input: string): string {
@@ -133,7 +134,10 @@ function domainCartIssue(item: { productId: string; domain?: string; metadata?: 
   if (meta.availability_confirmed !== true) return "Pesquise novamente este domínio para confirmar disponibilidade na Hostinger.";
   if (meta.availability_status !== "available" && meta.availability_status !== "suggestion") return "Domínio ocupado ou não confirmado.";
   if (!Number.isFinite(provider) || provider <= 0 || !Number.isFinite(final) || final <= 0) return "Preço Hostinger indisponível.";
-  if (final + 0.01 < provider * 1.5) return "Preço abaixo do mínimo Hostinger + 50%.";
+  const tld = typeof meta.tld === "string" ? meta.tld : item.domain?.match(/\.[^.]+$/)?.[0];
+  const margin = Number(meta.margin_percent ?? getDomainMarginPercent(tld));
+  const minimum = Math.round(provider * (1 + margin / 100) * 100) / 100;
+  if (final + 0.01 < minimum) return "Preço abaixo do mínimo Hostinger + margem ViralizaHost.";
   return null;
 }
 
