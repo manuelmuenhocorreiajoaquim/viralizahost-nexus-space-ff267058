@@ -814,13 +814,14 @@ export async function processProvisioningJob(jobId: string) {
         }
 
         const providerPrice = Number(matchByPeriod?.price ?? req.metadata?.price_hostinger ?? 0);
-        const finalPrice = Number((providerPrice * 1.5).toFixed(2));
+        const marginPercent = getDomainMarginPercent(tld);
+        const finalPrice = Number((providerPrice > 0 ? applyDomainMargin(providerPrice, tld) : 0).toFixed(2));
         const charged = Number(req.unit_price ?? req.amount ?? 0);
         console.log("[provisioning] domain validation", {
-          jobId, domain, status: "checking", provider_price: providerPrice, markup_percent: 50, final_price: finalPrice,
+          jobId, domain, status: "checking", provider_price: providerPrice, margin_percent: marginPercent, final_price: finalPrice,
         });
         if (!Number.isFinite(providerPrice) || providerPrice <= 0 || charged + 0.01 < finalPrice) {
-          throw new Error("Preço do domínio inválido ou abaixo de Hostinger + 50%.");
+          throw new Error("Preço do domínio inválido ou abaixo de Hostinger + margem ViralizaHost.");
         }
         const baseDomain = domain.slice(0, -(tld?.length ?? 0));
         const availability = await hostinger.call<any>("/api/domains/v1/availability", {
@@ -832,7 +833,7 @@ export async function processProvisioningJob(jobId: string) {
         if (!availability.ok) throw new Error("Não foi possível consultar agora. Tente novamente.");
         const confirmed = collectHostingerAvailability(availability.data).find((item) => item.domain === domain);
         console.log("[provisioning] domain validation", {
-          jobId, domain, status: confirmed?.available ? "available" : "taken", provider_price: providerPrice, markup_percent: 50, final_price: finalPrice,
+          jobId, domain, status: confirmed?.available ? "available" : "taken", provider_price: providerPrice, margin_percent: marginPercent, final_price: finalPrice,
         });
         if (!confirmed?.available) throw new Error(`Domínio ${domain} está ocupado ou não confirmado pela Hostinger.`);
 
