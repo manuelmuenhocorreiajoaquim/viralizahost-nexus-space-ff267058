@@ -459,8 +459,8 @@ function parseHostingerAvailability(value: unknown): boolean {
 }
 
 /**
- * Calcula preço final ViralizaHost = provider * 1.5, garantindo SEMPRE
- * que final >= provider. Nunca retorna valor inventado.
+ * Calcula preço final ViralizaHost = Hostinger + margem dinâmica por TLD,
+ * garantindo SEMPRE que final >= provider. Nunca retorna valor inventado.
  */
 function normalizeDomainQuery(input: string) {
   const clean = input
@@ -751,7 +751,7 @@ export const adminTestHostingerDomainSearch = createServerFn({ method: "POST" })
         availability_status: res.ok ? (match?.available ? "available" : "taken") : "error",
         available: res.ok ? match?.available === true : false,
         provider_price: pricing.provider_price,
-        markup_percent: 50,
+        margin_percent: pricing.margin_percent,
         final_price: pricing.final_price,
         item_id: pricing.item_id,
       });
