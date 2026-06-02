@@ -789,6 +789,7 @@ export async function processProvisioningJob(jobId: string) {
         // Always validate against the live domain catalog and pick the
         // item_id that matches both the TLD and the chosen period.
         const tld = tldOfDomain(domain);
+        if (!tld) throw new Error(`Domínio inválido para provisionamento: ${domain}`);
         const domainCatalog = await fetchHostingerDomainCatalog();
         const tldEntries = domainCatalog.filter((c) => c.tld === tld);
         const matchByPeriod = tldEntries.find(
