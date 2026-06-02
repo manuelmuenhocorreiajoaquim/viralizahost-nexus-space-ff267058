@@ -413,11 +413,6 @@ function hostingerMoney(value: unknown): number | null {
   return value > 1000 ? value / 100 : value;
 }
 
-function maxMoney(...values: Array<number | null>): number | null {
-  const valid = values.filter((v): v is number => v != null && Number.isFinite(v) && v > 0);
-  return valid.length > 0 ? Math.max(...valid) : null;
-}
-
 export function tldOfDomain(domain: string): string | null {
   const lower = (domain ?? "").toLowerCase();
   const multi = lower.match(/\.(?:com\.br|co\.ao|com\.pt|com\.ao)$/);
