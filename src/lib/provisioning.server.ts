@@ -494,7 +494,7 @@ export async function fetchHostingerDomainCatalog(): Promise<HostingerDomainCata
         catalog_id: String(item.id),
         tld,
         name,
-        price: maxMoney(itemPrice, itemRenewal, itemPromo),
+        price: itemPrice ?? itemRenewal ?? itemPromo,
         renewal_price: itemRenewal,
         promotional_price: itemPromo,
         icann_fee: itemIcann,
@@ -513,7 +513,7 @@ export async function fetchHostingerDomainCatalog(): Promise<HostingerDomainCata
       const currentPrice = hostingerMoney(p.price ?? item.price);
       const icannFee = hostingerMoney(p.icann_fee ?? p.icannFee ?? item.icann_fee ?? item.icannFee);
       const whoisPrice = hostingerMoney(p.whois_price ?? p.whoisPrice ?? p.privacy_price ?? item.whois_price ?? item.privacy_price);
-      const basePrice = maxMoney(currentPrice, renewalPrice, promotionalPrice);
+      const basePrice = currentPrice ?? renewalPrice ?? promotionalPrice;
       out.push({
         item_id: String(p.id),
         catalog_id: String(item.id ?? ""),
