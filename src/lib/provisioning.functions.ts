@@ -631,13 +631,14 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
       console.log("[domain-search] result", {
         domain, status, available, source,
         provider_price: t1.price_hostinger,
-        markup_percent: 50,
+        margin_percent: t1.margin_percent,
         final_price: t1.price_final,
       });
       results.push({
         domain, ext,
         priceBRL: t1.price_final ?? 0,
         price_hostinger: t1.price_hostinger,
+        margin_percent: t1.margin_percent,
         available, status, source,
         suggested: isAlternative || undefined,
         pricing,
@@ -722,8 +723,9 @@ export const adminTestHostingerDomainSearch = createServerFn({ method: "POST" })
       // Pick the LOWEST-priced SKU — preço público real cobrado pela Hostinger no período.
       const entry = matches.sort((a, b) => (a.price ?? 0) - (b.price ?? 0))[0];
       const provider = entry?.price != null ? round2(entry.price) : null;
-      const final = applyMarkup(provider);
-      return { ext, provider_price: provider, markup_percent: 50, final_price: final, item_id: entry?.item_id ?? null };
+      const marginPercent = getDomainMarginPercent(ext);
+      const final = provider != null && ext ? applyDomainMargin(provider, ext) : null;
+      return { ext, provider_price: provider, margin_percent: marginPercent, final_price: final, item_id: entry?.item_id ?? null };
     };
 
     const checks = [];
