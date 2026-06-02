@@ -535,8 +535,8 @@ export async function fetchHostingerDomainCatalog(): Promise<HostingerDomainCata
 }
 
 /**
- * Upsert one provider_products row PER TLD using the cheapest annual entry.
- * `internal_product_id = "tld:.com"`, `internal_price = hostinger_price * 2`.
+ * Upsert one provider_products row PER TLD using the live annual Hostinger entry.
+ * `internal_product_id = "tld:.com"`, `internal_price = hostinger_price + dynamic margin`.
  */
 export async function syncHostingerDomainCatalogToProviderProducts() {
   const catalog = await fetchHostingerDomainCatalog();
@@ -555,8 +555,8 @@ export async function syncHostingerDomainCatalogToProviderProducts() {
   const mapped: Array<{ tld: string; item_id: string; price_hostinger: number | null; price_internal: number }> = [];
   for (const [tld, entry] of best) {
     const slug = `tld:${tld}`;
-    // Markup ViralizaHost = +50% sobre o preço Hostinger.
-    const internalPrice = entry.price != null ? Number((entry.price * 1.5).toFixed(2)) : 0;
+    const marginPercent = getDomainMarginPercent(tld);
+    const internalPrice = entry.price != null ? applyDomainMargin(entry.price, tld) : 0;
     await supabaseAdmin.from("provider_products").upsert(
       {
         internal_product_id: slug,
@@ -568,6 +568,11 @@ export async function syncHostingerDomainCatalogToProviderProducts() {
           tld,
           hostinger_name: entry.name,
           hostinger_price: entry.price,
+          hostinger_renewal_price: entry.renewal_price,
+          hostinger_promotional_price: entry.promotional_price,
+          hostinger_icann_fee: entry.icann_fee,
+          hostinger_whois_price: entry.whois_price,
+          margin_percent: marginPercent,
           hostinger_currency: entry.currency,
           billing_period: entry.period ? `${entry.period}${entry.period_unit ?? ""}` : null,
           catalog: entry.raw ?? null,
