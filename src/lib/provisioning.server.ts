@@ -484,12 +484,21 @@ export async function fetchHostingerDomainCatalog(): Promise<HostingerDomainCata
     if (!tld) continue;
     const prices: any[] = Array.isArray(item?.prices) ? item.prices : [];
     if (prices.length === 0 && item?.id) {
+      const itemPrice = hostingerMoney(item.price);
+      const itemRenewal = hostingerMoney(item.renewal_price ?? item.renewalPrice ?? item.renew_price);
+      const itemPromo = hostingerMoney(item.first_period_price ?? item.promotional_price ?? item.promo_price);
+      const itemIcann = hostingerMoney(item.icann_fee ?? item.icannFee);
+      const itemWhois = hostingerMoney(item.whois_price ?? item.whoisPrice ?? item.privacy_price);
       out.push({
         item_id: String(item.id),
         catalog_id: String(item.id),
         tld,
         name,
-        price: typeof item.price === "number" ? item.price : null,
+        price: maxMoney(itemPrice, itemRenewal, itemPromo),
+        renewal_price: itemRenewal,
+        promotional_price: itemPromo,
+        icann_fee: itemIcann,
+        whois_price: itemWhois,
         currency: item.currency ?? null,
         period: item.period ?? null,
         period_unit: item.period_unit ?? null,
@@ -499,18 +508,22 @@ export async function fetchHostingerDomainCatalog(): Promise<HostingerDomainCata
     }
     for (const p of prices) {
       if (!p?.id) continue;
-      // Preço Hostinger real do período (ex.: .com 1 ano = R$ 49,99).
-      // Usamos `first_period_price` (preço público pago pelo cliente naquele período).
-      // Fallback para `price` apenas se `first_period_price` não vier.
-      const fpp = typeof p.first_period_price === "number" ? p.first_period_price / 100 : null;
-      const rnw = typeof p.price === "number" ? p.price / 100 : null;
-      const basePrice = fpp && fpp > 0 ? fpp : rnw && rnw > 0 ? rnw : null;
+      const promotionalPrice = hostingerMoney(p.first_period_price ?? p.promotional_price ?? p.promo_price);
+      const renewalPrice = hostingerMoney(p.renewal_price ?? p.renewalPrice ?? p.renew_price ?? p.price);
+      const currentPrice = hostingerMoney(p.price ?? item.price);
+      const icannFee = hostingerMoney(p.icann_fee ?? p.icannFee ?? item.icann_fee ?? item.icannFee);
+      const whoisPrice = hostingerMoney(p.whois_price ?? p.whoisPrice ?? p.privacy_price ?? item.whois_price ?? item.privacy_price);
+      const basePrice = maxMoney(currentPrice, renewalPrice, promotionalPrice);
       out.push({
         item_id: String(p.id),
         catalog_id: String(item.id ?? ""),
         tld,
         name: `${name}${p.name ? ` — ${p.name}` : ""}`,
         price: basePrice,
+        renewal_price: renewalPrice,
+        promotional_price: promotionalPrice,
+        icann_fee: icannFee,
+        whois_price: whoisPrice,
         currency: p.currency ?? item.currency ?? null,
         period: p.period ?? null,
         period_unit: p.period_unit ?? null,
