@@ -11,6 +11,7 @@ import { getProvider } from "@/integrations/payments/mercadopago/client.server";
 import { activateOrderAfterPayment } from "@/lib/payments-activation.server";
 import { ensureProvisioningJobs, fetchHostingerDomainCatalog, tldOfDomain } from "@/lib/provisioning.server";
 import { hostinger } from "@/integrations/hostinger/client.server";
+import { applyDomainMargin, getDomainMarginPercent } from "@/config/domainMargins";
 
 const OrderItemSchema = z.object({
   id: z.string().min(1),
@@ -36,7 +37,6 @@ const CreateCheckoutOrderSchema = z.object({
   items: z.array(OrderItemSchema).min(1),
 });
 
-const DOMAIN_MARKUP = 1.5;
 const domainRound2 = (n: number) => Math.round(n * 100) / 100;
 
 function parseDomainAvailability(value: unknown): boolean {
@@ -77,21 +77,28 @@ async function validateHostingerDomainForPayment(input: {
   const periodRaw = Number(input.metadata?.period ?? input.metadata?.years ?? 1);
   const period = periodRaw === 2 ? 2 : periodRaw === 3 ? 3 : 1;
   const catalog = await fetchHostingerDomainCatalog();
-  const entry = catalog.find((c) =>
-    c.tld === tld && Number(c.period) === period && String(c.period_unit ?? "").toLowerCase().startsWith("y"),
-  );
+  const entry = catalog
+    .filter((c) =>
+      c.tld === tld && Number(c.period) === period && String(c.period_unit ?? "").toLowerCase().startsWith("y") && c.price != null && c.price > 0,
+    )
+    .sort((a, b) => (a.price ?? Number.POSITIVE_INFINITY) - (b.price ?? Number.POSITIVE_INFINITY))[0];
   if (!entry?.item_id || entry.price == null || entry.price <= 0) {
     throw new Error("Não foi possível consultar agora. Tente novamente.");
   }
   const providerPrice = domainRound2(entry.price);
-  const finalPrice = domainRound2(providerPrice * DOMAIN_MARKUP);
+  const marginPercent = getDomainMarginPercent(tld);
+  const finalPrice = applyDomainMargin(providerPrice, tld);
   const chargedUnit = domainRound2(input.unitPrice);
   const chargedTotal = domainRound2(input.total);
   console.log("[domain-payment-validation] pricing", {
     domain,
     status: "pending_availability_check",
     provider_price: providerPrice,
-    markup_percent: 50,
+    renewal_price: entry.renewal_price,
+    promotional_price: entry.promotional_price,
+    icann_fee: entry.icann_fee,
+    whois_price: entry.whois_price,
+    margin_percent: marginPercent,
     final_price: finalPrice,
     charged_unit: chargedUnit,
     charged_total: chargedTotal,
@@ -112,7 +119,7 @@ async function validateHostingerDomainForPayment(input: {
     domain,
     status: match?.available ? "available" : "taken",
     provider_price: providerPrice,
-    markup_percent: 50,
+    margin_percent: marginPercent,
     final_price: finalPrice,
   });
   if (!match?.available) throw new Error(`Domínio ${domain} está ocupado ou não confirmado pela Hostinger.`);
