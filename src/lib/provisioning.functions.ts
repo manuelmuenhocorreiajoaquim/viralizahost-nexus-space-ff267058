@@ -523,65 +523,23 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
     const { base, requestedTld } = normalizeDomainQuery(data.query);
     if (!base) return { results: [], warning: "Domínio inválido." };
 
-    // Load Hostinger domain catalog to extract per-period prices per TLD.
-    const catalog = await fetchHostingerDomainCatalog();
-
-    // Build pricingByTld: tld -> period -> { hostinger price, item_id }
-    const pricingByTld = new Map<
-      string,
-      Map<DomainPeriod, { price_hostinger: number; renewal_price: number | null; promotional_price: number | null; icann_fee: number | null; whois_price: number | null; item_id: string }>
-    >();
-    for (const entry of catalog) {
-      const unit = String(entry.period_unit ?? "").toLowerCase();
-      const isYear =
-        unit.startsWith("y") || unit.includes("year") || unit.includes("ano");
-      if (!isYear) continue;
-      const years = Number(entry.period);
-      if (!(years === 1 || years === 2 || years === 3)) continue;
-      if (entry.price == null || entry.price <= 0) continue;
-      const tldMap = pricingByTld.get(entry.tld) ?? new Map();
-      const existing = tldMap.get(years as DomainPeriod);
-      // Use the LOWEST price across SKUs for the same TLD/period — esse é o
-      // preço público real que a Hostinger cobra do cliente naquele período.
-      if (!existing || entry.price < existing.price_hostinger) {
-        tldMap.set(years as DomainPeriod, {
-          price_hostinger: entry.price,
-          renewal_price: entry.renewal_price,
-          promotional_price: entry.promotional_price,
-          icann_fee: entry.icann_fee,
-          whois_price: entry.whois_price,
-          item_id: entry.item_id,
-        });
-      }
-      pricingByTld.set(entry.tld, tldMap);
-    }
-
     const tldsToCheck = Array.from(new Set(requestedTld ? [requestedTld, ...DOMAIN_TLDS] : DOMAIN_TLDS));
 
+    // Pricing comes from the fixed retail table — NOT from the Hostinger
+    // catalog. Hostinger is only used for availability checks.
     const tierFor = (ext: string, years: DomainPeriod): DomainTier => {
-      const marginPercent = getDomainMarginPercent(ext);
-      const e = pricingByTld.get(ext)?.get(years);
-      if (!e) {
-        return { years, price_hostinger: null, renewal_price: null, promotional_price: null, icann_fee: null, whois_price: null, margin_percent: marginPercent, price_final: null, item_id: null, unavailable: true };
-      }
-      const provider = round2(e.price_hostinger);
-      const final = applyDomainMargin(provider, ext);
-      console.log("[domain-pricing]", {
-        tld: ext, years, provider_price: provider, margin_percent: marginPercent, final_price: final,
-      });
-      if (final == null || final < provider) {
-        return { years, price_hostinger: provider, renewal_price: e.renewal_price, promotional_price: e.promotional_price, icann_fee: e.icann_fee, whois_price: e.whois_price, margin_percent: marginPercent, price_final: null, item_id: e.item_id, unavailable: true };
-      }
+      const fixedYearly = getDomainPriceBRL(ext);
+      const total = getDomainTotalBRL(ext, years);
       return {
         years,
-        price_hostinger: provider,
-        renewal_price: e.renewal_price,
-        promotional_price: e.promotional_price,
-        icann_fee: e.icann_fee,
-        whois_price: e.whois_price,
-        margin_percent: marginPercent,
-        price_final: final,
-        item_id: e.item_id,
+        price_hostinger: null,
+        renewal_price: null,
+        promotional_price: null,
+        icann_fee: null,
+        whois_price: null,
+        margin_percent: 0,
+        price_final: total,
+        item_id: null,
         unavailable: false,
       };
     };
