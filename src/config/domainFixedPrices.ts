@@ -64,6 +64,7 @@ export function getDomainTotalBRL(
 /** Human-readable status mapping for the manual activation flow. */
 export const DOMAIN_ORDER_STATUS = {
   PENDING_ACTIVATION: "PENDENTE_ATIVACAO",
+  AWAITING_HOSTINGER_PURCHASE: "AGUARDANDO_COMPRA_HOSTINGER",
   ACTIVE: "ATIVO",
   CANCELLED: "CANCELADO",
 } as const;
@@ -73,8 +74,10 @@ export type DomainOrderStatus =
 
 export const DOMAIN_ORDER_STATUS_LABEL: Record<string, string> = {
   PENDENTE_ATIVACAO: "Pendente de Ativação",
+  AGUARDANDO_COMPRA_HOSTINGER: "Em processamento",
   ATIVO: "Ativo",
   CANCELADO: "Cancelado",
   // Legacy fallbacks (old rows created before this migration).
   pending: "Pendente de Ativação",
 };
+
