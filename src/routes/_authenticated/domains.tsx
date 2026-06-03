@@ -1,21 +1,60 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Globe, Search, Sparkles } from "lucide-react";
-import { Card, EmptyState, StatusPill } from "@/components/dashboard/ui";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { Globe, Search, Sparkles, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Card, EmptyState } from "@/components/dashboard/ui";
 import { CategoryBanner } from "@/components/dashboard/CategoryBanner";
 import { useAuth } from "@/lib/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listMyDomainOrders } from "@/lib/provisioning.functions";
+import { DOMAIN_ORDER_STATUS_LABEL } from "@/config/domainFixedPrices";
 
 export const Route = createFileRoute("/_authenticated/domains")({ component: Page });
 
+function statusBadge(status: string) {
+  const s = (status ?? "").toUpperCase();
+  if (s === "ATIVO" || s === "ACTIVE") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+        <CheckCircle2 className="h-3 w-3" /> Ativo
+      </span>
+    );
+  }
+  if (s === "CANCELADO" || s === "CANCELLED") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+        <XCircle className="h-3 w-3" /> Cancelado
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+      <Clock className="h-3 w-3" /> Pendente de Ativação
+    </span>
+  );
+}
+
+function fmtCurrency(amount: number, currency: string) {
+  try {
+    return new Intl.NumberFormat(currency === "AKZ" ? "pt-AO" : "pt-BR", {
+      style: "currency",
+      currency: currency || "BRL",
+    }).format(amount);
+  } catch {
+    return `${currency} ${amount.toFixed(2)}`;
+  }
+}
+
 function Page() {
   const { user } = useAuth();
-  const { data: domains, isLoading } = useQuery({
-    queryKey: ["domains", user?.id],
+  const listFn = useServerFn(listMyDomainOrders);
+  const { data, isLoading } = useQuery({
+    queryKey: ["my-domain-orders", user?.id],
     enabled: !!user,
-    queryFn: async () =>
-      (await supabase.from("domains").select("*").order("created_at", { ascending: false })).data ?? [],
+    queryFn: () => listFn(),
+    refetchInterval: 15_000,
   });
+
+  const orders = data?.orders ?? [];
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -24,14 +63,17 @@ function Page() {
         icon={Globe}
         eyebrow="DNS & Registos"
         title="Domínios"
-        description="Gere os teus domínios, configura DNS e renova com um clique."
+        description="Acompanhe os seus domínios comprados e o status de ativação."
         actions={
-          <button className="px-4 py-2 rounded-lg bg-white text-blue-700 text-sm font-semibold hover:bg-white/90 btn-press inline-flex items-center gap-2">
+          <Link
+            to="/dominios/registrar"
+            className="px-4 py-2 rounded-lg bg-white text-blue-700 text-sm font-semibold hover:bg-white/90 btn-press inline-flex items-center gap-2"
+          >
             <Sparkles className="h-4 w-4" /> Registar novo
-          </button>
+          </Link>
         }
       />
-      {!isLoading && domains?.length === 0 ? (
+      {!isLoading && orders.length === 0 ? (
         <EmptyState
           icon={Search}
           title="Sem domínios registrados"
@@ -44,25 +86,32 @@ function Page() {
               <tr>
                 <th className="text-left px-5 py-3">Domínio</th>
                 <th className="text-left px-5 py-3">Status</th>
-                <th className="text-left px-5 py-3">Vencimento</th>
-                <th className="text-right px-5 py-3">Ações</th>
+                <th className="text-left px-5 py-3">Valor pago</th>
+                <th className="text-left px-5 py-3">Data da compra</th>
               </tr>
             </thead>
             <tbody>
-              {domains?.map((d, i) => (
-                <tr key={d.id} className={`border-t border-slate-100 hover:bg-slate-50/60 transition-colors animate-card-rise stagger-${Math.min(i + 1, 6)}`}>
-                  <td className="px-5 py-3 font-medium">{d.domain}</td>
-                  <td className="px-5 py-3"><StatusPill status={d.status} /></td>
-                  <td className="px-5 py-3 text-slate-600">
-                    {d.expires_at ? new Date(d.expires_at).toLocaleDateString("pt-BR") : "—"}
+              {orders.map((o: any, i: number) => (
+                <tr
+                  key={o.id}
+                  className={`border-t border-slate-100 hover:bg-slate-50/60 transition-colors animate-card-rise stagger-${Math.min(i + 1, 6)}`}
+                >
+                  <td className="px-5 py-3 font-medium">{o.domain_name}</td>
+                  <td className="px-5 py-3">{statusBadge(o.status)}</td>
+                  <td className="px-5 py-3 text-slate-700">
+                    {fmtCurrency(Number(o.price ?? 0), o.currency ?? "BRL")}
                   </td>
-                  <td className="px-5 py-3 text-right">
-                    <button className="text-blue-600 hover:underline">Gerenciar DNS</button>
+                  <td className="px-5 py-3 text-slate-600">
+                    {o.created_at ? new Date(o.created_at).toLocaleDateString("pt-BR") : "—"}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          <div className="px-5 py-3 text-xs text-slate-500 border-t border-slate-100 bg-slate-50/40">
+            Domínios pendentes de ativação são processados manualmente pela nossa equipe em até 24h úteis.
+            {DOMAIN_ORDER_STATUS_LABEL ? "" : ""}
+          </div>
         </Card>
       )}
     </div>
