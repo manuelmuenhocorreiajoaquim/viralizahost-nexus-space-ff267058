@@ -101,7 +101,7 @@ function Page() {
     <div className="max-w-7xl mx-auto">
       <PageHeader
         title="Pedidos de Domínio"
-        description="Compras de domínios aguardando ativação manual. Ative após registrar o domínio na Hostinger."
+        subtitle="Compras de domínios aguardando ativação manual. Ative após registrar o domínio na Hostinger."
       />
 
       <div className="flex flex-wrap items-center gap-2 mb-4">
