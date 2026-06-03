@@ -5,6 +5,8 @@ import { Globe, Search, Sparkles, Shield, Zap } from "lucide-react";
 import Navbar from "@/components/site/Navbar";
 import CTAFooter from "@/components/site/CTAFooter";
 import DomainSearchDialog from "@/components/site/DomainSearchDialog";
+import { getDomainPriceBRL } from "@/config/domainFixedPrices";
+import { useCurrency, formatCurrency, convertCurrency } from "@/lib/currency";
 
 export const Route = createFileRoute("/dominios/registrar")({
   head: () => ({
