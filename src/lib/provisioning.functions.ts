@@ -749,22 +749,29 @@ export const adminUpdateDomainOrderStatus = createServerFn({ method: "POST" })
     z
       .object({
         id: z.string().uuid(),
-        status: z.enum(["PENDENTE_ATIVACAO", "ATIVO", "CANCELADO"]),
+        status: z.enum([
+          "PENDENTE_ATIVACAO",
+          "AGUARDANDO_COMPRA_HOSTINGER",
+          "ATIVO",
+          "CANCELADO",
+        ]),
         admin_notes: z.string().max(2000).optional(),
       })
       .parse(input),
   )
   .handler(async ({ context, data }) => {
     await assertAdmin(context.userId);
-    const patch: {
-      status: string;
-      admin_notes?: string;
-      activated_at?: string;
-      cancelled_at?: string;
-    } = { status: data.status };
+    const patch: Record<string, unknown> = { status: data.status };
     if (data.admin_notes !== undefined) patch.admin_notes = data.admin_notes;
-    if (data.status === "ATIVO") patch.activated_at = new Date().toISOString();
+    if (data.status === "ATIVO") {
+      patch.activated_at = new Date().toISOString();
+      patch.admin_activated_by = context.userId;
+    }
+    if (data.status === "AGUARDANDO_COMPRA_HOSTINGER") {
+      patch.hostinger_purchased_at = new Date().toISOString();
+    }
     if (data.status === "CANCELADO") patch.cancelled_at = new Date().toISOString();
+
     const { data: row, error } = await supabaseAdmin
       .from("domain_orders")
       .update(patch)
@@ -772,6 +779,36 @@ export const adminUpdateDomainOrderStatus = createServerFn({ method: "POST" })
       .select("*")
       .single();
     if (error) throw new Error(error.message);
+
+    // Mirror to `domains` when activating, so the client panel surfaces it
+    // with DNS management. Idempotent.
+    if (data.status === "ATIVO" && row.user_id && row.domain_name) {
+      const { data: existing } = await supabaseAdmin
+        .from("domains")
+        .select("id")
+        .eq("user_id", row.user_id)
+        .eq("domain", row.domain_name)
+        .maybeSingle();
+      if (existing?.id) {
+        await supabaseAdmin
+          .from("domains")
+          .update({
+            status: "ATIVO",
+            domain_order_id: row.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existing.id);
+      } else {
+        await supabaseAdmin.from("domains").insert({
+          user_id: row.user_id,
+          domain: row.domain_name,
+          status: "ATIVO",
+          domain_order_id: row.id,
+          nameservers: ["ns1.viralizahost.com", "ns2.viralizahost.com"],
+          dns_records: [],
+        });
+      }
+    }
     return { order: row };
   });
 
@@ -782,10 +819,86 @@ export const listMyDomainOrders = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await supabaseAdmin
       .from("domain_orders")
-      .select("id, domain_name, extension, price, currency, status, created_at, activated_at, cancelled_at")
+      .select(
+        "id, domain_name, extension, price, currency, status, created_at, activated_at, cancelled_at",
+      )
       .eq("user_id", context.userId)
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
     return { orders: data ?? [] };
   });
+
+// ---- Client: DNS management for active domains ----
+
+const DnsRecordSchema = z.object({
+  id: z.string().optional(),
+  type: z.enum(["A", "AAAA", "CNAME", "MX", "TXT", "NS", "SRV"]),
+  name: z.string().min(1).max(253),
+  value: z.string().min(1).max(2000),
+  ttl: z.number().int().min(60).max(86400).default(3600),
+  priority: z.number().int().min(0).max(65535).optional(),
+});
+
+export const getMyDomain = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ domain: z.string().min(3).max(253) }).parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    const { data: row, error } = await supabaseAdmin
+      .from("domains")
+      .select("id, domain, status, nameservers, dns_records, target_ip, updated_at, created_at")
+      .eq("user_id", context.userId)
+      .eq("domain", data.domain.toLowerCase().trim())
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("Domínio não encontrado.");
+    return { domain: row };
+  });
+
+export const updateMyDomainDns = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        nameservers: z.array(z.string().min(3).max(253)).max(8).optional(),
+        dns_records: z.array(DnsRecordSchema).max(100).optional(),
+        target_ip: z.string().max(45).nullable().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    // Verify ownership + active status.
+    const { data: existing, error: readErr } = await supabaseAdmin
+      .from("domains")
+      .select("id, user_id, status")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!existing || existing.user_id !== context.userId) {
+      throw new Error("Domínio não encontrado.");
+    }
+    if ((existing.status ?? "").toUpperCase() !== "ATIVO") {
+      throw new Error("Domínio ainda não está ativo.");
+    }
+    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (data.nameservers !== undefined) patch.nameservers = data.nameservers;
+    if (data.dns_records !== undefined) {
+      patch.dns_records = data.dns_records.map((r) => ({
+        ...r,
+        id: r.id ?? crypto.randomUUID(),
+      }));
+    }
+    if (data.target_ip !== undefined) patch.target_ip = data.target_ip;
+    const { data: row, error } = await supabaseAdmin
+      .from("domains")
+      .update(patch)
+      .eq("id", data.id)
+      .select("id, domain, status, nameservers, dns_records, target_ip, updated_at")
+      .single();
+    if (error) throw new Error(error.message);
+    return { domain: row };
+  });
+
