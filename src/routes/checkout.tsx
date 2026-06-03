@@ -126,18 +126,17 @@ function brl(n: number, currency: Currency, rates?: Parameters<typeof formatPric
   return formatPrice(n.toFixed(2), currency, rates);
 }
 
-function domainCartIssue(item: { productId: string; domain?: string; metadata?: Record<string, unknown>; priceBRL?: number }) {
+function domainCartIssue(item: { productId: string; domain?: string; metadata?: Record<string, unknown>; priceBRL?: number; qty?: number }) {
   if (!item.productId.startsWith("domain:")) return null;
   const meta = item.metadata ?? {};
-  const provider = Number(meta.price_hostinger);
   const final = Number(meta.price_final ?? item.priceBRL);
-  if (meta.availability_confirmed !== true) return "Pesquise novamente este domínio para confirmar disponibilidade na Hostinger.";
+  if (meta.availability_confirmed !== true) return "Pesquise novamente este domínio para confirmar disponibilidade.";
   if (meta.availability_status !== "available" && meta.availability_status !== "suggestion") return "Domínio ocupado ou não confirmado.";
-  if (!Number.isFinite(provider) || provider <= 0 || !Number.isFinite(final) || final <= 0) return "Preço Hostinger indisponível.";
+  if (!Number.isFinite(final) || final <= 0) return "Preço do domínio indisponível.";
   const tld = typeof meta.tld === "string" ? meta.tld : item.domain?.match(/\.[^.]+$/)?.[0];
-  const margin = Number(meta.margin_percent ?? getDomainMarginPercent(tld));
-  const minimum = Math.round(provider * (1 + margin / 100) * 100) / 100;
-  if (final + 0.01 < minimum) return "Preço abaixo do mínimo Hostinger + margem ViralizaHost.";
+  const period = Number(meta.period ?? meta.years ?? 1);
+  const expected = getDomainTotalBRL(tld, period);
+  if (Math.abs(final - expected) > 0.01) return "Preço do domínio não confere com a tabela oficial. Pesquise novamente.";
   return null;
 }
 
