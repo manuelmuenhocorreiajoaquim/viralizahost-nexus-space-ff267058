@@ -19,9 +19,16 @@ export const Route = createFileRoute("/_authenticated/admin/domain-orders")({
 const STATUSES = [
   { value: "", label: "Todos" },
   { value: "PENDENTE_ATIVACAO", label: "Pendentes" },
+  { value: "AGUARDANDO_COMPRA_HOSTINGER", label: "Em compra na Hostinger" },
   { value: "ATIVO", label: "Ativos" },
   { value: "CANCELADO", label: "Cancelados" },
 ] as const;
+
+function hostingerCheckoutUrl(domain: string) {
+  // Abre o checkout de domínios da Hostinger pré-preenchido. O admin completa
+  // a compra manualmente e volta para confirmar a ativação.
+  return `https://www.hostinger.com/domain-checker?domain=${encodeURIComponent(domain)}`;
+}
 
 function statusBadge(s: string) {
   const v = (s ?? "").toUpperCase();
@@ -35,6 +42,12 @@ function statusBadge(s: string) {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-200 text-slate-700">
         <XCircle className="h-3 w-3" /> Cancelado
+      </span>
+    );
+  if (v === "AGUARDANDO_COMPRA_HOSTINGER")
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-100 text-indigo-700">
+        <Clock className="h-3 w-3" /> Em compra Hostinger
       </span>
     );
   return (
