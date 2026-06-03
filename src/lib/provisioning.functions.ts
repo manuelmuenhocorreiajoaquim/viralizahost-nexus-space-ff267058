@@ -756,7 +756,12 @@ export const adminUpdateDomainOrderStatus = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     await assertAdmin(context.userId);
-    const patch: Record<string, unknown> = { status: data.status };
+    const patch: {
+      status: string;
+      admin_notes?: string;
+      activated_at?: string;
+      cancelled_at?: string;
+    } = { status: data.status };
     if (data.admin_notes !== undefined) patch.admin_notes = data.admin_notes;
     if (data.status === "ATIVO") patch.activated_at = new Date().toISOString();
     if (data.status === "CANCELADO") patch.cancelled_at = new Date().toISOString();
