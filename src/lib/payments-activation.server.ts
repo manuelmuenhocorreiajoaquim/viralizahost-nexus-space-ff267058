@@ -50,7 +50,7 @@ async function createDomainOrdersForPaidOrder(orderId: string) {
       currency: order.currency ?? "BRL",
       provider: "hostinger_manual",
       status: DOMAIN_ORDER_STATUS.PENDING_ACTIVATION,
-      metadata: (item.metadata as Record<string, unknown>) ?? {},
+      metadata: (item.metadata as any) ?? {},
     });
   }
 }
