@@ -59,6 +59,7 @@ import { Route as AuthenticatedAdminServersRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminProvisioningRouteImport } from './routes/_authenticated/admin/provisioning'
 import { Route as AuthenticatedAdminProviderProductsRouteImport } from './routes/_authenticated/admin/provider-products'
 import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authenticated/admin/payments'
+import { Route as AuthenticatedAdminDomainOrdersRouteImport } from './routes/_authenticated/admin/domain-orders'
 import { Route as ApiPublicPaymentsMercadopagoWebhookRouteImport } from './routes/api/public/payments/mercadopago/webhook'
 
 const SignupRoute = SignupRouteImport.update({
@@ -318,6 +319,12 @@ const AuthenticatedAdminPaymentsRoute =
     path: '/admin/payments',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAdminDomainOrdersRoute =
+  AuthenticatedAdminDomainOrdersRouteImport.update({
+    id: '/admin/domain-orders',
+    path: '/admin/domain-orders',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const ApiPublicPaymentsMercadopagoWebhookRoute =
   ApiPublicPaymentsMercadopagoWebhookRouteImport.update({
     id: '/api/public/payments/mercadopago/webhook',
@@ -371,6 +378,7 @@ export interface FileRoutesByFullPath {
   '/vps-cloud/cloud-privada': typeof VpsCloudCloudPrivadaRoute
   '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
   '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
+  '/admin/domain-orders': typeof AuthenticatedAdminDomainOrdersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/provider-products': typeof AuthenticatedAdminProviderProductsRoute
   '/admin/provisioning': typeof AuthenticatedAdminProvisioningRoute
@@ -423,6 +431,7 @@ export interface FileRoutesByTo {
   '/vps-cloud/cloud-privada': typeof VpsCloudCloudPrivadaRoute
   '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
   '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
+  '/admin/domain-orders': typeof AuthenticatedAdminDomainOrdersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/provider-products': typeof AuthenticatedAdminProviderProductsRoute
   '/admin/provisioning': typeof AuthenticatedAdminProvisioningRoute
@@ -477,6 +486,7 @@ export interface FileRoutesById {
   '/vps-cloud/cloud-privada': typeof VpsCloudCloudPrivadaRoute
   '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
   '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
+  '/_authenticated/admin/domain-orders': typeof AuthenticatedAdminDomainOrdersRoute
   '/_authenticated/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/_authenticated/admin/provider-products': typeof AuthenticatedAdminProviderProductsRoute
   '/_authenticated/admin/provisioning': typeof AuthenticatedAdminProvisioningRoute
@@ -531,6 +541,7 @@ export interface FileRouteTypes {
     | '/vps-cloud/cloud-privada'
     | '/vps-cloud/servidor-dedicado'
     | '/vps-cloud/vps-nvme'
+    | '/admin/domain-orders'
     | '/admin/payments'
     | '/admin/provider-products'
     | '/admin/provisioning'
@@ -583,6 +594,7 @@ export interface FileRouteTypes {
     | '/vps-cloud/cloud-privada'
     | '/vps-cloud/servidor-dedicado'
     | '/vps-cloud/vps-nvme'
+    | '/admin/domain-orders'
     | '/admin/payments'
     | '/admin/provider-products'
     | '/admin/provisioning'
@@ -636,6 +648,7 @@ export interface FileRouteTypes {
     | '/vps-cloud/cloud-privada'
     | '/vps-cloud/servidor-dedicado'
     | '/vps-cloud/vps-nvme'
+    | '/_authenticated/admin/domain-orders'
     | '/_authenticated/admin/payments'
     | '/_authenticated/admin/provider-products'
     | '/_authenticated/admin/provisioning'
@@ -1028,6 +1041,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPaymentsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/admin/domain-orders': {
+      id: '/_authenticated/admin/domain-orders'
+      path: '/admin/domain-orders'
+      fullPath: '/admin/domain-orders'
+      preLoaderRoute: typeof AuthenticatedAdminDomainOrdersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/api/public/payments/mercadopago/webhook': {
       id: '/api/public/payments/mercadopago/webhook'
       path: '/api/public/payments/mercadopago/webhook'
@@ -1056,6 +1076,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSecurityRoute: typeof AuthenticatedSecurityRoute
   AuthenticatedSitesRoute: typeof AuthenticatedSitesRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
+  AuthenticatedAdminDomainOrdersRoute: typeof AuthenticatedAdminDomainOrdersRoute
   AuthenticatedAdminPaymentsRoute: typeof AuthenticatedAdminPaymentsRoute
   AuthenticatedAdminProviderProductsRoute: typeof AuthenticatedAdminProviderProductsRoute
   AuthenticatedAdminProvisioningRoute: typeof AuthenticatedAdminProvisioningRoute
@@ -1080,6 +1101,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSecurityRoute: AuthenticatedSecurityRoute,
   AuthenticatedSitesRoute: AuthenticatedSitesRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
+  AuthenticatedAdminDomainOrdersRoute: AuthenticatedAdminDomainOrdersRoute,
   AuthenticatedAdminPaymentsRoute: AuthenticatedAdminPaymentsRoute,
   AuthenticatedAdminProviderProductsRoute:
     AuthenticatedAdminProviderProductsRoute,
@@ -1127,13 +1149,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

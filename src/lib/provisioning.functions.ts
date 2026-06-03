@@ -719,3 +719,73 @@ export const adminTestHostingerDomainSearch = createServerFn({ method: "POST" })
     return { ok: checks.every((c) => c.api_ok), checks };
   });
 
+
+// ---- Admin: domain orders (manual activation) ----
+
+export const adminListDomainOrders = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({ status: z.string().optional() })
+      .default({})
+      .parse(input ?? {}),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.userId);
+    let q = supabaseAdmin
+      .from("domain_orders")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (data.status) q = q.eq("status", data.status);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return { orders: rows ?? [] };
+  });
+
+export const adminUpdateDomainOrderStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        status: z.enum(["PENDENTE_ATIVACAO", "ATIVO", "CANCELADO"]),
+        admin_notes: z.string().max(2000).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.userId);
+    const patch: {
+      status: string;
+      admin_notes?: string;
+      activated_at?: string;
+      cancelled_at?: string;
+    } = { status: data.status };
+    if (data.admin_notes !== undefined) patch.admin_notes = data.admin_notes;
+    if (data.status === "ATIVO") patch.activated_at = new Date().toISOString();
+    if (data.status === "CANCELADO") patch.cancelled_at = new Date().toISOString();
+    const { data: row, error } = await supabaseAdmin
+      .from("domain_orders")
+      .update(patch)
+      .eq("id", data.id)
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+    return { order: row };
+  });
+
+// ---- Client: my domain orders ----
+
+export const listMyDomainOrders = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await supabaseAdmin
+      .from("domain_orders")
+      .select("id, domain_name, extension, price, currency, status, created_at, activated_at, cancelled_at")
+      .eq("user_id", context.userId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw new Error(error.message);
+    return { orders: data ?? [] };
+  });

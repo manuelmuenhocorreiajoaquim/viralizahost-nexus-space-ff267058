@@ -119,6 +119,10 @@ export async function ensureProvisioningJobs(orderId: string) {
   const createdJobs: string[] = [];
 
   for (const item of items as OrderItemRow[]) {
+    // Domain registrations are handled by the manual `domain_orders` flow
+    // (created in payments-activation.server.ts). Never enqueue a Hostinger
+    // provisioning job for them, so the Hostinger price validation never runs.
+    if (item.product_type === "domain") continue;
     const lookupKey = keyForItem(item);
     const mapping = lookupKey ? byId.get(lookupKey) : null;
     if (!mapping) continue;
