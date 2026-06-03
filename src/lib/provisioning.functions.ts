@@ -894,7 +894,7 @@ export const updateMyDomainDns = createServerFn({ method: "POST" })
     if (data.target_ip !== undefined) patch.target_ip = data.target_ip;
     const { data: row, error } = await supabaseAdmin
       .from("domains")
-      .update(patch)
+      .update(patch as never)
       .eq("id", data.id)
       .select("id, domain, status, nameservers, dns_records, target_ip, updated_at")
       .single();
