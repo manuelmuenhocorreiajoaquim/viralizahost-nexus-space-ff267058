@@ -94,7 +94,10 @@ export default function DomainsSection() {
             )}
             <div className="text-2xl font-display font-bold text-gradient-primary">{d.ext}</div>
             <div className="mt-2 text-sm">
-              <span className="font-bold text-foreground">Preço em tempo real</span>
+              <span className="font-bold text-foreground">
+                {formatCurrency(convertCurrency(getDomainPriceBRL(d.ext), currency, rates), currency)}
+              </span>
+              <span className="text-muted-foreground">/ano</span>
             </div>
           </motion.div>
         ))}
