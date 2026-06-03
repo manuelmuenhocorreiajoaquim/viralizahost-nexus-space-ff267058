@@ -106,6 +106,9 @@ export type Database = {
       }
       domain_orders: {
         Row: {
+          activated_at: string | null
+          admin_notes: string | null
+          cancelled_at: string | null
           created_at: string
           currency: string
           customer_email: string | null
@@ -113,6 +116,7 @@ export type Database = {
           extension: string
           id: string
           metadata: Json
+          order_id: string | null
           price: number
           provider: string
           status: string
@@ -120,6 +124,9 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          activated_at?: string | null
+          admin_notes?: string | null
+          cancelled_at?: string | null
           created_at?: string
           currency?: string
           customer_email?: string | null
@@ -127,6 +134,7 @@ export type Database = {
           extension: string
           id?: string
           metadata?: Json
+          order_id?: string | null
           price?: number
           provider?: string
           status?: string
@@ -134,6 +142,9 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          activated_at?: string | null
+          admin_notes?: string | null
+          cancelled_at?: string | null
           created_at?: string
           currency?: string
           customer_email?: string | null
@@ -141,6 +152,7 @@ export type Database = {
           extension?: string
           id?: string
           metadata?: Json
+          order_id?: string | null
           price?: number
           provider?: string
           status?: string

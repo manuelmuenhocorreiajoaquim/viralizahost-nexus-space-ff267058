@@ -422,11 +422,7 @@ export default function DomainSearchDialog({
                                               <div className="text-lg font-bold text-foreground leading-tight">
                                                 {formatPrice(`R$ ${finalPrice.toFixed(2)}`, currency)}
                                               </div>
-                                              {tier.price_hostinger != null && (
-                                                <div className="text-[10px] text-muted-foreground line-through">
-                                                   Hostinger {formatPrice(`R$ ${tier.price_hostinger.toFixed(2)}`, currency)}
-                                                </div>
-                                              )}
+                                              {/* preço único — sem comparação externa */}
                                               <div className="text-[11px] text-muted-foreground">
                                                 ≈ {formatPrice(`R$ ${yearly.toFixed(2)}`, currency)}/ano
                                                 {savings > 0 && (
