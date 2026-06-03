@@ -19,7 +19,7 @@ export const DOMAIN_FIXED_PRICES: Record<string, FixedDomainPrice> = {
   ".org": { brl: 69, akz: 12_900 },
   ".ao": { brl: 250, akz: 46_500 },
   ".co.ao": { brl: 350, akz: 65_000 },
-  ".online": { brl: 59, akz: 15_000 },
+  ".online": { brl: 20, akz: 12_000 },
   ".shop": { brl: 79, akz: 18_000 },
   ".store": { brl: 89, akz: 20_000 },
   ".site": { brl: 59, akz: 15_000 },
