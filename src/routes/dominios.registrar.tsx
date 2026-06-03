@@ -34,6 +34,11 @@ const popularExt = [
   { ext: ".co.ao" },
   { ext: ".net" },
   { ext: ".org" },
+  { ext: ".online" },
+  { ext: ".shop" },
+  { ext: ".store" },
+  { ext: ".site" },
+  { ext: ".blog" },
 ];
 
 const benefits = [
