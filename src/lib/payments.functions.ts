@@ -12,6 +12,7 @@ import { activateOrderAfterPayment } from "@/lib/payments-activation.server";
 import { ensureProvisioningJobs, fetchHostingerDomainCatalog, tldOfDomain } from "@/lib/provisioning.server";
 import { hostinger } from "@/integrations/hostinger/client.server";
 import { applyDomainMargin, getDomainMarginPercent } from "@/config/domainMargins";
+import { getDomainTotalBRL } from "@/config/domainFixedPrices";
 
 const OrderItemSchema = z.object({
   id: z.string().min(1),
