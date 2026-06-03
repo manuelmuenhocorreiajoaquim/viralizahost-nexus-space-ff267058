@@ -172,7 +172,10 @@ function Page() {
               </tr>
             ) : (
               orders.map((o: any) => {
-                const isPending = (o.status ?? "").toUpperCase() === "PENDENTE_ATIVACAO";
+                const status = (o.status ?? "").toUpperCase();
+                const isPending = status === "PENDENTE_ATIVACAO";
+                const isAwaiting = status === "AGUARDANDO_COMPRA_HOSTINGER";
+                const isActive = status === "ATIVO";
                 const busy = busyId === o.id && updateMutation.isPending;
                 return (
                   <tr key={o.id} className="border-t border-slate-100 hover:bg-slate-50/60">
@@ -191,8 +194,25 @@ function Page() {
                       {o.created_at ? new Date(o.created_at).toLocaleString("pt-BR") : "—"}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="inline-flex gap-2">
-                        {isPending && (
+                      <div className="inline-flex flex-wrap gap-2 justify-end">
+                        {(isPending || isAwaiting) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                            disabled={busy}
+                            onClick={() => {
+                              window.open(hostingerCheckoutUrl(o.domain_name), "_blank", "noopener,noreferrer");
+                              if (isPending) {
+                                setBusyId(o.id);
+                                updateMutation.mutate({ id: o.id, status: "AGUARDANDO_COMPRA_HOSTINGER" });
+                              }
+                            }}
+                          >
+                            Pagar domínio na Hostinger
+                          </Button>
+                        )}
+                        {(isPending || isAwaiting) && (
                           <Button
                             size="sm"
                             className="bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -207,10 +227,10 @@ function Page() {
                             ) : (
                               <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
                             )}
-                            Ativar
+                            Confirmar Ativação
                           </Button>
                         )}
-                        {isPending && (
+                        {(isPending || isAwaiting) && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -224,7 +244,7 @@ function Page() {
                             Cancelar
                           </Button>
                         )}
-                        {!isPending && (o.status ?? "").toUpperCase() === "ATIVO" && (
+                        {isActive && (
                           <Button
                             size="sm"
                             variant="outline"
