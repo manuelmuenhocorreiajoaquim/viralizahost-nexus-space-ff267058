@@ -20,10 +20,10 @@ export const DOMAIN_FIXED_PRICES: Record<string, FixedDomainPrice> = {
   ".ao": { brl: 250, akz: 46_500 },
   ".co.ao": { brl: 350, akz: 65_000 },
   ".online": { brl: 20, akz: 12_000 },
-  ".shop": { brl: 79, akz: 18_000 },
-  ".store": { brl: 89, akz: 20_000 },
-  ".site": { brl: 59, akz: 15_000 },
-  ".blog": { brl: 89, akz: 20_000 },
+  ".shop": { brl: 16, akz: 10_000 },
+  ".store": { brl: 18, akz: 11_000 },
+  ".site": { brl: 19, akz: 12_000 },
+  ".blog": { brl: 25, akz: 15_000 },
 };
 
 /** Fallback used when an unmapped TLD slips through (matches .com pricing). */
