@@ -16,6 +16,7 @@ import {
   tldOfDomain,
 } from "@/lib/provisioning.server";
 import { applyDomainMargin, getDomainMarginPercent } from "@/config/domainMargins";
+import { getDomainPriceBRL, getDomainTotalBRL } from "@/config/domainFixedPrices";
 
 async function assertAdmin(userId: string) {
   const { data } = await supabaseAdmin
