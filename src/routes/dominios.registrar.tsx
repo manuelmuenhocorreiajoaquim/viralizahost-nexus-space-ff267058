@@ -5,6 +5,8 @@ import { Globe, Search, Sparkles, Shield, Zap } from "lucide-react";
 import Navbar from "@/components/site/Navbar";
 import CTAFooter from "@/components/site/CTAFooter";
 import DomainSearchDialog from "@/components/site/DomainSearchDialog";
+import { getDomainPriceBRL } from "@/config/domainFixedPrices";
+import { useCurrency, formatCurrency, convertCurrency } from "@/lib/currency";
 
 export const Route = createFileRoute("/dominios/registrar")({
   head: () => ({
@@ -32,6 +34,11 @@ const popularExt = [
   { ext: ".co.ao" },
   { ext: ".net" },
   { ext: ".org" },
+  { ext: ".online" },
+  { ext: ".shop" },
+  { ext: ".store" },
+  { ext: ".site" },
+  { ext: ".blog" },
 ];
 
 const benefits = [
@@ -43,6 +50,7 @@ const benefits = [
 function RegistrarPage() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const { currency, rates } = useCurrency();
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,7 +135,10 @@ function RegistrarPage() {
                   )}
                   <div className="text-2xl font-display font-bold text-gradient-primary">{d.ext}</div>
                   <div className="mt-2 text-sm">
-                    <span className="font-bold text-foreground">Preço em tempo real</span>
+                    <span className="font-bold text-foreground">
+                      {formatCurrency(convertCurrency(getDomainPriceBRL(d.ext), currency, rates), currency)}
+                    </span>
+                    <span className="text-muted-foreground">/ano</span>
                   </div>
                 </motion.div>
               ))}

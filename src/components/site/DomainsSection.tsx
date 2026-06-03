@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { Search, Globe } from "lucide-react";
 import { Section, SectionHeader } from "./Section";
 import DomainSearchDialog from "./DomainSearchDialog";
+import { getDomainPriceBRL } from "@/config/domainFixedPrices";
+import { useCurrency, formatCurrency, convertCurrency } from "@/lib/currency";
 
 const domains = [
   { ext: ".com", popular: true },
@@ -11,11 +13,17 @@ const domains = [
   { ext: ".co.ao" },
   { ext: ".net" },
   { ext: ".org" },
+  { ext: ".online" },
+  { ext: ".shop" },
+  { ext: ".store" },
+  { ext: ".site" },
+  { ext: ".blog" },
 ];
 
 export default function DomainsSection() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const { currency, rates } = useCurrency();
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,7 +94,10 @@ export default function DomainsSection() {
             )}
             <div className="text-2xl font-display font-bold text-gradient-primary">{d.ext}</div>
             <div className="mt-2 text-sm">
-              <span className="font-bold text-foreground">Preço em tempo real</span>
+              <span className="font-bold text-foreground">
+                {formatCurrency(convertCurrency(getDomainPriceBRL(d.ext), currency, rates), currency)}
+              </span>
+              <span className="text-muted-foreground">/ano</span>
             </div>
           </motion.div>
         ))}

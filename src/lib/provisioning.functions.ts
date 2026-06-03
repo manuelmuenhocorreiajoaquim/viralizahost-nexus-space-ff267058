@@ -445,7 +445,7 @@ type DomainHit = {
   pricing: DomainPricing;
 };
 
-const DOMAIN_TLDS = [".com", ".com.br", ".net", ".org", ".ao", ".co.ao"] as const;
+const DOMAIN_TLDS = [".com", ".com.br", ".net", ".org", ".ao", ".co.ao", ".online", ".shop", ".store", ".site", ".blog"] as const;
 const CLIENT_DOMAIN_ERROR = "Não foi possível consultar agora. Tente novamente.";
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
