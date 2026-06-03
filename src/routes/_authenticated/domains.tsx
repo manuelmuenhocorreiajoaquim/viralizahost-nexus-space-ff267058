@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Globe, Search, Sparkles, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { useState } from "react";
+import { Globe, Search, Sparkles, Clock, CheckCircle2, XCircle, Settings } from "lucide-react";
 import { Card, EmptyState } from "@/components/dashboard/ui";
 import { CategoryBanner } from "@/components/dashboard/CategoryBanner";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { listMyDomainOrders } from "@/lib/provisioning.functions";
-import { DOMAIN_ORDER_STATUS_LABEL } from "@/config/domainFixedPrices";
+import { DomainManageDialog } from "@/components/dashboard/DomainManageDialog";
 
 export const Route = createFileRoute("/_authenticated/domains")({ component: Page });
 
@@ -26,6 +28,7 @@ function statusBadge(status: string) {
       </span>
     );
   }
+  // PENDENTE_ATIVACAO + AGUARDANDO_COMPRA_HOSTINGER → mesma mensagem para o cliente.
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
       <Clock className="h-3 w-3" /> Pendente de Ativação
@@ -53,6 +56,8 @@ function Page() {
     queryFn: () => listFn(),
     refetchInterval: 15_000,
   });
+
+  const [manageDomain, setManageDomain] = useState<string | null>(null);
 
   const orders = data?.orders ?? [];
 
@@ -87,32 +92,60 @@ function Page() {
                 <th className="text-left px-5 py-3">Domínio</th>
                 <th className="text-left px-5 py-3">Status</th>
                 <th className="text-left px-5 py-3">Valor pago</th>
-                <th className="text-left px-5 py-3">Data da compra</th>
+                <th className="text-left px-5 py-3">Data</th>
+                <th className="text-right px-5 py-3">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {orders.map((o: any, i: number) => (
-                <tr
-                  key={o.id}
-                  className={`border-t border-slate-100 hover:bg-slate-50/60 transition-colors animate-card-rise stagger-${Math.min(i + 1, 6)}`}
-                >
-                  <td className="px-5 py-3 font-medium">{o.domain_name}</td>
-                  <td className="px-5 py-3">{statusBadge(o.status)}</td>
-                  <td className="px-5 py-3 text-slate-700">
-                    {fmtCurrency(Number(o.price ?? 0), o.currency ?? "BRL")}
-                  </td>
-                  <td className="px-5 py-3 text-slate-600">
-                    {o.created_at ? new Date(o.created_at).toLocaleDateString("pt-BR") : "—"}
-                  </td>
-                </tr>
-              ))}
+              {orders.map((o: any, i: number) => {
+                const status = (o.status ?? "").toUpperCase();
+                const isActive = status === "ATIVO";
+                return (
+                  <tr
+                    key={o.id}
+                    className={`border-t border-slate-100 hover:bg-slate-50/60 transition-colors animate-card-rise stagger-${Math.min(i + 1, 6)}`}
+                  >
+                    <td className="px-5 py-3 font-medium">{o.domain_name}</td>
+                    <td className="px-5 py-3">{statusBadge(o.status)}</td>
+                    <td className="px-5 py-3 text-slate-700">
+                      {fmtCurrency(Number(o.price ?? 0), o.currency ?? "BRL")}
+                    </td>
+                    <td className="px-5 py-3 text-slate-600">
+                      {o.created_at ? new Date(o.created_at).toLocaleDateString("pt-BR") : "—"}
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      {isActive ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setManageDomain(o.domain_name)}
+                        >
+                          <Settings className="h-3.5 w-3.5 mr-1" /> Gerir Domínio
+                        </Button>
+                      ) : (
+                        <span className="text-[11px] text-slate-500 italic">
+                          Em processamento
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           <div className="px-5 py-3 text-xs text-slate-500 border-t border-slate-100 bg-slate-50/40">
-            Domínios pendentes de ativação são processados manualmente pela nossa equipe em até 24h úteis.
-            {DOMAIN_ORDER_STATUS_LABEL ? "" : ""}
+            O seu domínio está em processamento e será ativado após confirmação administrativa
+            (até 24h úteis). Após ativação, você poderá gerir nameservers e registros DNS.
           </div>
         </Card>
+      )}
+
+      {manageDomain && (
+        <DomainManageDialog
+          open={!!manageDomain}
+          onOpenChange={(o) => !o && setManageDomain(null)}
+          domain={manageDomain}
+        />
       )}
     </div>
   );

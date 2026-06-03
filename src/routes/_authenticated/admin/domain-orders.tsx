@@ -19,9 +19,16 @@ export const Route = createFileRoute("/_authenticated/admin/domain-orders")({
 const STATUSES = [
   { value: "", label: "Todos" },
   { value: "PENDENTE_ATIVACAO", label: "Pendentes" },
+  { value: "AGUARDANDO_COMPRA_HOSTINGER", label: "Em compra na Hostinger" },
   { value: "ATIVO", label: "Ativos" },
   { value: "CANCELADO", label: "Cancelados" },
 ] as const;
+
+function hostingerCheckoutUrl(domain: string) {
+  // Abre o checkout de domínios da Hostinger pré-preenchido. O admin completa
+  // a compra manualmente e volta para confirmar a ativação.
+  return `https://www.hostinger.com/domain-checker?domain=${encodeURIComponent(domain)}`;
+}
 
 function statusBadge(s: string) {
   const v = (s ?? "").toUpperCase();
@@ -35,6 +42,12 @@ function statusBadge(s: string) {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-200 text-slate-700">
         <XCircle className="h-3 w-3" /> Cancelado
+      </span>
+    );
+  if (v === "AGUARDANDO_COMPRA_HOSTINGER")
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-100 text-indigo-700">
+        <Clock className="h-3 w-3" /> Em compra Hostinger
       </span>
     );
   return (
@@ -69,16 +82,18 @@ function Page() {
     queryFn: () => listFn({ data: filter ? { status: filter } : {} }),
   });
 
+  type Status = "ATIVO" | "CANCELADO" | "PENDENTE_ATIVACAO" | "AGUARDANDO_COMPRA_HOSTINGER";
   const updateMutation = useMutation({
-    mutationFn: (vars: { id: string; status: "ATIVO" | "CANCELADO" | "PENDENTE_ATIVACAO" }) =>
-      updateFn({ data: vars }),
+    mutationFn: (vars: { id: string; status: Status }) => updateFn({ data: vars }),
     onSuccess: (_d, vars) => {
       toast.success(
         vars.status === "ATIVO"
-          ? "Domínio marcado como ativo no painel do cliente."
+          ? "Domínio ativado no painel do cliente."
           : vars.status === "CANCELADO"
             ? "Pedido cancelado."
-            : "Status atualizado.",
+            : vars.status === "AGUARDANDO_COMPRA_HOSTINGER"
+              ? "Marcado como em compra na Hostinger."
+              : "Status atualizado.",
       );
       qc.invalidateQueries({ queryKey: ["admin-domain-orders"] });
       qc.invalidateQueries({ queryKey: ["my-domain-orders"] });
@@ -157,7 +172,10 @@ function Page() {
               </tr>
             ) : (
               orders.map((o: any) => {
-                const isPending = (o.status ?? "").toUpperCase() === "PENDENTE_ATIVACAO";
+                const status = (o.status ?? "").toUpperCase();
+                const isPending = status === "PENDENTE_ATIVACAO";
+                const isAwaiting = status === "AGUARDANDO_COMPRA_HOSTINGER";
+                const isActive = status === "ATIVO";
                 const busy = busyId === o.id && updateMutation.isPending;
                 return (
                   <tr key={o.id} className="border-t border-slate-100 hover:bg-slate-50/60">
@@ -176,8 +194,25 @@ function Page() {
                       {o.created_at ? new Date(o.created_at).toLocaleString("pt-BR") : "—"}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="inline-flex gap-2">
-                        {isPending && (
+                      <div className="inline-flex flex-wrap gap-2 justify-end">
+                        {(isPending || isAwaiting) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                            disabled={busy}
+                            onClick={() => {
+                              window.open(hostingerCheckoutUrl(o.domain_name), "_blank", "noopener,noreferrer");
+                              if (isPending) {
+                                setBusyId(o.id);
+                                updateMutation.mutate({ id: o.id, status: "AGUARDANDO_COMPRA_HOSTINGER" });
+                              }
+                            }}
+                          >
+                            Pagar domínio na Hostinger
+                          </Button>
+                        )}
+                        {(isPending || isAwaiting) && (
                           <Button
                             size="sm"
                             className="bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -192,10 +227,10 @@ function Page() {
                             ) : (
                               <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
                             )}
-                            Ativar
+                            Confirmar Ativação
                           </Button>
                         )}
-                        {isPending && (
+                        {(isPending || isAwaiting) && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -209,7 +244,7 @@ function Page() {
                             Cancelar
                           </Button>
                         )}
-                        {!isPending && (o.status ?? "").toUpperCase() === "ATIVO" && (
+                        {isActive && (
                           <Button
                             size="sm"
                             variant="outline"

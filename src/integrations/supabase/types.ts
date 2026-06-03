@@ -107,6 +107,7 @@ export type Database = {
       domain_orders: {
         Row: {
           activated_at: string | null
+          admin_activated_by: string | null
           admin_notes: string | null
           cancelled_at: string | null
           created_at: string
@@ -114,6 +115,7 @@ export type Database = {
           customer_email: string | null
           domain_name: string
           extension: string
+          hostinger_purchased_at: string | null
           id: string
           metadata: Json
           order_id: string | null
@@ -125,6 +127,7 @@ export type Database = {
         }
         Insert: {
           activated_at?: string | null
+          admin_activated_by?: string | null
           admin_notes?: string | null
           cancelled_at?: string | null
           created_at?: string
@@ -132,6 +135,7 @@ export type Database = {
           customer_email?: string | null
           domain_name: string
           extension: string
+          hostinger_purchased_at?: string | null
           id?: string
           metadata?: Json
           order_id?: string | null
@@ -143,6 +147,7 @@ export type Database = {
         }
         Update: {
           activated_at?: string | null
+          admin_activated_by?: string | null
           admin_notes?: string | null
           cancelled_at?: string | null
           created_at?: string
@@ -150,6 +155,7 @@ export type Database = {
           customer_email?: string | null
           domain_name?: string
           extension?: string
+          hostinger_purchased_at?: string | null
           id?: string
           metadata?: Json
           order_id?: string | null
@@ -188,26 +194,41 @@ export type Database = {
       domains: {
         Row: {
           created_at: string
+          dns_records: Json
           domain: string
+          domain_order_id: string | null
           expires_at: string | null
           id: string
+          nameservers: Json
           status: string
+          target_ip: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          dns_records?: Json
           domain: string
+          domain_order_id?: string | null
           expires_at?: string | null
           id?: string
+          nameservers?: Json
           status?: string
+          target_ip?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          dns_records?: Json
           domain?: string
+          domain_order_id?: string | null
           expires_at?: string | null
           id?: string
+          nameservers?: Json
           status?: string
+          target_ip?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
