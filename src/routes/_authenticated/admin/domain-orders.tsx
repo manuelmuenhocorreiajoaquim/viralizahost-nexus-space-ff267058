@@ -82,16 +82,18 @@ function Page() {
     queryFn: () => listFn({ data: filter ? { status: filter } : {} }),
   });
 
+  type Status = "ATIVO" | "CANCELADO" | "PENDENTE_ATIVACAO" | "AGUARDANDO_COMPRA_HOSTINGER";
   const updateMutation = useMutation({
-    mutationFn: (vars: { id: string; status: "ATIVO" | "CANCELADO" | "PENDENTE_ATIVACAO" }) =>
-      updateFn({ data: vars }),
+    mutationFn: (vars: { id: string; status: Status }) => updateFn({ data: vars }),
     onSuccess: (_d, vars) => {
       toast.success(
         vars.status === "ATIVO"
-          ? "Domínio marcado como ativo no painel do cliente."
+          ? "Domínio ativado no painel do cliente."
           : vars.status === "CANCELADO"
             ? "Pedido cancelado."
-            : "Status atualizado.",
+            : vars.status === "AGUARDANDO_COMPRA_HOSTINGER"
+              ? "Marcado como em compra na Hostinger."
+              : "Status atualizado.",
       );
       qc.invalidateQueries({ queryKey: ["admin-domain-orders"] });
       qc.invalidateQueries({ queryKey: ["my-domain-orders"] });
