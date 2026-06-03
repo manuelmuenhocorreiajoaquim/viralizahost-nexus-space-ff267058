@@ -56,7 +56,7 @@ import bicLogoImg from "@/assets/banco-bic-logo.png";
 import DomainSearchDialog from "@/components/site/DomainSearchDialog";
 import { createCheckoutOrder } from "@/lib/payments.functions";
 import { searchDomainsHostinger } from "@/lib/provisioning.functions";
-import { getDomainMarginPercent } from "@/config/domainMargins";
+import { getDomainPriceBRL, getDomainTotalBRL } from "@/config/domainFixedPrices";
 
 /* Sanitize raw domain input → lowercase, no protocol/path/www/spaces. */
 function sanitizeDomain(input: string): string {
