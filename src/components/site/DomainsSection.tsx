@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { Search, Globe } from "lucide-react";
 import { Section, SectionHeader } from "./Section";
 import DomainSearchDialog from "./DomainSearchDialog";
+import { getDomainPriceBRL } from "@/config/domainFixedPrices";
+import { useCurrency, formatCurrency, convertCurrency } from "@/lib/currency";
 
 const domains = [
   { ext: ".com", popular: true },
@@ -11,6 +13,11 @@ const domains = [
   { ext: ".co.ao" },
   { ext: ".net" },
   { ext: ".org" },
+  { ext: ".online" },
+  { ext: ".shop" },
+  { ext: ".store" },
+  { ext: ".site" },
+  { ext: ".blog" },
 ];
 
 export default function DomainsSection() {
