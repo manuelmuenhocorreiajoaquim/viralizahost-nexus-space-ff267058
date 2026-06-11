@@ -155,7 +155,7 @@ function Page() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8">
-      <PageHeader title="Ativar E-mail" subtitle="Crie a conta no cPanel/WHM, cole o link de acesso e ative o plano." icon={Mail} />
+      <PageHeader title="Ativar E-mail" subtitle="Crie a conta no cPanel/WHM, cole o link de acesso e ative o plano." />
 
       <div className="flex items-center gap-2 flex-wrap mb-4">
         {STATUSES.map((s) => (
