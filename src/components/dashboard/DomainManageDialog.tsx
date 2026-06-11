@@ -60,20 +60,30 @@ export function DomainManageDialog({
   }, [data]);
 
   const saveMutation = useMutation({
-    mutationFn: () =>
-      updateFn({
-        data: {
-          id: domainId,
-          nameservers: nameservers.filter((n) => n.trim()),
-          dns_records: records,
-          target_ip: targetIp.trim() || null,
-        },
-      }),
-    onSuccess: () => {
-      toast.success("Configurações de DNS salvas.");
-      qc.invalidateQueries({ queryKey: ["my-domain", domain] });
+    mutationFn: async () => {
+      try {
+        const res: any = await updateFn({
+          data: {
+            id: domainId,
+            nameservers: nameservers.filter((n) => n.trim()),
+            dns_records: records,
+            target_ip: targetIp.trim() || null,
+          },
+        });
+        return res ?? { ok: false, fallback: true, error: "Não foi possível salvar agora." };
+      } catch (e: any) {
+        console.warn("[DomainManageDialog] save failed", e);
+        return { ok: false, fallback: true, error: "Não foi possível salvar agora." };
+      }
     },
-    onError: (e: any) => toast.error(e?.message ?? "Falha ao salvar"),
+    onSuccess: (res: any) => {
+      if (res?.ok) {
+        toast.success("Alterações guardadas com sucesso. A equipa irá aplicar em breve.");
+        qc.invalidateQueries({ queryKey: ["my-domain", domain] });
+      } else {
+        toast.error(res?.error ?? "Não foi possível salvar agora.");
+      }
+    },
   });
 
   return (

@@ -870,36 +870,86 @@ export const updateMyDomainDns = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ context, data }) => {
-    // Verify ownership + active status.
-    const { data: existing, error: readErr } = await supabaseAdmin
+    try {
+      const { data: existing, error: readErr } = await supabaseAdmin
+        .from("domains")
+        .select("id, user_id, status")
+        .eq("id", data.id)
+        .maybeSingle();
+      if (readErr) throw new Error(readErr.message);
+      if (!existing || existing.user_id !== context.userId) {
+        return { ok: false, fallback: true, error: "Domínio não encontrado." };
+      }
+      if ((existing.status ?? "").toUpperCase() !== "ATIVO") {
+        return { ok: false, fallback: true, error: "Domínio ainda não está ativo." };
+      }
+      const nowIso = new Date().toISOString();
+      const patch: Record<string, unknown> = {
+        updated_at: nowIso,
+        dns_change_pending: true,
+        dns_change_requested_at: nowIso,
+        dns_change_applied_at: null,
+      };
+      if (data.nameservers !== undefined) patch.nameservers = data.nameservers;
+      if (data.dns_records !== undefined) {
+        patch.dns_records = data.dns_records.map((r) => ({
+          ...r,
+          id: r.id ?? crypto.randomUUID(),
+        }));
+      }
+      if (data.target_ip !== undefined) patch.target_ip = data.target_ip;
+      const { data: row, error } = await supabaseAdmin
+        .from("domains")
+        .update(patch as never)
+        .eq("id", data.id)
+        .select("id, domain, status, nameservers, dns_records, target_ip, updated_at")
+        .single();
+      if (error) {
+        console.error("[updateMyDomainDns] update_failed", error);
+        return { ok: false, fallback: true, error: "Não foi possível salvar agora." };
+      }
+      return { ok: true, domain: row };
+    } catch (e: any) {
+      console.error("[updateMyDomainDns] exception", e);
+      return { ok: false, fallback: true, error: "Não foi possível salvar agora." };
+    }
+  });
+
+// ---- Admin: DNS change requests ----
+
+export const adminListDnsChangeRequests = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const { data, error } = await supabaseAdmin
       .from("domains")
-      .select("id, user_id, status")
-      .eq("id", data.id)
-      .maybeSingle();
-    if (readErr) throw new Error(readErr.message);
-    if (!existing || existing.user_id !== context.userId) {
-      throw new Error("Domínio não encontrado.");
-    }
-    if ((existing.status ?? "").toUpperCase() !== "ATIVO") {
-      throw new Error("Domínio ainda não está ativo.");
-    }
-    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    if (data.nameservers !== undefined) patch.nameservers = data.nameservers;
-    if (data.dns_records !== undefined) {
-      patch.dns_records = data.dns_records.map((r) => ({
-        ...r,
-        id: r.id ?? crypto.randomUUID(),
-      }));
-    }
-    if (data.target_ip !== undefined) patch.target_ip = data.target_ip;
-    const { data: row, error } = await supabaseAdmin
-      .from("domains")
-      .update(patch as never)
-      .eq("id", data.id)
-      .select("id, domain, status, nameservers, dns_records, target_ip, updated_at")
-      .single();
+      .select(
+        "id, user_id, domain, status, nameservers, dns_records, target_ip, dns_change_pending, dns_change_requested_at, dns_change_applied_at, dns_change_note, updated_at",
+      )
+      .eq("dns_change_pending", true)
+      .order("dns_change_requested_at", { ascending: false })
+      .limit(200);
     if (error) throw new Error(error.message);
-    return { domain: row };
+    return { requests: data ?? [] };
+  });
+
+export const adminMarkDnsChangeApplied = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string().uuid(), note: z.string().max(1000).optional() }).parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin
+      .from("domains")
+      .update({
+        dns_change_pending: false,
+        dns_change_applied_at: new Date().toISOString(),
+        dns_change_note: data.note ?? null,
+      } as never)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 

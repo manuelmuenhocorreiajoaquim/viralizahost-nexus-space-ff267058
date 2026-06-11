@@ -171,6 +171,14 @@ function AuthLayout() {
                 onClick={() => setMobileOpen(false)}
               />
               <SideLink
+                to="/admin/dns-requests"
+                label="Pedidos de DNS"
+                icon={Globe}
+                color="text-emerald-600"
+                bg="bg-emerald-500/10"
+                onClick={() => setMobileOpen(false)}
+              />
+              <SideLink
                 to="/admin/email-orders"
                 label="Ativar E-mail"
                 icon={Mail}

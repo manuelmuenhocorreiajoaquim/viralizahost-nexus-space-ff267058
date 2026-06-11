@@ -194,6 +194,10 @@ export type Database = {
       domains: {
         Row: {
           created_at: string
+          dns_change_applied_at: string | null
+          dns_change_note: string | null
+          dns_change_pending: boolean
+          dns_change_requested_at: string | null
           dns_records: Json
           domain: string
           domain_order_id: string | null
@@ -207,6 +211,10 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          dns_change_applied_at?: string | null
+          dns_change_note?: string | null
+          dns_change_pending?: boolean
+          dns_change_requested_at?: string | null
           dns_records?: Json
           domain: string
           domain_order_id?: string | null
@@ -220,6 +228,10 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          dns_change_applied_at?: string | null
+          dns_change_note?: string | null
+          dns_change_pending?: boolean
+          dns_change_requested_at?: string | null
           dns_records?: Json
           domain?: string
           domain_order_id?: string | null
