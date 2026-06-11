@@ -963,6 +963,69 @@ export type Database = {
           },
         ]
       }
+      service_plans: {
+        Row: {
+          badge: string | null
+          benefits: Json
+          category: string
+          created_at: string
+          cta_href: string | null
+          cta_label: string | null
+          currency_default: string
+          id: string
+          is_active: boolean
+          is_featured: boolean
+          metadata: Json
+          name: string
+          price_aoa: number | null
+          price_brl: number | null
+          short_description: string | null
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          badge?: string | null
+          benefits?: Json
+          category: string
+          created_at?: string
+          cta_href?: string | null
+          cta_label?: string | null
+          currency_default?: string
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          metadata?: Json
+          name: string
+          price_aoa?: number | null
+          price_brl?: number | null
+          short_description?: string | null
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          badge?: string | null
+          benefits?: Json
+          category?: string
+          created_at?: string
+          cta_href?: string | null
+          cta_label?: string | null
+          currency_default?: string
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          metadata?: Json
+          name?: string
+          price_aoa?: number | null
+          price_brl?: number | null
+          short_description?: string | null
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       services: {
         Row: {
           created_at: string
@@ -1003,6 +1066,147 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      site_contents: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
+      site_images: {
+        Row: {
+          alt: string | null
+          bucket: string | null
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          path: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          alt?: string | null
+          bucket?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          path?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          alt?: string | null
+          bucket?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          path?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      site_sections: {
+        Row: {
+          body: string | null
+          created_at: string
+          cta_href: string | null
+          cta_label: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          key: string
+          metadata: Json
+          page: string
+          sort_order: number
+          subtitle: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          cta_href?: string | null
+          cta_label?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          key: string
+          metadata?: Json
+          page?: string
+          sort_order?: number
+          subtitle?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          cta_href?: string | null
+          cta_label?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          key?: string
+          metadata?: Json
+          page?: string
+          sort_order?: number
+          subtitle?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      site_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
       }
       support_tickets: {
         Row: {
