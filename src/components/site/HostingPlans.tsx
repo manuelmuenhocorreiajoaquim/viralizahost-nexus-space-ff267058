@@ -40,7 +40,7 @@ export default function HostingPlans() {
 
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         {plans.map((p, idx) => (
-          <PlanCard key={p.name} p={p} idx={idx} />
+          <PlanCard key={p.name} p={p as any} idx={idx} />
         ))}
       </div>
     </Section>
