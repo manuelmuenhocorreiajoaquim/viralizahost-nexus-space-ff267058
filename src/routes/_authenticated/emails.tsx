@@ -70,7 +70,6 @@ function Page() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {orders.map((e, i) => {
             const active = e.status === "ATIVO";
-            const link = e.webmail_url || e.cpanel_url;
             return (
               <Card key={e.id} className={`card-hover animate-card-rise stagger-${Math.min(i + 1, 6)}`}>
                 <div className="flex items-start justify-between gap-2">
