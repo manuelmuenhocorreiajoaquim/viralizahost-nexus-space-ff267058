@@ -134,6 +134,13 @@ export async function activateOrderAfterPayment(orderId: string) {
     console.error("[activation] domain_orders insert error", e);
   }
 
+  // Email plans also go through manual activation by admin.
+  try {
+    await createEmailOrdersForPaidOrder(orderId);
+  } catch (e) {
+    console.error("[activation] email_orders insert error", e);
+  }
+
   // Idempotent: if already provisioned, skip.
   if (order.provisioned) return;
 
