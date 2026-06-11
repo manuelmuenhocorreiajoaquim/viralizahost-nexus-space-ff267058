@@ -355,6 +355,89 @@ export type Database = {
           },
         ]
       }
+      hosting_orders: {
+        Row: {
+          activated_at: string | null
+          admin_activated_by: string | null
+          admin_notes: string | null
+          cancelled_at: string | null
+          cpanel_url: string | null
+          cpanel_username: string | null
+          created_at: string
+          currency: string
+          customer_email: string | null
+          domain: string | null
+          id: string
+          metadata: Json | null
+          order_id: string | null
+          plan_id: string
+          plan_name: string
+          price: number
+          server_ip: string | null
+          status: string
+          storage_gb: number | null
+          updated_at: string
+          user_id: string | null
+          whm_package: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          admin_activated_by?: string | null
+          admin_notes?: string | null
+          cancelled_at?: string | null
+          cpanel_url?: string | null
+          cpanel_username?: string | null
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          domain?: string | null
+          id?: string
+          metadata?: Json | null
+          order_id?: string | null
+          plan_id: string
+          plan_name: string
+          price?: number
+          server_ip?: string | null
+          status?: string
+          storage_gb?: number | null
+          updated_at?: string
+          user_id?: string | null
+          whm_package?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          admin_activated_by?: string | null
+          admin_notes?: string | null
+          cancelled_at?: string | null
+          cpanel_url?: string | null
+          cpanel_username?: string | null
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          domain?: string | null
+          id?: string
+          metadata?: Json | null
+          order_id?: string | null
+          plan_id?: string
+          plan_name?: string
+          price?: number
+          server_ip?: string | null
+          status?: string
+          storage_gb?: number | null
+          updated_at?: string
+          user_id?: string | null
+          whm_package?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hosting_orders_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hosting_plans: {
         Row: {
           created_at: string
