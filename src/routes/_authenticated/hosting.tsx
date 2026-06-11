@@ -1,17 +1,60 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useAuth } from "@/lib/use-auth";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { Server, ExternalLink, Activity, BarChart3, HardDrive, Globe2, Network } from "lucide-react";
+import { Server, ExternalLink, Activity, BarChart3, HardDrive, Globe2, Network, Clock, CheckCircle2, XCircle, LayoutDashboard } from "lucide-react";
 import { Card, EmptyState, StatusPill } from "@/components/dashboard/ui";
 import { CategoryBanner } from "@/components/dashboard/CategoryBanner";
 import { useState } from "react";
 import { toast } from "sonner";
+import { listMyHostingOrders } from "@/lib/provisioning.functions";
 
 export const Route = createFileRoute("/_authenticated/hosting")({ component: Page });
 
+function fmtCurrency(amount: number, currency: string) {
+  try {
+    return new Intl.NumberFormat(currency === "AKZ" ? "pt-AO" : "pt-BR", {
+      style: "currency",
+      currency: currency || "BRL",
+    }).format(amount);
+  } catch {
+    return `${currency} ${amount.toFixed(2)}`;
+  }
+}
+
+function HostingStatus({ status }: { status: string }) {
+  const v = (status ?? "").toUpperCase();
+  if (v === "ATIVO")
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-700">
+        <CheckCircle2 className="h-3 w-3" /> Ativo
+      </span>
+    );
+  if (v === "CANCELADO")
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-200 text-slate-700">
+        <XCircle className="h-3 w-3" /> Cancelado
+      </span>
+    );
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-700">
+      <Clock className="h-3 w-3" /> Pendente de Ativação
+    </span>
+  );
+}
+
 function Page() {
   const { user } = useAuth();
+  const listHostingOrdersFn = useServerFn(listMyHostingOrders);
+
+  const { data: hostingOrdersData, isLoading: loadingHosting } = useQuery({
+    queryKey: ["my-hosting-orders", user?.id],
+    enabled: !!user,
+    queryFn: () => listHostingOrdersFn(),
+  });
+  const hostingOrders = hostingOrdersData?.orders ?? [];
+
   const { data: accounts, isLoading } = useQuery({
     queryKey: ["cpanel_accounts", user?.id],
     enabled: !!user,
@@ -37,7 +80,12 @@ function Page() {
       ).data ?? [],
   });
 
-  const empty = !isLoading && (accounts?.length ?? 0) === 0 && (services?.length ?? 0) === 0;
+  const empty =
+    !isLoading &&
+    !loadingHosting &&
+    (accounts?.length ?? 0) === 0 &&
+    (services?.length ?? 0) === 0 &&
+    hostingOrders.length === 0;
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -57,6 +105,81 @@ function Page() {
         />
       ) : (
         <div className="space-y-8">
+          {hostingOrders.length > 0 && (
+            <div>
+              <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wider mb-4">
+                Meus Planos de Hospedagem
+              </h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {hostingOrders.map((h: any, i: number) => {
+                  const active = h.status === "ATIVO";
+                  return (
+                    <Card key={h.id} className={`card-hover animate-card-rise stagger-${Math.min(i + 1, 6)}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500/15 to-indigo-500/10 ring-1 ring-blue-500/20 flex items-center justify-center shrink-0">
+                            <Server className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-semibold truncate">{h.plan_name}</div>
+                            {h.domain && <div className="text-xs text-slate-500 truncate">{h.domain}</div>}
+                          </div>
+                        </div>
+                        <HostingStatus status={h.status} />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
+                        {h.storage_gb != null && (
+                          <div>
+                            <div className="text-xs text-slate-500">Armazenamento</div>
+                            <div className="font-semibold">{h.storage_gb} GB</div>
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-xs text-slate-500">Valor pago</div>
+                          <div className="font-semibold">{fmtCurrency(Number(h.price), h.currency)}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-slate-500">Data</div>
+                          <div className="font-semibold">{new Date(h.created_at).toLocaleDateString("pt-BR")}</div>
+                        </div>
+                        {active && h.activated_at && (
+                          <div>
+                            <div className="text-xs text-slate-500">Ativação</div>
+                            <div className="font-semibold">{new Date(h.activated_at).toLocaleDateString("pt-BR")}</div>
+                          </div>
+                        )}
+                        {active && h.server_ip && (
+                          <div className="col-span-2">
+                            <div className="text-xs text-slate-500">IP do servidor</div>
+                            <div className="font-mono text-xs">{h.server_ip}</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {active ? (
+                        <div className="mt-4">
+                          <a
+                            href="https://server.viralizahost.com:2083"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm hover:shadow-glow-soft btn-press"
+                          >
+                            Abrir cPanel <LayoutDashboard className="h-4 w-4" />
+                          </a>
+                        </div>
+                      ) : (
+                        <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+                          A sua hospedagem está em processo de ativação manual pela nossa equipa. Prazo até 24h úteis.
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {(accounts?.length ?? 0) > 0 && (
             <div>
               <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wider mb-4">
@@ -121,7 +244,6 @@ function CpanelCard({ account, index }: { account: any; index: number }) {
     <div
       className={`group relative overflow-hidden rounded-2xl border border-slate-200 bg-white card-hover animate-card-rise stagger-${Math.min(index + 1, 6)}`}
     >
-      {/* Server / cloud header with gradient overlay */}
       <div className="relative h-28 cat-hosting cat-overlay cat-grid">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40" />
         <div className="absolute inset-0 flex items-center justify-between px-5">
@@ -140,7 +262,6 @@ function CpanelCard({ account, index }: { account: any; index: number }) {
             <StatusPill status={account.status} />
           </div>
         </div>
-        {/* shimmer accent */}
         <div className="absolute inset-0 shimmer-bg opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
 
@@ -242,7 +363,6 @@ function UsageBar({ label, used, quota, unit, tone }: { label: string; used: num
   );
 }
 
-// Minimal cPanel-inspired icon mark (orange dot cluster) — representative, not official.
 function CpanelIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden>
