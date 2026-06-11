@@ -55,6 +55,7 @@ import { Route as AuthenticatedCoursesRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedChangePasswordRouteImport } from './routes/_authenticated/change-password'
 import { Route as AuthenticatedAiRouteImport } from './routes/_authenticated/ai'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
+import { Route as AuthenticatedAdminSiteRouteImport } from './routes/_authenticated/admin/site'
 import { Route as AuthenticatedAdminServersRouteImport } from './routes/_authenticated/admin/servers'
 import { Route as AuthenticatedAdminProvisioningRouteImport } from './routes/_authenticated/admin/provisioning'
 import { Route as AuthenticatedAdminProviderProductsRouteImport } from './routes/_authenticated/admin/provider-products'
@@ -298,6 +299,11 @@ const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
   path: '/account',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAdminSiteRoute = AuthenticatedAdminSiteRouteImport.update({
+  id: '/admin/site',
+  path: '/admin/site',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAdminServersRoute =
   AuthenticatedAdminServersRouteImport.update({
     id: '/admin/servers',
@@ -407,6 +413,7 @@ export interface FileRoutesByFullPath {
   '/admin/provider-products': typeof AuthenticatedAdminProviderProductsRoute
   '/admin/provisioning': typeof AuthenticatedAdminProvisioningRoute
   '/admin/servers': typeof AuthenticatedAdminServersRoute
+  '/admin/site': typeof AuthenticatedAdminSiteRoute
   '/api/public/payments/mercadopago/webhook': typeof ApiPublicPaymentsMercadopagoWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -463,6 +470,7 @@ export interface FileRoutesByTo {
   '/admin/provider-products': typeof AuthenticatedAdminProviderProductsRoute
   '/admin/provisioning': typeof AuthenticatedAdminProvisioningRoute
   '/admin/servers': typeof AuthenticatedAdminServersRoute
+  '/admin/site': typeof AuthenticatedAdminSiteRoute
   '/api/public/payments/mercadopago/webhook': typeof ApiPublicPaymentsMercadopagoWebhookRoute
 }
 export interface FileRoutesById {
@@ -521,6 +529,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/provider-products': typeof AuthenticatedAdminProviderProductsRoute
   '/_authenticated/admin/provisioning': typeof AuthenticatedAdminProvisioningRoute
   '/_authenticated/admin/servers': typeof AuthenticatedAdminServersRoute
+  '/_authenticated/admin/site': typeof AuthenticatedAdminSiteRoute
   '/api/public/payments/mercadopago/webhook': typeof ApiPublicPaymentsMercadopagoWebhookRoute
 }
 export interface FileRouteTypes {
@@ -579,6 +588,7 @@ export interface FileRouteTypes {
     | '/admin/provider-products'
     | '/admin/provisioning'
     | '/admin/servers'
+    | '/admin/site'
     | '/api/public/payments/mercadopago/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -635,6 +645,7 @@ export interface FileRouteTypes {
     | '/admin/provider-products'
     | '/admin/provisioning'
     | '/admin/servers'
+    | '/admin/site'
     | '/api/public/payments/mercadopago/webhook'
   id:
     | '__root__'
@@ -692,6 +703,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/provider-products'
     | '/_authenticated/admin/provisioning'
     | '/_authenticated/admin/servers'
+    | '/_authenticated/admin/site'
     | '/api/public/payments/mercadopago/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -1052,6 +1064,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccountRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/admin/site': {
+      id: '/_authenticated/admin/site'
+      path: '/admin/site'
+      fullPath: '/admin/site'
+      preLoaderRoute: typeof AuthenticatedAdminSiteRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/admin/servers': {
       id: '/_authenticated/admin/servers'
       path: '/admin/servers'
@@ -1144,6 +1163,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAdminProviderProductsRoute: typeof AuthenticatedAdminProviderProductsRoute
   AuthenticatedAdminProvisioningRoute: typeof AuthenticatedAdminProvisioningRoute
   AuthenticatedAdminServersRoute: typeof AuthenticatedAdminServersRoute
+  AuthenticatedAdminSiteRoute: typeof AuthenticatedAdminSiteRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -1173,6 +1193,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedAdminProviderProductsRoute,
   AuthenticatedAdminProvisioningRoute: AuthenticatedAdminProvisioningRoute,
   AuthenticatedAdminServersRoute: AuthenticatedAdminServersRoute,
+  AuthenticatedAdminSiteRoute: AuthenticatedAdminSiteRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

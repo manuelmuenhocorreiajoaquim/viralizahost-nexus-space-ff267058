@@ -202,6 +202,14 @@ function AuthLayout() {
                 bg="bg-fuchsia-500/10"
                 onClick={() => setMobileOpen(false)}
               />
+              <SideLink
+                to="/admin/site"
+                label="Gestão do Site"
+                icon={Palette}
+                color="text-rose-600"
+                bg="bg-rose-500/10"
+                onClick={() => setMobileOpen(false)}
+              />
             </>
           )}
         </nav>
