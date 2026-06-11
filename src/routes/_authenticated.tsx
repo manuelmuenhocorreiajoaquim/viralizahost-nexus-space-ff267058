@@ -171,6 +171,14 @@ function AuthLayout() {
                 onClick={() => setMobileOpen(false)}
               />
               <SideLink
+                to="/admin/email-orders"
+                label="Ativar E-mail"
+                icon={Mail}
+                color="text-sky-600"
+                bg="bg-sky-500/10"
+                onClick={() => setMobileOpen(false)}
+              />
+              <SideLink
                 to="/admin/provider-products"
                 label="Produtos Hostinger"
                 icon={Bot}
