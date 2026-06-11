@@ -55,6 +55,61 @@ async function createDomainOrdersForPaidOrder(orderId: string) {
   }
 }
 
+const EMAIL_PLAN_META: Record<string, { name: string; accounts: number; storage_gb: number }> = {
+  "email-starter": { name: "E-mail Starter", accounts: 1, storage_gb: 10 },
+  "email-business": { name: "E-mail Business", accounts: 5, storage_gb: 50 },
+  "email-premium": { name: "E-mail Premium", accounts: 10, storage_gb: 100 },
+  "email-enterprise": { name: "E-mail Enterprise", accounts: 25, storage_gb: 250 },
+};
+
+async function createEmailOrdersForPaidOrder(orderId: string) {
+  const { data: order } = await supabaseAdmin
+    .from("orders")
+    .select("id, user_id, currency")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!order) return;
+
+  const { data: items } = await supabaseAdmin
+    .from("order_items")
+    .select("id, product_id, product_name, product_type, unit_price, total, domain, metadata")
+    .eq("order_id", orderId)
+    .eq("product_type", "email");
+  if (!items?.length) return;
+
+  let customerEmail: string | null = null;
+  if (order.user_id) {
+    const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(order.user_id);
+    customerEmail = userRes?.user?.email ?? null;
+  }
+
+  for (const item of items) {
+    const planId = String(item.product_id || "").toLowerCase();
+    const meta = EMAIL_PLAN_META[planId] ?? { name: item.product_name ?? "Plano de E-mail", accounts: 1, storage_gb: 10 };
+    const { data: existing } = await supabaseAdmin
+      .from("email_orders")
+      .select("id")
+      .eq("order_id", orderId)
+      .eq("plan_id", planId)
+      .maybeSingle();
+    if (existing?.id) continue;
+    await supabaseAdmin.from("email_orders").insert({
+      order_id: orderId,
+      user_id: order.user_id ?? null,
+      customer_email: customerEmail,
+      plan_id: planId,
+      plan_name: item.product_name ?? meta.name,
+      domain: item.domain ?? null,
+      accounts_count: meta.accounts,
+      storage_gb: meta.storage_gb,
+      price: Number(item.total ?? item.unit_price ?? 0),
+      currency: order.currency ?? "BRL",
+      status: "PENDENTE_ATIVACAO",
+      metadata: (item.metadata as any) ?? {},
+    });
+  }
+}
+
 export async function activateOrderAfterPayment(orderId: string) {
   const { data: order, error } = await supabaseAdmin
     .from("orders")
@@ -77,6 +132,13 @@ export async function activateOrderAfterPayment(orderId: string) {
     await createDomainOrdersForPaidOrder(orderId);
   } catch (e) {
     console.error("[activation] domain_orders insert error", e);
+  }
+
+  // Email plans also go through manual activation by admin.
+  try {
+    await createEmailOrdersForPaidOrder(orderId);
+  } catch (e) {
+    console.error("[activation] email_orders insert error", e);
   }
 
   // Idempotent: if already provisioned, skip.

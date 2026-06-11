@@ -59,6 +59,7 @@ import { Route as AuthenticatedAdminServersRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminProvisioningRouteImport } from './routes/_authenticated/admin/provisioning'
 import { Route as AuthenticatedAdminProviderProductsRouteImport } from './routes/_authenticated/admin/provider-products'
 import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authenticated/admin/payments'
+import { Route as AuthenticatedAdminEmailOrdersRouteImport } from './routes/_authenticated/admin/email-orders'
 import { Route as AuthenticatedAdminDomainOrdersRouteImport } from './routes/_authenticated/admin/domain-orders'
 import { Route as ApiPublicPaymentsMercadopagoWebhookRouteImport } from './routes/api/public/payments/mercadopago/webhook'
 
@@ -319,6 +320,12 @@ const AuthenticatedAdminPaymentsRoute =
     path: '/admin/payments',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAdminEmailOrdersRoute =
+  AuthenticatedAdminEmailOrdersRouteImport.update({
+    id: '/admin/email-orders',
+    path: '/admin/email-orders',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAdminDomainOrdersRoute =
   AuthenticatedAdminDomainOrdersRouteImport.update({
     id: '/admin/domain-orders',
@@ -379,6 +386,7 @@ export interface FileRoutesByFullPath {
   '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
   '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
   '/admin/domain-orders': typeof AuthenticatedAdminDomainOrdersRoute
+  '/admin/email-orders': typeof AuthenticatedAdminEmailOrdersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/provider-products': typeof AuthenticatedAdminProviderProductsRoute
   '/admin/provisioning': typeof AuthenticatedAdminProvisioningRoute
@@ -432,6 +440,7 @@ export interface FileRoutesByTo {
   '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
   '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
   '/admin/domain-orders': typeof AuthenticatedAdminDomainOrdersRoute
+  '/admin/email-orders': typeof AuthenticatedAdminEmailOrdersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/provider-products': typeof AuthenticatedAdminProviderProductsRoute
   '/admin/provisioning': typeof AuthenticatedAdminProvisioningRoute
@@ -487,6 +496,7 @@ export interface FileRoutesById {
   '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
   '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
   '/_authenticated/admin/domain-orders': typeof AuthenticatedAdminDomainOrdersRoute
+  '/_authenticated/admin/email-orders': typeof AuthenticatedAdminEmailOrdersRoute
   '/_authenticated/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/_authenticated/admin/provider-products': typeof AuthenticatedAdminProviderProductsRoute
   '/_authenticated/admin/provisioning': typeof AuthenticatedAdminProvisioningRoute
@@ -542,6 +552,7 @@ export interface FileRouteTypes {
     | '/vps-cloud/servidor-dedicado'
     | '/vps-cloud/vps-nvme'
     | '/admin/domain-orders'
+    | '/admin/email-orders'
     | '/admin/payments'
     | '/admin/provider-products'
     | '/admin/provisioning'
@@ -595,6 +606,7 @@ export interface FileRouteTypes {
     | '/vps-cloud/servidor-dedicado'
     | '/vps-cloud/vps-nvme'
     | '/admin/domain-orders'
+    | '/admin/email-orders'
     | '/admin/payments'
     | '/admin/provider-products'
     | '/admin/provisioning'
@@ -649,6 +661,7 @@ export interface FileRouteTypes {
     | '/vps-cloud/servidor-dedicado'
     | '/vps-cloud/vps-nvme'
     | '/_authenticated/admin/domain-orders'
+    | '/_authenticated/admin/email-orders'
     | '/_authenticated/admin/payments'
     | '/_authenticated/admin/provider-products'
     | '/_authenticated/admin/provisioning'
@@ -1041,6 +1054,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPaymentsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/admin/email-orders': {
+      id: '/_authenticated/admin/email-orders'
+      path: '/admin/email-orders'
+      fullPath: '/admin/email-orders'
+      preLoaderRoute: typeof AuthenticatedAdminEmailOrdersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/admin/domain-orders': {
       id: '/_authenticated/admin/domain-orders'
       path: '/admin/domain-orders'
@@ -1077,6 +1097,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSitesRoute: typeof AuthenticatedSitesRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
   AuthenticatedAdminDomainOrdersRoute: typeof AuthenticatedAdminDomainOrdersRoute
+  AuthenticatedAdminEmailOrdersRoute: typeof AuthenticatedAdminEmailOrdersRoute
   AuthenticatedAdminPaymentsRoute: typeof AuthenticatedAdminPaymentsRoute
   AuthenticatedAdminProviderProductsRoute: typeof AuthenticatedAdminProviderProductsRoute
   AuthenticatedAdminProvisioningRoute: typeof AuthenticatedAdminProvisioningRoute
@@ -1102,6 +1123,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSitesRoute: AuthenticatedSitesRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
   AuthenticatedAdminDomainOrdersRoute: AuthenticatedAdminDomainOrdersRoute,
+  AuthenticatedAdminEmailOrdersRoute: AuthenticatedAdminEmailOrdersRoute,
   AuthenticatedAdminPaymentsRoute: AuthenticatedAdminPaymentsRoute,
   AuthenticatedAdminProviderProductsRoute:
     AuthenticatedAdminProviderProductsRoute,

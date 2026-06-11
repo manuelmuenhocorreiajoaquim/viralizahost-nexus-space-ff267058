@@ -263,6 +263,86 @@ export type Database = {
         }
         Relationships: []
       }
+      email_orders: {
+        Row: {
+          accounts_count: number
+          activated_at: string | null
+          admin_activated_by: string | null
+          admin_notes: string | null
+          cancelled_at: string | null
+          cpanel_url: string | null
+          created_at: string
+          currency: string
+          customer_email: string | null
+          domain: string | null
+          id: string
+          metadata: Json
+          order_id: string | null
+          plan_id: string
+          plan_name: string
+          price: number
+          status: string
+          storage_gb: number
+          updated_at: string
+          user_id: string | null
+          webmail_url: string | null
+        }
+        Insert: {
+          accounts_count?: number
+          activated_at?: string | null
+          admin_activated_by?: string | null
+          admin_notes?: string | null
+          cancelled_at?: string | null
+          cpanel_url?: string | null
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          domain?: string | null
+          id?: string
+          metadata?: Json
+          order_id?: string | null
+          plan_id: string
+          plan_name: string
+          price?: number
+          status?: string
+          storage_gb?: number
+          updated_at?: string
+          user_id?: string | null
+          webmail_url?: string | null
+        }
+        Update: {
+          accounts_count?: number
+          activated_at?: string | null
+          admin_activated_by?: string | null
+          admin_notes?: string | null
+          cancelled_at?: string | null
+          cpanel_url?: string | null
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          domain?: string | null
+          id?: string
+          metadata?: Json
+          order_id?: string | null
+          plan_id?: string
+          plan_name?: string
+          price?: number
+          status?: string
+          storage_gb?: number
+          updated_at?: string
+          user_id?: string | null
+          webmail_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_orders_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hosting_plans: {
         Row: {
           created_at: string
