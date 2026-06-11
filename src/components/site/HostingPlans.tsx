@@ -47,7 +47,7 @@ export default function HostingPlans() {
   );
 }
 
-function PlanCard({ p, idx }: { p: typeof plans[number]; idx: number }) {
+function PlanCard({ p, idx }: { p: typeof fallback[number]; idx: number }) {
   const displayPrice = usePrice(p.price);
   return (
           <motion.div
