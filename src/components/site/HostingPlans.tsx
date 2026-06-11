@@ -3,8 +3,9 @@ import { Check, Zap, Crown, Cloud, Server, ArrowRight } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Section, SectionHeader } from "./Section";
 import { usePrice } from "@/lib/currency";
+import { useCmsPlans } from "@/lib/use-cms-plans";
 
-const plans = [
+const fallback = [
   {
     icon: Server, name: "Starter Host", price: "19", popular: false, productId: "host-start",
     tag: "Para começar",
@@ -28,6 +29,7 @@ const plans = [
 ];
 
 export default function HostingPlans() {
+  const plans = useCmsPlans("hosting", fallback as any);
   return (
     <Section id="planos">
       <SectionHeader
@@ -38,14 +40,14 @@ export default function HostingPlans() {
 
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         {plans.map((p, idx) => (
-          <PlanCard key={p.name} p={p} idx={idx} />
+          <PlanCard key={p.name} p={p as any} idx={idx} />
         ))}
       </div>
     </Section>
   );
 }
 
-function PlanCard({ p, idx }: { p: typeof plans[number]; idx: number }) {
+function PlanCard({ p, idx }: { p: typeof fallback[number]; idx: number }) {
   const displayPrice = usePrice(p.price);
   return (
           <motion.div
