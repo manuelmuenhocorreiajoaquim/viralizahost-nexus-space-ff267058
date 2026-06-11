@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { Mail, Inbox, ExternalLink, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Mail, Inbox, ExternalLink, Clock, CheckCircle2, XCircle, LayoutDashboard, Globe } from "lucide-react";
 import { Card, EmptyState } from "@/components/dashboard/ui";
 import { CategoryBanner } from "@/components/dashboard/CategoryBanner";
 import { useAuth } from "@/lib/use-auth";
@@ -70,7 +70,6 @@ function Page() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {orders.map((e, i) => {
             const active = e.status === "ATIVO";
-            const link = e.webmail_url || e.cpanel_url;
             return (
               <Card key={e.id} className={`card-hover animate-card-rise stagger-${Math.min(i + 1, 6)}`}>
                 <div className="flex items-start justify-between gap-2">
@@ -105,15 +104,27 @@ function Page() {
                   </div>
                 </div>
 
-                {active && link ? (
-                  <a
-                    href={link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-sky-600 to-blue-600 text-white text-sm hover:shadow-glow-soft btn-press"
-                  >
-                    Abrir E-mail <ExternalLink className="h-4 w-4" />
-                  </a>
+                {active ? (
+                  <div className="mt-4 flex flex-col gap-2">
+                    <a
+                      href="https://server.viralizahost.com:2083"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-sky-600 to-blue-600 text-white text-sm hover:shadow-glow-soft btn-press"
+                    >
+                      Entrar no cPanel <LayoutDashboard className="h-4 w-4" />
+                    </a>
+                    {e.domain && (
+                      <a
+                        href={`https://${e.domain}/webmail`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-sm hover:bg-slate-50 btn-press"
+                      >
+                        Abrir Webmail <Globe className="h-4 w-4" />
+                      </a>
+                    )}
+                  </div>
                 ) : (
                   <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
                     O seu plano de e-mail está em processamento e será ativado após confirmação administrativa.
