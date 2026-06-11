@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { Mail, Inbox, ExternalLink, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Mail, Inbox, ExternalLink, Clock, CheckCircle2, XCircle, LayoutDashboard, Globe } from "lucide-react";
 import { Card, EmptyState } from "@/components/dashboard/ui";
 import { CategoryBanner } from "@/components/dashboard/CategoryBanner";
 import { useAuth } from "@/lib/use-auth";
