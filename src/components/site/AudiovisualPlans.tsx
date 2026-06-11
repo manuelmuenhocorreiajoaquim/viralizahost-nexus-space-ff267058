@@ -1,8 +1,30 @@
 import { Video, Film, Camera, Clapperboard } from "lucide-react";
 import PlansGrid from "./PlansGrid";
 import audiovisualBg from "@/assets/design-bg.jpg";
+import { useCmsPlans } from "@/lib/use-cms-plans";
+
+const fallback = [
+  {
+    icon: Video, name: "Reels Profissional", price: "R$ 250", tag: "Conteúdo", productId: "av-reels-prof",
+    features: ["Captação", "Edição premium", "Legendas dinâmicas", "Trilha sonora"],
+  },
+  {
+    icon: Film, name: "Vídeo Institucional", price: "R$ 1.500", tag: "Mais escolhido", popular: true, productId: "av-institutional",
+    features: ["Roteiro estratégico", "Captação profissional", "Edição premium", "Color grading"],
+  },
+  {
+    icon: Camera, name: "Cobertura de Evento", price: "R$ 2.500", tag: "Eventos", productId: "av-event",
+    features: ["Filmagem multi-câmera", "Fotografia profissional", "Highlights", "Entrega rápida"],
+  },
+  {
+    icon: Clapperboard, name: "Produção Premium", price: "Sob consulta", tag: "Cinema",
+    features: ["Comercial", "Podcast", "Documentário", "Campanha audiovisual completa"],
+    cta: "Solicitar orçamento",
+  },
+];
 
 export default function AudiovisualPlans() {
+  const plans = useCmsPlans("audiovisual", fallback);
   return (
     <section
       className="audiovisual-dark relative overflow-hidden bg-center bg-cover bg-no-repeat"
@@ -21,25 +43,7 @@ export default function AudiovisualPlans() {
           eyebrow="Audiovisual Premium"
           title="Produção audiovisual premium para marcas fortes"
           desc="Equipamentos profissionais, direção criativa e qualidade cinematográfica."
-          plans={[
-            {
-              icon: Video, name: "Reels Profissional", price: "R$ 250", tag: "Conteúdo", productId: "av-reels-prof",
-              features: ["Captação", "Edição premium", "Legendas dinâmicas", "Trilha sonora"],
-            },
-            {
-              icon: Film, name: "Vídeo Institucional", price: "R$ 1.500", tag: "Mais escolhido", popular: true, productId: "av-institutional",
-              features: ["Roteiro estratégico", "Captação profissional", "Edição premium", "Color grading"],
-            },
-            {
-              icon: Camera, name: "Cobertura de Evento", price: "R$ 2.500", tag: "Eventos", productId: "av-event",
-              features: ["Filmagem multi-câmera", "Fotografia profissional", "Highlights", "Entrega rápida"],
-            },
-            {
-              icon: Clapperboard, name: "Produção Premium", price: "Sob consulta", tag: "Cinema",
-              features: ["Comercial", "Podcast", "Documentário", "Campanha audiovisual completa"],
-              cta: "Solicitar orçamento",
-            },
-          ]}
+          plans={plans}
         />
       </div>
     </section>
