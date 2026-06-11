@@ -1,84 +1,72 @@
-## Integração ViralizaHost + Hostinger
+# Plano: Gestão do Site / CMS no Admin
 
-### O que a API Hostinger permite hoje (verificado em developers.hostinger.com)
+Módulo grande. Vou implementar em fases para entregar incremental e sem quebrar nada do que já existe (domínios/e-mails/hospedagem manuais, checkout, área do cliente).
 
-| Serviço | Endpoint | Automatizável? |
-|---|---|---|
-| VPS (compra) | `POST /api/billing/v1/orders` (BillingOrdersApi) + `GET /api/billing/v1/catalog` | **Sim** — fluxo `createServiceOrderV1` com `price_id` do catálogo, cobrado no saldo/método pré-cadastrado da conta Hostinger |
-| VPS (gestão pós-compra) | `/api/vps/v1/*` (start/stop, reinstall, SSH keys, snapshots, metrics) | Sim |
-| Domínios | `/api/domains/v1/availability`, `/api/domains/v1/portfolio`; compra via `BillingOrdersApi` | Compra: sim (via billing/orders) — disponibilidade: sim |
-| DNS | `/api/dns/v1/*` | Sim |
-| Hospedagem partilhada / Builder / E-mail Comercial / E-mail Marketing | **Sem endpoint público de compra/provisionamento** atualmente | **Não** — fica em `manual_review` |
+## Escopo
 
-→ Conclusão: VPS e domínios podem ir 100% automáticos via `BillingOrdersApi`. Restantes serviços ficam semi-automáticos (job criado, admin ativa manualmente, cliente vê "ativação em análise"). A integração WHM/cPanel atual continua a funcionar exatamente como hoje.
+Painel Admin → "Gestão do Site" com 5 abas: **Preços**, **Serviços**, **Conteúdos**, **Imagens**, **Configurações**. Apenas admin (RLS por `has_role`). Frontend público lê do banco, com fallback aos defaults atuais para não quebrar nada caso uma tabela esteja vazia.
 
----
+## Estrutura de dados (Supabase)
 
-### 1. Base de dados (migração)
+Novas tabelas (todas com RLS — SELECT público apenas em conteúdo publicável; escrita só admin):
 
-**`provider_products`** — mapeia produto ViralizaHost ↔ produto Hostinger
-- `id`, `internal_product_id` (slug catálogo ViralizaHost), `internal_product_name`
-- `provider` (`hostinger`), `provider_service_type` (`vps`, `domain`, `hosting`, `email`, `email_marketing`, `builder`, `vibecode`)
-- `provider_price_id` (texto, vindo de `/billing/v1/catalog`; pode ser null se manual)
-- `auto_provision` (bool — só `true` para VPS/domínio hoje)
-- `internal_price`, `currency`, `active`, timestamps
-- RLS: leitura pública só dos `active=true`; escrita admin via `has_role(auth.uid(),'admin')`
+- `service_plans` — substitui/estende `hosting_plans` e os arrays hardcoded em `src/components/site/*Plans.tsx`.
+  - `id`, `slug` (único), `category` (`hosting|email|domain|vps|ai|marketing|design|audiovisual`), `name`, `short_description`, `benefits jsonb` (array de strings), `cta_label`, `price_brl numeric`, `price_aoa numeric`, `currency_default`, `is_active bool`, `is_featured bool`, `badge text`, `sort_order int`, timestamps.
+- `site_sections` — seções da home/páginas. `key` único (ex.: `home.hero`, `home.domains`), `page`, `title`, `subtitle`, `body text`, `cta_label`, `cta_href`, `is_active`, `sort_order`.
+- `site_contents` — textos avulsos chave/valor (menus, footer, CTAs). `key` único, `value jsonb`, `description`.
+- `site_images` — `key` único (ex.: `home.hero.bg`, `logo.main`), `url`, `alt`, `bucket`, `path`.
+- `site_settings` — `key` único, `value jsonb` (config global: moedas habilitadas, padrão, telefone, social).
+- Bucket público `site-assets` para upload de imagens (RLS: insert/update/delete só admin; select público).
 
-**`provisioning_jobs`**
-- `id`, `order_id` FK orders, `order_item_id` FK order_items, `user_id`
-- `provider` (`hostinger`), `provider_service_type`, `provider_product_id` FK provider_products
-- `status`: `pending | processing | provisioned | failed | manual_review`
-- `provider_request` jsonb, `provider_response` jsonb, `provider_resource_id` (id retornado p/ VPS/domínio)
-- `error_message`, `attempts` int, `last_attempt_at`, timestamps
-- RLS: user vê os seus; admin vê tudo; insert apenas via service role
+Domínios mantém a tabela `domain_search_logs` etc.; preços fixos atuais (`src/config/domainFixedPrices.ts`) migram para `service_plans` (category `domain`) com fallback ao arquivo se vazio.
 
-**`hostinger_logs`** (auditoria fina) — `job_id`, `endpoint`, `request`, `response`, `status_code`, `duration_ms`, `created_at`. RLS admin-only.
+## Server functions (`src/lib/cms.functions.ts` + `cms.server.ts`)
 
-**Estender `services`** com `provisioning_job_id` para o painel cliente ligar serviço ↔ job e mostrar status (`a provisionar`, `ativo`, `em análise`).
+Públicas (sem auth): `getServicePlans({category?})`, `getSiteSection(key)`, `getSiteSections(page?)`, `getSiteContents(keys[])`, `getSiteImage(key)`, `getSiteSettings()`. Todas com fallback estático.
 
-### 2. Secret
+Admin (`requireSupabaseAuth` + check `has_role admin`):
+`adminListServicePlans`, `adminUpsertServicePlan`, `adminDeleteServicePlan`, idem para sections/contents/images/settings, `adminUploadSiteImage`.
 
-Pedir **`HOSTINGER_API_TOKEN`** (Bearer token gerado em hpanel.hostinger.com → API). Nunca toca o browser — só nas server functions.
+## UI Admin
 
-### 3. Cliente Hostinger (server-only)
+Nova rota `src/routes/_authenticated/admin/site.tsx` com `Tabs`:
+- **Preços**: tabela editável agrupada por categoria — colunas Nome, BRL, AOA, Ativo, Destaque, Ações. Editar inline + dialog.
+- **Serviços**: CRUD completo de `service_plans` (dialog com todos os campos, incluindo `benefits` como lista editável).
+- **Conteúdos**: editor de `site_sections` e `site_contents` (título, subtítulo, body, CTA).
+- **Imagens**: grid de `site_images` com upload (storage `site-assets`) e troca.
+- **Configurações**: chave/valor de `site_settings`.
 
-`src/integrations/hostinger/client.server.ts`:
-- `hostingerFetch(path, init)` → `https://developers.hostinger.com${path}` com `Authorization: Bearer ${process.env.HOSTINGER_API_TOKEN}`, timeout, log para `hostinger_logs`
-- Wrappers: `listCatalog()`, `createServiceOrder({price_id, payment_method_id, ...})`, `checkDomainAvailability(domain)`, `listVps()`, `getVps(id)`
+Botões: Editar, Salvar, Pré-visualizar (abre `/` em nova aba).
 
-### 4. Server functions / route
+Adicionar item "Gestão do Site" na sidebar admin de `src/routes/_authenticated.tsx`.
 
-**Webhook MP existente** (`src/routes/api/public/payments/mercadopago/webhook.ts`) — após `activateOrderAfterPayment`, despoletar `enqueueHostingerProvisioning(orderId)` (já criada como server util) que, para cada `order_item`:
-1. Lê `provider_products` por `internal_product_id`
-2. Cria linha em `provisioning_jobs` (`status=pending`)
-3. Se `auto_provision=true` → chama `processProvisioningJob(jobId)` (cria `service_order` na Hostinger, guarda `provider_resource_id`, marca `provisioned`, cria/atualiza `services` do cliente)
-4. Se `auto_provision=false` → marca `manual_review` e envia notificação ao admin (linha em `provisioning_logs`)
+## Frontend público (consumo)
 
-**Server functions** (em `src/lib/hostinger.functions.ts`):
-- `listMyProvisioningJobs` (user) — para painel cliente
-- `adminListProvisioningJobs({status?})` (admin) — painel admin
-- `adminRetryProvisioning(jobId)` (admin) — re-tenta
-- `adminMarkProvisioned(jobId, providerResourceId)` (admin) — fecha manual
-- `adminListProviderProducts` / `adminUpsertProviderProduct` — gestão mapeamento
+Refatorar para ler do banco com fallback aos defaults atuais:
+- `HostingPlans`, `EmailPlans`, `DomainsSection`, `AIPlans`, `TrafficPlans`, `DesignPlans`, `AudiovisualPlans`, `VPSSection` → usam `useQuery(getServicePlans({category}))`; se vazio, usam o array hardcoded existente.
+- `Hero`, `CTAFooter`, `Section` headers → `useQuery(getSiteSection(key))` com fallback ao texto atual.
+- Imagens (`hero`, banners) → `getSiteImage(key)` com fallback ao import atual.
 
-### 5. UI
+Sem mudanças visuais; só fonte dos dados.
 
-- **`/admin/provisioning`** (admin) — tabela com filtros por status, botões Retry / Mark provisioned / Ver logs
-- **`/admin/provider-products`** (admin) — CRUD mapeamento ViralizaHost → Hostinger (com dropdown que carrega catálogo Hostinger live)
-- **Painel cliente** (`_authenticated/account` + páginas existentes de hosting/domains/etc.) — secção “Estado de ativação” mostra: `Em fila → A provisionar → Ativo` ou `Pedido recebido, ativação em análise`
-- Adicionar ícone no header de admin para a nova área
+## Segurança
 
-### 6. WHM/cPanel — preservado
+- Todas as tabelas: `ALTER ... ENABLE RLS`.
+- SELECT: `anon, authenticated` (leitura pública).
+- INSERT/UPDATE/DELETE: `USING (public.has_role(auth.uid(), 'admin'))`.
+- Bucket `site-assets`: público leitura; políticas em `storage.objects` para escrita só admin.
+- GRANTs explícitos a `anon, authenticated, service_role`.
 
-O fluxo `activateOrderAfterPayment` continua a chamar `create-cpanel-account` para itens `product_type='hosting'` exatamente como hoje. A nova fila Hostinger corre em paralelo só para itens com mapping em `provider_products`. Nada quebra.
+## Fases de entrega
 
-### 7. Ordem de execução
+1. **Migration** (tabelas + RLS + bucket + seeds dos preços/plans atuais).
+2. **Server functions** CMS + admin.
+3. **Rota Admin `/admin/site`** com as 5 abas funcionais.
+4. **Refatoração dos componentes públicos** para ler do banco com fallback (incremental — começo por Hosting/Email/Domain/AI, depois os demais).
+5. **Sidebar** + verificação.
 
-1. Migration (tabelas + RLS + extensão services) — pedir aprovação
-2. Pedir secret `HOSTINGER_API_TOKEN`
-3. Cliente Hostinger + server functions + integração no webhook MP
-4. Páginas admin (`/admin/provisioning`, `/admin/provider-products`)
-5. Atualizar painel cliente com badge de estado
-6. Smoke test: criar mapping VPS sandbox → simular order paga → verificar job → consultar `hostinger_logs`
+Tudo idempotente; nada existente é removido. Os arquivos `domainFixedPrices.ts` e arrays de planos permanecem como fallback.
 
-Confirmas para avançar com a migration?
+## Observação
+
+É bastante código (≈10 arquivos novos + ~10 editados). Posso entregar em uma só passada ou dividir. Confirma para eu seguir, ou me diz se quer cortar escopo (ex.: começar só por Preços + Serviços e deixar Conteúdos/Imagens para uma fase seguinte).
