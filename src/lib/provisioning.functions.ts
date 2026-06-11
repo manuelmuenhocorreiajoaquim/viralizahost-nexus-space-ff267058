@@ -1023,3 +1023,82 @@ export const adminUpdateEmailOrder = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { order: row };
   });
+
+
+// ---- Hosting orders (manual activation flow) ----
+
+export const listMyHostingOrders = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await supabaseAdmin
+      .from("hosting_orders")
+      .select(
+        "id, plan_id, plan_name, domain, price, currency, status, cpanel_username, cpanel_url, server_ip, whm_package, storage_gb, created_at, activated_at",
+      )
+      .eq("user_id", context.userId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw new Error(error.message);
+    return { orders: data ?? [] };
+  });
+
+export const adminListHostingOrders = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ status: z.string().optional() }).default({}).parse(input ?? {}),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.userId);
+    let q = supabaseAdmin
+      .from("hosting_orders")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (data.status) q = q.eq("status", data.status);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return { orders: rows ?? [] };
+  });
+
+export const adminUpdateHostingOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        status: z.enum(["PENDENTE_ATIVACAO", "ATIVO", "CANCELADO"]).optional(),
+        domain: z.string().max(255).optional(),
+        cpanel_username: z.string().max(120).optional(),
+        cpanel_url: z.string().max(500).optional(),
+        server_ip: z.string().max(60).optional(),
+        whm_package: z.string().max(120).optional(),
+        admin_notes: z.string().max(2000).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.userId);
+    const patch: Record<string, unknown> = {};
+    if (data.status) patch.status = data.status;
+    if (data.domain !== undefined) patch.domain = data.domain || null;
+    if (data.cpanel_username !== undefined) patch.cpanel_username = data.cpanel_username || null;
+    if (data.cpanel_url !== undefined) patch.cpanel_url = data.cpanel_url || null;
+    if (data.server_ip !== undefined) patch.server_ip = data.server_ip || null;
+    if (data.whm_package !== undefined) patch.whm_package = data.whm_package || null;
+    if (data.admin_notes !== undefined) patch.admin_notes = data.admin_notes;
+    if (data.status === "ATIVO") {
+      patch.activated_at = new Date().toISOString();
+      patch.admin_activated_by = context.userId;
+    }
+    if (data.status === "CANCELADO") patch.cancelled_at = new Date().toISOString();
+
+    const { data: row, error } = await supabaseAdmin
+      .from("hosting_orders")
+      .update(patch as never)
+      .eq("id", data.id)
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+    return { order: row };
+  });
+
