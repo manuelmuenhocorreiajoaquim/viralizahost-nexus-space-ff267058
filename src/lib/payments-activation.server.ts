@@ -141,26 +141,37 @@ export async function activateOrderAfterPayment(orderId: string) {
     console.error("[activation] email_orders insert error", e);
   }
 
+  // Hosting plans (host-*) go to manual activation queue (no auto cPanel).
+  let hasManualHosting = false;
+  try {
+    hasManualHosting = await createHostingOrdersForPaidOrder(orderId);
+  } catch (e) {
+    console.error("[activation] hosting_orders insert error", e);
+  }
+
   // Idempotent: if already provisioned, skip.
   if (order.provisioned) return;
 
-  // Fire cPanel provisioning Edge Function (best effort; webhook already 200s).
-  try {
-    const url = `${process.env.SUPABASE_URL}/functions/v1/create-cpanel-account`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-      },
-      body: JSON.stringify({ order_id: orderId }),
-    });
-    if (!res.ok) {
-      const txt = await res.text();
-      console.error("[activation] create-cpanel-account failed", res.status, txt);
+  // Fire cPanel provisioning Edge Function unless this order goes through
+  // the manual hosting activation flow (admin will create the cPanel account).
+  if (!hasManualHosting) {
+    try {
+      const url = `${process.env.SUPABASE_URL}/functions/v1/create-cpanel-account`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({ order_id: orderId }),
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        console.error("[activation] create-cpanel-account failed", res.status, txt);
+      }
+    } catch (e) {
+      console.error("[activation] cPanel provisioning error", e);
     }
-  } catch (e) {
-    console.error("[activation] cPanel provisioning error", e);
   }
 
   // Hostinger provisioning queue — runs in addition to cPanel.
