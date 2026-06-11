@@ -105,15 +105,27 @@ function Page() {
                   </div>
                 </div>
 
-                {active && link ? (
-                  <a
-                    href={link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-sky-600 to-blue-600 text-white text-sm hover:shadow-glow-soft btn-press"
-                  >
-                    Abrir E-mail <ExternalLink className="h-4 w-4" />
-                  </a>
+                {active ? (
+                  <div className="mt-4 flex flex-col gap-2">
+                    <a
+                      href="https://server.viralizahost.com:2083"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-sky-600 to-blue-600 text-white text-sm hover:shadow-glow-soft btn-press"
+                    >
+                      Entrar no cPanel <LayoutDashboard className="h-4 w-4" />
+                    </a>
+                    {e.domain && (
+                      <a
+                        href={`https://${e.domain}/webmail`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-sm hover:bg-slate-50 btn-press"
+                      >
+                        Abrir Webmail <Globe className="h-4 w-4" />
+                      </a>
+                    )}
+                  </div>
                 ) : (
                   <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
                     O seu plano de e-mail está em processamento e será ativado após confirmação administrativa.
