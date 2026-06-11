@@ -3,8 +3,9 @@ import { Check, Zap, Crown, Cloud, Server, ArrowRight } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Section, SectionHeader } from "./Section";
 import { usePrice } from "@/lib/currency";
+import { useCmsPlans } from "@/lib/use-cms-plans";
 
-const plans = [
+const fallback = [
   {
     icon: Server, name: "Starter Host", price: "19", popular: false, productId: "host-start",
     tag: "Para começar",
@@ -28,6 +29,7 @@ const plans = [
 ];
 
 export default function HostingPlans() {
+  const plans = useCmsPlans("hosting", fallback as any);
   return (
     <Section id="planos">
       <SectionHeader
