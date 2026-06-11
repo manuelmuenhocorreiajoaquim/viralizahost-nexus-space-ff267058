@@ -61,6 +61,7 @@ import { Route as AuthenticatedAdminProviderProductsRouteImport } from './routes
 import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authenticated/admin/payments'
 import { Route as AuthenticatedAdminEmailOrdersRouteImport } from './routes/_authenticated/admin/email-orders'
 import { Route as AuthenticatedAdminDomainOrdersRouteImport } from './routes/_authenticated/admin/domain-orders'
+import { Route as AuthenticatedAdminDnsRequestsRouteImport } from './routes/_authenticated/admin/dns-requests'
 import { Route as ApiPublicPaymentsMercadopagoWebhookRouteImport } from './routes/api/public/payments/mercadopago/webhook'
 
 const SignupRoute = SignupRouteImport.update({
@@ -332,6 +333,12 @@ const AuthenticatedAdminDomainOrdersRoute =
     path: '/admin/domain-orders',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAdminDnsRequestsRoute =
+  AuthenticatedAdminDnsRequestsRouteImport.update({
+    id: '/admin/dns-requests',
+    path: '/admin/dns-requests',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const ApiPublicPaymentsMercadopagoWebhookRoute =
   ApiPublicPaymentsMercadopagoWebhookRouteImport.update({
     id: '/api/public/payments/mercadopago/webhook',
@@ -385,6 +392,7 @@ export interface FileRoutesByFullPath {
   '/vps-cloud/cloud-privada': typeof VpsCloudCloudPrivadaRoute
   '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
   '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
+  '/admin/dns-requests': typeof AuthenticatedAdminDnsRequestsRoute
   '/admin/domain-orders': typeof AuthenticatedAdminDomainOrdersRoute
   '/admin/email-orders': typeof AuthenticatedAdminEmailOrdersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
@@ -439,6 +447,7 @@ export interface FileRoutesByTo {
   '/vps-cloud/cloud-privada': typeof VpsCloudCloudPrivadaRoute
   '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
   '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
+  '/admin/dns-requests': typeof AuthenticatedAdminDnsRequestsRoute
   '/admin/domain-orders': typeof AuthenticatedAdminDomainOrdersRoute
   '/admin/email-orders': typeof AuthenticatedAdminEmailOrdersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
@@ -495,6 +504,7 @@ export interface FileRoutesById {
   '/vps-cloud/cloud-privada': typeof VpsCloudCloudPrivadaRoute
   '/vps-cloud/servidor-dedicado': typeof VpsCloudServidorDedicadoRoute
   '/vps-cloud/vps-nvme': typeof VpsCloudVpsNvmeRoute
+  '/_authenticated/admin/dns-requests': typeof AuthenticatedAdminDnsRequestsRoute
   '/_authenticated/admin/domain-orders': typeof AuthenticatedAdminDomainOrdersRoute
   '/_authenticated/admin/email-orders': typeof AuthenticatedAdminEmailOrdersRoute
   '/_authenticated/admin/payments': typeof AuthenticatedAdminPaymentsRoute
@@ -551,6 +561,7 @@ export interface FileRouteTypes {
     | '/vps-cloud/cloud-privada'
     | '/vps-cloud/servidor-dedicado'
     | '/vps-cloud/vps-nvme'
+    | '/admin/dns-requests'
     | '/admin/domain-orders'
     | '/admin/email-orders'
     | '/admin/payments'
@@ -605,6 +616,7 @@ export interface FileRouteTypes {
     | '/vps-cloud/cloud-privada'
     | '/vps-cloud/servidor-dedicado'
     | '/vps-cloud/vps-nvme'
+    | '/admin/dns-requests'
     | '/admin/domain-orders'
     | '/admin/email-orders'
     | '/admin/payments'
@@ -660,6 +672,7 @@ export interface FileRouteTypes {
     | '/vps-cloud/cloud-privada'
     | '/vps-cloud/servidor-dedicado'
     | '/vps-cloud/vps-nvme'
+    | '/_authenticated/admin/dns-requests'
     | '/_authenticated/admin/domain-orders'
     | '/_authenticated/admin/email-orders'
     | '/_authenticated/admin/payments'
@@ -1068,6 +1081,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminDomainOrdersRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/admin/dns-requests': {
+      id: '/_authenticated/admin/dns-requests'
+      path: '/admin/dns-requests'
+      fullPath: '/admin/dns-requests'
+      preLoaderRoute: typeof AuthenticatedAdminDnsRequestsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/api/public/payments/mercadopago/webhook': {
       id: '/api/public/payments/mercadopago/webhook'
       path: '/api/public/payments/mercadopago/webhook'
@@ -1096,6 +1116,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSecurityRoute: typeof AuthenticatedSecurityRoute
   AuthenticatedSitesRoute: typeof AuthenticatedSitesRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
+  AuthenticatedAdminDnsRequestsRoute: typeof AuthenticatedAdminDnsRequestsRoute
   AuthenticatedAdminDomainOrdersRoute: typeof AuthenticatedAdminDomainOrdersRoute
   AuthenticatedAdminEmailOrdersRoute: typeof AuthenticatedAdminEmailOrdersRoute
   AuthenticatedAdminPaymentsRoute: typeof AuthenticatedAdminPaymentsRoute
@@ -1122,6 +1143,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSecurityRoute: AuthenticatedSecurityRoute,
   AuthenticatedSitesRoute: AuthenticatedSitesRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
+  AuthenticatedAdminDnsRequestsRoute: AuthenticatedAdminDnsRequestsRoute,
   AuthenticatedAdminDomainOrdersRoute: AuthenticatedAdminDomainOrdersRoute,
   AuthenticatedAdminEmailOrdersRoute: AuthenticatedAdminEmailOrdersRoute,
   AuthenticatedAdminPaymentsRoute: AuthenticatedAdminPaymentsRoute,
