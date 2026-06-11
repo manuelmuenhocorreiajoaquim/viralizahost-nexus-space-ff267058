@@ -110,7 +110,67 @@ async function createEmailOrdersForPaidOrder(orderId: string) {
   }
 }
 
+const HOSTING_PLAN_META: Record<string, { name: string; storage_gb: number; whm_package: string }> = {
+  "host-start": { name: "Starter Host", storage_gb: 10, whm_package: "starter" },
+  "host-business": { name: "Business Cloud", storage_gb: 50, whm_package: "business" },
+  "host-pro": { name: "Cloud Pro", storage_gb: 100, whm_package: "pro" },
+  "host-revenda": { name: "Revenda WHM", storage_gb: 250, whm_package: "reseller" },
+};
+
+async function createHostingOrdersForPaidOrder(orderId: string): Promise<boolean> {
+  const { data: order } = await supabaseAdmin
+    .from("orders")
+    .select("id, user_id, currency")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!order) return false;
+
+  const { data: items } = await supabaseAdmin
+    .from("order_items")
+    .select("id, product_id, product_name, product_type, unit_price, total, domain, metadata")
+    .eq("order_id", orderId)
+    .eq("product_type", "hosting");
+  if (!items?.length) return false;
+
+  const planItems = items.filter((it) => String(it.product_id || "").startsWith("host-"));
+  if (!planItems.length) return false;
+
+  let customerEmail: string | null = null;
+  if (order.user_id) {
+    const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(order.user_id);
+    customerEmail = userRes?.user?.email ?? null;
+  }
+
+  for (const item of planItems) {
+    const planId = String(item.product_id || "").toLowerCase();
+    const meta = HOSTING_PLAN_META[planId] ?? { name: item.product_name ?? "Hospedagem", storage_gb: 10, whm_package: "" };
+    const { data: existing } = await supabaseAdmin
+      .from("hosting_orders")
+      .select("id")
+      .eq("order_id", orderId)
+      .eq("plan_id", planId)
+      .maybeSingle();
+    if (existing?.id) continue;
+    await supabaseAdmin.from("hosting_orders").insert({
+      order_id: orderId,
+      user_id: order.user_id ?? null,
+      customer_email: customerEmail,
+      plan_id: planId,
+      plan_name: item.product_name ?? meta.name,
+      domain: item.domain ?? null,
+      price: Number(item.total ?? item.unit_price ?? 0),
+      currency: order.currency ?? "BRL",
+      status: "PENDENTE_ATIVACAO",
+      storage_gb: meta.storage_gb,
+      whm_package: meta.whm_package,
+      metadata: (item.metadata as any) ?? {},
+    } as never);
+  }
+  return true;
+}
+
 export async function activateOrderAfterPayment(orderId: string) {
+
   const { data: order, error } = await supabaseAdmin
     .from("orders")
     .select("id, user_id, status, payment_status, provisioned")
@@ -141,26 +201,37 @@ export async function activateOrderAfterPayment(orderId: string) {
     console.error("[activation] email_orders insert error", e);
   }
 
+  // Hosting plans (host-*) go to manual activation queue (no auto cPanel).
+  let hasManualHosting = false;
+  try {
+    hasManualHosting = await createHostingOrdersForPaidOrder(orderId);
+  } catch (e) {
+    console.error("[activation] hosting_orders insert error", e);
+  }
+
   // Idempotent: if already provisioned, skip.
   if (order.provisioned) return;
 
-  // Fire cPanel provisioning Edge Function (best effort; webhook already 200s).
-  try {
-    const url = `${process.env.SUPABASE_URL}/functions/v1/create-cpanel-account`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-      },
-      body: JSON.stringify({ order_id: orderId }),
-    });
-    if (!res.ok) {
-      const txt = await res.text();
-      console.error("[activation] create-cpanel-account failed", res.status, txt);
+  // Fire cPanel provisioning Edge Function unless this order goes through
+  // the manual hosting activation flow (admin will create the cPanel account).
+  if (!hasManualHosting) {
+    try {
+      const url = `${process.env.SUPABASE_URL}/functions/v1/create-cpanel-account`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({ order_id: orderId }),
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        console.error("[activation] create-cpanel-account failed", res.status, txt);
+      }
+    } catch (e) {
+      console.error("[activation] cPanel provisioning error", e);
     }
-  } catch (e) {
-    console.error("[activation] cPanel provisioning error", e);
   }
 
   // Hostinger provisioning queue — runs in addition to cPanel.

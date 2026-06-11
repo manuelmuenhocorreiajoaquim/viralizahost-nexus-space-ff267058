@@ -59,6 +59,7 @@ import { Route as AuthenticatedAdminServersRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminProvisioningRouteImport } from './routes/_authenticated/admin/provisioning'
 import { Route as AuthenticatedAdminProviderProductsRouteImport } from './routes/_authenticated/admin/provider-products'
 import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authenticated/admin/payments'
+import { Route as AuthenticatedAdminHostingOrdersRouteImport } from './routes/_authenticated/admin/hosting-orders'
 import { Route as AuthenticatedAdminEmailOrdersRouteImport } from './routes/_authenticated/admin/email-orders'
 import { Route as AuthenticatedAdminDomainOrdersRouteImport } from './routes/_authenticated/admin/domain-orders'
 import { Route as AuthenticatedAdminDnsRequestsRouteImport } from './routes/_authenticated/admin/dns-requests'
@@ -321,6 +322,12 @@ const AuthenticatedAdminPaymentsRoute =
     path: '/admin/payments',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAdminHostingOrdersRoute =
+  AuthenticatedAdminHostingOrdersRouteImport.update({
+    id: '/admin/hosting-orders',
+    path: '/admin/hosting-orders',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAdminEmailOrdersRoute =
   AuthenticatedAdminEmailOrdersRouteImport.update({
     id: '/admin/email-orders',
@@ -395,6 +402,7 @@ export interface FileRoutesByFullPath {
   '/admin/dns-requests': typeof AuthenticatedAdminDnsRequestsRoute
   '/admin/domain-orders': typeof AuthenticatedAdminDomainOrdersRoute
   '/admin/email-orders': typeof AuthenticatedAdminEmailOrdersRoute
+  '/admin/hosting-orders': typeof AuthenticatedAdminHostingOrdersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/provider-products': typeof AuthenticatedAdminProviderProductsRoute
   '/admin/provisioning': typeof AuthenticatedAdminProvisioningRoute
@@ -450,6 +458,7 @@ export interface FileRoutesByTo {
   '/admin/dns-requests': typeof AuthenticatedAdminDnsRequestsRoute
   '/admin/domain-orders': typeof AuthenticatedAdminDomainOrdersRoute
   '/admin/email-orders': typeof AuthenticatedAdminEmailOrdersRoute
+  '/admin/hosting-orders': typeof AuthenticatedAdminHostingOrdersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/provider-products': typeof AuthenticatedAdminProviderProductsRoute
   '/admin/provisioning': typeof AuthenticatedAdminProvisioningRoute
@@ -507,6 +516,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/dns-requests': typeof AuthenticatedAdminDnsRequestsRoute
   '/_authenticated/admin/domain-orders': typeof AuthenticatedAdminDomainOrdersRoute
   '/_authenticated/admin/email-orders': typeof AuthenticatedAdminEmailOrdersRoute
+  '/_authenticated/admin/hosting-orders': typeof AuthenticatedAdminHostingOrdersRoute
   '/_authenticated/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/_authenticated/admin/provider-products': typeof AuthenticatedAdminProviderProductsRoute
   '/_authenticated/admin/provisioning': typeof AuthenticatedAdminProvisioningRoute
@@ -564,6 +574,7 @@ export interface FileRouteTypes {
     | '/admin/dns-requests'
     | '/admin/domain-orders'
     | '/admin/email-orders'
+    | '/admin/hosting-orders'
     | '/admin/payments'
     | '/admin/provider-products'
     | '/admin/provisioning'
@@ -619,6 +630,7 @@ export interface FileRouteTypes {
     | '/admin/dns-requests'
     | '/admin/domain-orders'
     | '/admin/email-orders'
+    | '/admin/hosting-orders'
     | '/admin/payments'
     | '/admin/provider-products'
     | '/admin/provisioning'
@@ -675,6 +687,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/dns-requests'
     | '/_authenticated/admin/domain-orders'
     | '/_authenticated/admin/email-orders'
+    | '/_authenticated/admin/hosting-orders'
     | '/_authenticated/admin/payments'
     | '/_authenticated/admin/provider-products'
     | '/_authenticated/admin/provisioning'
@@ -1067,6 +1080,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPaymentsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/admin/hosting-orders': {
+      id: '/_authenticated/admin/hosting-orders'
+      path: '/admin/hosting-orders'
+      fullPath: '/admin/hosting-orders'
+      preLoaderRoute: typeof AuthenticatedAdminHostingOrdersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/admin/email-orders': {
       id: '/_authenticated/admin/email-orders'
       path: '/admin/email-orders'
@@ -1119,6 +1139,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAdminDnsRequestsRoute: typeof AuthenticatedAdminDnsRequestsRoute
   AuthenticatedAdminDomainOrdersRoute: typeof AuthenticatedAdminDomainOrdersRoute
   AuthenticatedAdminEmailOrdersRoute: typeof AuthenticatedAdminEmailOrdersRoute
+  AuthenticatedAdminHostingOrdersRoute: typeof AuthenticatedAdminHostingOrdersRoute
   AuthenticatedAdminPaymentsRoute: typeof AuthenticatedAdminPaymentsRoute
   AuthenticatedAdminProviderProductsRoute: typeof AuthenticatedAdminProviderProductsRoute
   AuthenticatedAdminProvisioningRoute: typeof AuthenticatedAdminProvisioningRoute
@@ -1146,6 +1167,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminDnsRequestsRoute: AuthenticatedAdminDnsRequestsRoute,
   AuthenticatedAdminDomainOrdersRoute: AuthenticatedAdminDomainOrdersRoute,
   AuthenticatedAdminEmailOrdersRoute: AuthenticatedAdminEmailOrdersRoute,
+  AuthenticatedAdminHostingOrdersRoute: AuthenticatedAdminHostingOrdersRoute,
   AuthenticatedAdminPaymentsRoute: AuthenticatedAdminPaymentsRoute,
   AuthenticatedAdminProviderProductsRoute:
     AuthenticatedAdminProviderProductsRoute,
@@ -1193,13 +1215,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

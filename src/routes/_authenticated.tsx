@@ -187,6 +187,14 @@ function AuthLayout() {
                 onClick={() => setMobileOpen(false)}
               />
               <SideLink
+                to="/admin/hosting-orders"
+                label="Ativar Hospedagem"
+                icon={Server}
+                color="text-blue-700"
+                bg="bg-blue-500/10"
+                onClick={() => setMobileOpen(false)}
+              />
+              <SideLink
                 to="/admin/provider-products"
                 label="Produtos Hostinger"
                 icon={Bot}
