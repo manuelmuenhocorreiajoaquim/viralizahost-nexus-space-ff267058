@@ -81,6 +81,7 @@ function Page() {
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="prices">Preços</TabsTrigger>
           <TabsTrigger value="services">Serviços</TabsTrigger>
+          <TabsTrigger value="domains">Domínios</TabsTrigger>
           <TabsTrigger value="contents">Conteúdos</TabsTrigger>
           <TabsTrigger value="images">Imagens</TabsTrigger>
           <TabsTrigger value="settings">Configurações</TabsTrigger>
@@ -88,10 +89,12 @@ function Page() {
 
         <TabsContent value="prices"><PricesTab /></TabsContent>
         <TabsContent value="services"><ServicesTab /></TabsContent>
+        <TabsContent value="domains"><DomainsTab /></TabsContent>
         <TabsContent value="contents"><ContentsTab /></TabsContent>
         <TabsContent value="images"><ImagesTab /></TabsContent>
         <TabsContent value="settings"><SettingsTab /></TabsContent>
       </Tabs>
+
     </div>
   );
 }
