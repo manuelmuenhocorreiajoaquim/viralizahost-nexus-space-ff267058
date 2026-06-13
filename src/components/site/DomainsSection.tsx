@@ -6,7 +6,7 @@ import DomainSearchDialog from "./DomainSearchDialog";
 import { getDomainPriceBRL } from "@/config/domainFixedPrices";
 import { useCurrency, formatCurrency, convertCurrency } from "@/lib/currency";
 
-const domains = [
+const allDomains = [
   { ext: ".com", popular: true },
   { ext: ".com.br" },
   { ext: ".ao" },
@@ -19,6 +19,11 @@ const domains = [
   { ext: ".site" },
   { ext: ".blog" },
 ];
+
+function getVisibleDomains(currency: string) {
+  if (currency === "AKZ") return allDomains;
+  return allDomains.filter((d) => d.ext !== ".ao" && d.ext !== ".co.ao");
+}
 
 export default function DomainsSection() {
   const [query, setQuery] = useState("");
@@ -76,7 +81,7 @@ export default function DomainsSection() {
       <DomainSearchDialog open={open} onOpenChange={setOpen} query={query} />
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {domains.map((d, i) => (
+        {getVisibleDomains(currency).map((d, i) => (
           <motion.div
             key={d.ext}
             initial={{ opacity: 0, y: 16 }}
