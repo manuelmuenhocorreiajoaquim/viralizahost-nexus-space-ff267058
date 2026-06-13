@@ -42,6 +42,9 @@ function RegistrarPage() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const { currency, rates } = useCurrency();
+  const { data: extensions } = useDomainExtensions();
+  const visible = filterDomainsByCurrency(extensions, currency);
+
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
