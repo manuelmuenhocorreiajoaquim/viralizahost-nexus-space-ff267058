@@ -81,7 +81,7 @@ export default function DomainsSection() {
       <DomainSearchDialog open={open} onOpenChange={setOpen} query={query} />
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {domains.map((d, i) => (
+        {getVisibleDomains(currency).map((d, i) => (
           <motion.div
             key={d.ext}
             initial={{ opacity: 0, y: 16 }}
