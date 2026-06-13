@@ -28,7 +28,11 @@ import {
   adminDeleteSiteContent,
   adminListSiteSettings,
   adminUpsertSiteSetting,
+  adminListDomainExtensions,
+  adminUpsertDomainExtension,
+  adminDeleteDomainExtension,
 } from "@/lib/cms.functions";
+
 
 export const Route = createFileRoute("/_authenticated/admin/site")({
   component: Page,
