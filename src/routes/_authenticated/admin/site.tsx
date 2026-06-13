@@ -820,3 +820,255 @@ function Loader() {
     </div>
   );
 }
+
+// ============ DOMAIN EXTENSIONS ============
+
+function emptyDomainExt() {
+  return {
+    ext: "",
+    slug: "",
+    price_brl: 0,
+    price_aoa: 0,
+    is_active: true,
+    is_featured: false,
+    sort_order: 0,
+  };
+}
+
+function DomainsTab() {
+  const qc = useQueryClient();
+  const listFn = useServerFn(adminListDomainExtensions);
+  const upsertFn = useServerFn(adminUpsertDomainExtension);
+  const deleteFn = useServerFn(adminDeleteDomainExtension);
+
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["admin-domain-extensions"],
+    queryFn: () => listFn(),
+  });
+
+  const [editing, setEditing] = useState<any | null>(null);
+
+  const upsert = useMutation({
+    mutationFn: (p: any) => upsertFn({ data: p }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-domain-extensions"] });
+      qc.invalidateQueries({ queryKey: ["domain-extensions"] });
+      toast.success("Domínio salvo");
+      setEditing(null);
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao salvar"),
+  });
+
+  const del = useMutation({
+    mutationFn: (id: string) => deleteFn({ data: { id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-domain-extensions"] });
+      qc.invalidateQueries({ queryKey: ["domain-extensions"] });
+      toast.success("Domínio removido");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao remover"),
+  });
+
+  if (isLoading) return <Loader />;
+
+  return (
+    <div className="space-y-4 mt-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <p className="text-sm text-slate-600">
+          Gerencie as extensões exibidas na vitrine pública. Preços refletem na pesquisa, carrinho e checkout.
+          Dica: prefira <strong>desativar</strong> em vez de remover para preservar pedidos antigos.
+        </p>
+        <Button onClick={() => setEditing(emptyDomainExt())}>
+          <Plus className="h-4 w-4 mr-1" /> Novo Domínio
+        </Button>
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-slate-600">
+            <tr>
+              <th className="text-left p-2">Extensão</th>
+              <th className="text-left p-2">Slug</th>
+              <th className="text-left p-2">BRL</th>
+              <th className="text-left p-2">AKZ/AOA</th>
+              <th className="text-left p-2">Ordem</th>
+              <th className="text-left p-2">Ativo</th>
+              <th className="text-left p-2">Destaque</th>
+              <th className="p-2" />
+            </tr>
+          </thead>
+          <tbody>
+            {(rows as any[]).map((r) => (
+              <tr key={r.id} className="border-t">
+                <td className="p-2 font-mono font-semibold">{r.ext}</td>
+                <td className="p-2 text-slate-500">{r.slug}</td>
+                <td className="p-2">{Number(r.price_brl).toFixed(2)}</td>
+                <td className="p-2">{Number(r.price_aoa).toFixed(2)}</td>
+                <td className="p-2">{r.sort_order}</td>
+                <td className="p-2">
+                  <Switch
+                    checked={r.is_active}
+                    onCheckedChange={(v) =>
+                      upsert.mutate({
+                        id: r.id,
+                        ext: r.ext,
+                        slug: r.slug,
+                        price_brl: Number(r.price_brl),
+                        price_aoa: Number(r.price_aoa),
+                        is_active: v,
+                        is_featured: r.is_featured,
+                        sort_order: r.sort_order,
+                      })
+                    }
+                  />
+                </td>
+                <td className="p-2">
+                  <Switch
+                    checked={r.is_featured}
+                    onCheckedChange={(v) =>
+                      upsert.mutate({
+                        id: r.id,
+                        ext: r.ext,
+                        slug: r.slug,
+                        price_brl: Number(r.price_brl),
+                        price_aoa: Number(r.price_aoa),
+                        is_active: r.is_active,
+                        is_featured: v,
+                        sort_order: r.sort_order,
+                      })
+                    }
+                  />
+                </td>
+                <td className="p-2 text-right whitespace-nowrap">
+                  <Button size="sm" variant="outline" onClick={() => setEditing(r)}>
+                    Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="ml-2 text-red-600"
+                    onClick={() => {
+                      if (confirm(`Remover definitivamente ${r.ext}? Recomenda-se apenas desativar.`))
+                        del.mutate(r.id);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+            {(rows as any[]).length === 0 && (
+              <tr>
+                <td colSpan={8} className="p-6 text-center text-slate-500">
+                  Nenhuma extensão cadastrada.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {editing && (
+        <DomainExtDialog
+          row={editing}
+          onClose={() => setEditing(null)}
+          onSave={(p) => upsert.mutate(p)}
+          saving={upsert.isPending}
+        />
+      )}
+    </div>
+  );
+}
+
+function DomainExtDialog({
+  row,
+  onClose,
+  onSave,
+  saving,
+}: {
+  row: any;
+  onClose: () => void;
+  onSave: (p: any) => void;
+  saving: boolean;
+}) {
+  const [form, setForm] = useState<any>({ ...row });
+  function set<K extends string>(k: K, v: any) {
+    setForm((f: any) => ({ ...f, [k]: v }));
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{row.id ? `Editar ${row.ext}` : "Novo domínio"}</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="md:col-span-2">
+            <Label>Extensão * (ex: .com, .mz, .xyz)</Label>
+            <Input
+              value={form.ext}
+              onChange={(e) => set("ext", e.target.value)}
+              placeholder=".mz"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <Label>Slug interno *</Label>
+            <Input
+              value={form.slug}
+              onChange={(e) => set("slug", e.target.value)}
+              placeholder="mz"
+            />
+          </div>
+          <div>
+            <Label>Preço BRL *</Label>
+            <Input
+              type="number"
+              step="0.01"
+              value={form.price_brl ?? 0}
+              onChange={(e) => set("price_brl", Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label>Preço AKZ/AOA *</Label>
+            <Input
+              type="number"
+              step="0.01"
+              value={form.price_aoa ?? 0}
+              onChange={(e) => set("price_aoa", Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label>Ordem de exibição</Label>
+            <Input
+              type="number"
+              value={form.sort_order ?? 0}
+              onChange={(e) => set("sort_order", Number(e.target.value))}
+            />
+          </div>
+          <div className="flex items-end gap-4">
+            <label className="flex items-center gap-2 text-sm">
+              <Switch checked={!!form.is_active} onCheckedChange={(v) => set("is_active", v)} /> Ativo
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Switch checked={!!form.is_featured} onCheckedChange={(v) => set("is_featured", v)} />
+              Destaque
+            </label>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button
+            disabled={saving || !form.ext || !form.slug}
+            onClick={() => onSave(form)}
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
