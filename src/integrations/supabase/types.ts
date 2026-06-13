@@ -104,6 +104,45 @@ export type Database = {
           },
         ]
       }
+      domain_extensions: {
+        Row: {
+          created_at: string
+          ext: string
+          id: string
+          is_active: boolean
+          is_featured: boolean
+          price_aoa: number
+          price_brl: number
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          ext: string
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          price_aoa?: number
+          price_brl?: number
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          ext?: string
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          price_aoa?: number
+          price_brl?: number
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       domain_orders: {
         Row: {
           activated_at: string | null
