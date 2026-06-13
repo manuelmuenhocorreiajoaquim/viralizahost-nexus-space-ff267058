@@ -37,7 +37,7 @@ export function useDomainExtensions() {
     queryKey: ["domain-extensions"],
     queryFn: async () => {
       try {
-        const rows = (await fn()) as DomainExtensionRow[];
+        const rows = (await fn()) as unknown as DomainExtensionRow[];
         if (!rows?.length) return FALLBACK;
         return rows;
       } catch {
