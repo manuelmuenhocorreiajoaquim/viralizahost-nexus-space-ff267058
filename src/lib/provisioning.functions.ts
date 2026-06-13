@@ -525,11 +525,29 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
 
     const tldsToCheck = Array.from(new Set(requestedTld ? [requestedTld, ...DOMAIN_TLDS] : DOMAIN_TLDS));
 
-    // Pricing comes from the fixed retail table — NOT from the Hostinger
-    // catalog. Hostinger is only used for availability checks.
+    // Admin-managed prices override the hardcoded retail table.
+    const { data: extRows } = await supabaseAdmin
+      .from("domain_extensions" as any)
+      .select("ext, price_brl, is_active");
+    const adminPrice = new Map<string, number>();
+    if (Array.isArray(extRows)) {
+      for (const r of extRows as any[]) {
+        if (r?.is_active) adminPrice.set(String(r.ext).toLowerCase(), Number(r.price_brl));
+      }
+    }
+    const yearlyFor = (ext: string) => {
+      const k = ext.toLowerCase();
+      return adminPrice.has(k) ? adminPrice.get(k)! : getDomainPriceBRL(ext);
+    };
+    const totalFor = (ext: string, years: DomainPeriod) => {
+      const y = Math.max(1, Math.trunc(years) || 1);
+      return Math.round(yearlyFor(ext) * y * 100) / 100;
+    };
+
+    // Pricing comes from admin-managed extensions (fallback: fixed retail table).
+    // Hostinger is only used for availability checks.
     const tierFor = (ext: string, years: DomainPeriod): DomainTier => {
-      const fixedYearly = getDomainPriceBRL(ext);
-      const total = getDomainTotalBRL(ext, years);
+      const total = totalFor(ext, years);
       return {
         years,
         price_hostinger: null,
@@ -543,6 +561,7 @@ export const searchDomainsHostinger = createServerFn({ method: "POST" })
         unavailable: false,
       };
     };
+
 
     const pricingFor = (ext: string): DomainPricing => ({
       "1y": tierFor(ext, 1),
