@@ -252,3 +252,70 @@ export const adminDeleteSiteContent = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+// ============ Domain extensions ============
+
+const domainExtSchema = z.object({
+  id: z.string().uuid().optional(),
+  ext: z
+    .string()
+    .min(2)
+    .transform((v) => {
+      const s = v.trim().toLowerCase();
+      return s.startsWith(".") ? s : `.${s}`;
+    }),
+  slug: z.string().min(1),
+  price_brl: z.number().nonnegative().default(0),
+  price_aoa: z.number().nonnegative().default(0),
+  is_active: z.boolean().default(true),
+  is_featured: z.boolean().default(false),
+  sort_order: z.number().int().default(0),
+});
+
+export const getDomainExtensions = createServerFn({ method: "GET" }).handler(async () => {
+  const { data, error } = await supabaseAdmin
+    .from("domain_extensions" as any)
+    .select("*")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+  if (error) return [];
+  return data ?? [];
+});
+
+export const adminListDomainExtensions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const { data, error } = await supabaseAdmin
+      .from("domain_extensions" as any)
+      .select("*")
+      .order("sort_order", { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  });
+
+export const adminUpsertDomainExtension = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => domainExtSchema.parse(d))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin
+      .from("domain_extensions" as any)
+      .upsert(data, { onConflict: "ext" });
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const adminDeleteDomainExtension = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin
+      .from("domain_extensions" as any)
+      .delete()
+      .eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
