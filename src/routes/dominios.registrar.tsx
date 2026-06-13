@@ -27,7 +27,7 @@ export const Route = createFileRoute("/dominios/registrar")({
   component: RegistrarPage,
 });
 
-const popularExt = [
+const allPopularExt = [
   { ext: ".com", popular: true },
   { ext: ".com.br" },
   { ext: ".ao" },
@@ -40,6 +40,11 @@ const popularExt = [
   { ext: ".site" },
   { ext: ".blog" },
 ];
+
+function getVisibleExt(currency: string) {
+  if (currency === "AKZ") return allPopularExt;
+  return allPopularExt.filter((d) => d.ext !== ".ao" && d.ext !== ".co.ao");
+}
 
 const benefits = [
   { icon: Shield, title: "Proteção WHOIS grátis", desc: "Privacidade total dos seus dados pessoais." },
