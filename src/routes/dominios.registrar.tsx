@@ -122,7 +122,7 @@ function RegistrarPage() {
           <div className="mb-16">
             <h2 className="text-2xl font-bold text-center mb-6">Extensões populares</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {popularExt.map((d, i) => (
+              {getVisibleExt(currency).map((d, i) => (
                 <motion.div
                   key={d.ext}
                   initial={{ opacity: 0, y: 16 }}
