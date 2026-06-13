@@ -69,32 +69,39 @@ export default function DomainsSection() {
       <DomainSearchDialog open={open} onOpenChange={setOpen} query={query} />
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {getVisibleDomains(currency).map((d, i) => (
-          <motion.div
-            key={d.ext}
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.35, delay: i * 0.05 }}
-            className={`relative rounded-2xl bg-card p-5 text-center border transition-all hover:-translate-y-1 hover:shadow-glow-soft ${
-              d.popular ? "border-primary/40 shadow-glow-soft" : "border-border"
-            }`}
-          >
-            {d.popular && (
-              <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-gradient-primary text-primary-foreground text-[10px] font-bold">
-                MAIS POPULAR
+        {visible.map((d, i) => {
+          const priceBRL = Number(d.price_brl);
+          const priceAKZ = Number(d.price_aoa);
+          const display =
+            currency === "AKZ"
+              ? formatCurrency(priceAKZ, "AKZ")
+              : formatCurrency(convertCurrency(priceBRL, currency, rates), currency);
+          return (
+            <motion.div
+              key={d.ext}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.35, delay: i * 0.05 }}
+              className={`relative rounded-2xl bg-card p-5 text-center border transition-all hover:-translate-y-1 hover:shadow-glow-soft ${
+                d.is_featured ? "border-primary/40 shadow-glow-soft" : "border-border"
+              }`}
+            >
+              {d.is_featured && (
+                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-gradient-primary text-primary-foreground text-[10px] font-bold">
+                  MAIS POPULAR
+                </div>
+              )}
+              <div className="text-2xl font-display font-bold text-gradient-primary">{d.ext}</div>
+              <div className="mt-2 text-sm">
+                <span className="font-bold text-foreground">{display}</span>
+                <span className="text-muted-foreground">/ano</span>
               </div>
-            )}
-            <div className="text-2xl font-display font-bold text-gradient-primary">{d.ext}</div>
-            <div className="mt-2 text-sm">
-              <span className="font-bold text-foreground">
-                {formatCurrency(convertCurrency(getDomainPriceBRL(d.ext), currency, rates), currency)}
-              </span>
-              <span className="text-muted-foreground">/ano</span>
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          );
+        })}
       </div>
+
     </Section>
   );
 }
