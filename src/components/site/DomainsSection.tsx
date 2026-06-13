@@ -3,38 +3,26 @@ import { motion } from "framer-motion";
 import { Search, Globe } from "lucide-react";
 import { Section, SectionHeader } from "./Section";
 import DomainSearchDialog from "./DomainSearchDialog";
-import { getDomainPriceBRL } from "@/config/domainFixedPrices";
 import { useCurrency, formatCurrency, convertCurrency } from "@/lib/currency";
-
-const allDomains = [
-  { ext: ".com", popular: true },
-  { ext: ".com.br" },
-  { ext: ".ao" },
-  { ext: ".co.ao" },
-  { ext: ".net" },
-  { ext: ".org" },
-  { ext: ".online" },
-  { ext: ".shop" },
-  { ext: ".store" },
-  { ext: ".site" },
-  { ext: ".blog" },
-];
-
-function getVisibleDomains(currency: string) {
-  if (currency === "AKZ") return allDomains;
-  return allDomains.filter((d) => d.ext !== ".ao" && d.ext !== ".co.ao");
-}
+import {
+  useDomainExtensions,
+  filterDomainsByCurrency,
+} from "@/lib/use-domain-extensions";
 
 export default function DomainsSection() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const { currency, rates } = useCurrency();
+  const { data: extensions } = useDomainExtensions();
+  const visible = filterDomainsByCurrency(extensions, currency);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
     setOpen(true);
   };
+
+
 
 
   return (
