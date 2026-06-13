@@ -5,8 +5,11 @@ import { Globe, Search, Sparkles, Shield, Zap } from "lucide-react";
 import Navbar from "@/components/site/Navbar";
 import CTAFooter from "@/components/site/CTAFooter";
 import DomainSearchDialog from "@/components/site/DomainSearchDialog";
-import { getDomainPriceBRL } from "@/config/domainFixedPrices";
 import { useCurrency, formatCurrency, convertCurrency } from "@/lib/currency";
+import {
+  useDomainExtensions,
+  filterDomainsByCurrency,
+} from "@/lib/use-domain-extensions";
 
 export const Route = createFileRoute("/dominios/registrar")({
   head: () => ({
@@ -27,24 +30,7 @@ export const Route = createFileRoute("/dominios/registrar")({
   component: RegistrarPage,
 });
 
-const allPopularExt = [
-  { ext: ".com", popular: true },
-  { ext: ".com.br" },
-  { ext: ".ao" },
-  { ext: ".co.ao" },
-  { ext: ".net" },
-  { ext: ".org" },
-  { ext: ".online" },
-  { ext: ".shop" },
-  { ext: ".store" },
-  { ext: ".site" },
-  { ext: ".blog" },
-];
 
-function getVisibleExt(currency: string) {
-  if (currency === "AKZ") return allPopularExt;
-  return allPopularExt.filter((d) => d.ext !== ".ao" && d.ext !== ".co.ao");
-}
 
 const benefits = [
   { icon: Shield, title: "Proteção WHOIS grátis", desc: "Privacidade total dos seus dados pessoais." },
