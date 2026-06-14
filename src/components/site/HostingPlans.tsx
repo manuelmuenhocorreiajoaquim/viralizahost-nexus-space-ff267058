@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Check, Zap, Crown, Cloud, Server, ArrowRight } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Section, SectionHeader } from "./Section";
-import { usePrice } from "@/lib/currency";
+import { useDisplayPrice } from "@/lib/currency";
 import { useCmsPlans } from "@/lib/use-cms-plans";
 
 const fallback = [
