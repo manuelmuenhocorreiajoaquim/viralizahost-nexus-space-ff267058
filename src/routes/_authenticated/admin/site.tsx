@@ -940,7 +940,7 @@ function SettingsTab({ query = "" }: { query?: string }) {
       >
         <Plus className="h-4 w-4 mr-1" /> Nova configuração
       </Button>
-      {(settings as any[]).map((s) => (
+      {(settings as any[]).filter((s) => matchesQuery(s, query)).map((s) => (
         <KVEditor key={s.id} row={s} onSave={(v) => upsert.mutate(v)} onDelete={() => {}} />
       ))}
     </div>
