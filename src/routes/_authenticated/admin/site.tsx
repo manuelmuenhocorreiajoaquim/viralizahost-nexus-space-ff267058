@@ -850,7 +850,7 @@ function ImagesTab({ query = "" }: { query?: string }) {
         <Plus className="h-4 w-4 mr-1" /> Nova imagem
       </Button>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {(images as any[]).map((img) => (
+        {(images as any[]).filter((i) => matchesQuery(i, query)).map((img) => (
           <ImageEditor
             key={img.id}
             image={img}
