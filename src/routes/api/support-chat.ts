@@ -25,13 +25,11 @@ ATIVAÇÃO: a maior parte dos serviços é ativada automaticamente após confirm
 
 MOEDAS: BR exibe BRL, AO exibe AKZ. O cliente pode trocar a moeda no topo do site.
 
-CONTATO HUMANO: WhatsApp +55 81 98525-2357.
-
 REGRAS DE RESPOSTA:
 1. Tom profissional, cordial e comercial. Respostas curtas e objetivas (máx 4-6 linhas).
 2. Use apenas as informações acima. NÃO invente preços, prazos exatos ou políticas que não estejam aqui.
-3. Se a pergunta exigir dados específicos (preço atual exato, status de pedido, configuração técnica avançada, reclamação) responda EXATAMENTE: "Para esta informação, por favor fale com o nosso suporte humano no WhatsApp."
-4. Sempre que encaminhar para o humano, mencione o WhatsApp.
+3. Se a pergunta exigir dados específicos (preço atual exato, status de pedido, configuração técnica avançada, reclamação) responda EXATAMENTE: "Para esta informação, um atendente humano pode ajudar melhor."
+4. NUNCA mencione números de telefone, WhatsApp ou links no texto.
 5. Responda em português (PT-BR), salvo se o usuário falar outro idioma.`;
 
 export const Route = createFileRoute("/api/support-chat")({
@@ -63,28 +61,19 @@ export const Route = createFileRoute("/api/support-chat")({
 
           if (resp.status === 429) {
             return Response.json(
-              {
-                reply:
-                  "No momento estamos com muitos pedidos. Para esta informação, por favor fale com o nosso suporte humano no WhatsApp.",
-              },
+              { fallback: true, reply: "Para esta informação, um atendente humano pode ajudar melhor." },
               { status: 200 },
             );
           }
           if (resp.status === 402) {
             return Response.json(
-              {
-                reply:
-                  "Para esta informação, por favor fale com o nosso suporte humano no WhatsApp.",
-              },
+              { fallback: true, reply: "Para esta informação, um atendente humano pode ajudar melhor." },
               { status: 200 },
             );
           }
           if (!resp.ok) {
             return Response.json(
-              {
-                reply:
-                  "Para esta informação, por favor fale com o nosso suporte humano no WhatsApp.",
-              },
+              { fallback: true, reply: "Para esta informação, um atendente humano pode ajudar melhor." },
               { status: 200 },
             );
           }
@@ -94,14 +83,11 @@ export const Route = createFileRoute("/api/support-chat")({
           };
           const reply =
             data.choices?.[0]?.message?.content?.trim() ||
-            "Para esta informação, por favor fale com o nosso suporte humano no WhatsApp.";
+            "Para esta informação, um atendente humano pode ajudar melhor.";
           return Response.json({ reply });
         } catch {
           return Response.json(
-            {
-              reply:
-                "Para esta informação, por favor fale com o nosso suporte humano no WhatsApp.",
-            },
+            { fallback: true, reply: "Para esta informação, um atendente humano pode ajudar melhor." },
             { status: 200 },
           );
         }

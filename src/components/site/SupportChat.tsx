@@ -12,6 +12,11 @@ const WELCOME: Msg = {
     "Olá! Sou o Suporte VIRALIZA, assistente virtual da ViralizaHost. Como posso ajudar você hoje? Posso falar sobre domínios, hospedagem, VPS, e-mails, IA, marketing e mais.",
 };
 
+function isFallback(text: string) {
+  const lower = text.toLowerCase();
+  return lower.includes("suporte humano") || lower.includes("atendente humano");
+}
+
 export default function SupportChat({
   open,
   onClose,
@@ -41,14 +46,15 @@ export default function SupportChat({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: next }),
       });
-      const data = (await resp.json()) as { reply?: string };
+      const data = (await resp.json()) as { reply?: string; fallback?: boolean };
+      const reply = data.reply || "";
       setMessages((m) => [
         ...m,
         {
           role: "assistant",
-          content:
-            data.reply ||
-            "Para esta informação, por favor fale com o nosso suporte humano no WhatsApp.",
+          content: data.fallback
+            ? "Para esta informação, um atendente humano pode ajudar melhor."
+            : reply,
         },
       ]);
     } catch {
@@ -57,7 +63,7 @@ export default function SupportChat({
         {
           role: "assistant",
           content:
-            "Para esta informação, por favor fale com o nosso suporte humano no WhatsApp.",
+            "Para esta informação, um atendente humano pode ajudar melhor.",
         },
       ]);
     } finally {
@@ -112,7 +118,22 @@ export default function SupportChat({
                   : "bg-muted text-foreground rounded-bl-sm"
               }`}
             >
-              {m.content}
+              {isFallback(m.content) ? (
+                <div className="flex flex-col gap-2">
+                  <span>{m.content}</span>
+                  <a
+                    href={WHATSAPP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#25D366] px-3 py-2 text-white text-xs font-semibold hover:bg-[#1ea952] transition"
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    Falar com um humano
+                  </a>
+                </div>
+              ) : (
+                m.content
+              )}
             </div>
           </div>
         ))}
