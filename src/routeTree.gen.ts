@@ -38,6 +38,7 @@ import { Route as HospedagemCloudRouteImport } from './routes/hospedagem.cloud'
 import { Route as DominiosTransferirRouteImport } from './routes/dominios.transferir'
 import { Route as DominiosRegistrarRouteImport } from './routes/dominios.registrar'
 import { Route as DominiosProtecaoWhoisRouteImport } from './routes/dominios.protecao-whois'
+import { Route as ApiSupportChatRouteImport } from './routes/api/support-chat'
 import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
 import { Route as AuthenticatedSitesRouteImport } from './routes/_authenticated/sites'
 import { Route as AuthenticatedSecurityRouteImport } from './routes/_authenticated/security'
@@ -210,6 +211,11 @@ const DominiosRegistrarRoute = DominiosRegistrarRouteImport.update({
 const DominiosProtecaoWhoisRoute = DominiosProtecaoWhoisRouteImport.update({
   id: '/dominios/protecao-whois',
   path: '/dominios/protecao-whois',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSupportChatRoute = ApiSupportChatRouteImport.update({
+  id: '/api/support-chat',
+  path: '/api/support-chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
@@ -388,6 +394,7 @@ export interface FileRoutesByFullPath {
   '/security': typeof AuthenticatedSecurityRoute
   '/sites': typeof AuthenticatedSitesRoute
   '/support': typeof AuthenticatedSupportRoute
+  '/api/support-chat': typeof ApiSupportChatRoute
   '/dominios/protecao-whois': typeof DominiosProtecaoWhoisRoute
   '/dominios/registrar': typeof DominiosRegistrarRoute
   '/dominios/transferir': typeof DominiosTransferirRoute
@@ -445,6 +452,7 @@ export interface FileRoutesByTo {
   '/security': typeof AuthenticatedSecurityRoute
   '/sites': typeof AuthenticatedSitesRoute
   '/support': typeof AuthenticatedSupportRoute
+  '/api/support-chat': typeof ApiSupportChatRoute
   '/dominios/protecao-whois': typeof DominiosProtecaoWhoisRoute
   '/dominios/registrar': typeof DominiosRegistrarRoute
   '/dominios/transferir': typeof DominiosTransferirRoute
@@ -504,6 +512,7 @@ export interface FileRoutesById {
   '/_authenticated/security': typeof AuthenticatedSecurityRoute
   '/_authenticated/sites': typeof AuthenticatedSitesRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
+  '/api/support-chat': typeof ApiSupportChatRoute
   '/dominios/protecao-whois': typeof DominiosProtecaoWhoisRoute
   '/dominios/registrar': typeof DominiosRegistrarRoute
   '/dominios/transferir': typeof DominiosTransferirRoute
@@ -563,6 +572,7 @@ export interface FileRouteTypes {
     | '/security'
     | '/sites'
     | '/support'
+    | '/api/support-chat'
     | '/dominios/protecao-whois'
     | '/dominios/registrar'
     | '/dominios/transferir'
@@ -620,6 +630,7 @@ export interface FileRouteTypes {
     | '/security'
     | '/sites'
     | '/support'
+    | '/api/support-chat'
     | '/dominios/protecao-whois'
     | '/dominios/registrar'
     | '/dominios/transferir'
@@ -678,6 +689,7 @@ export interface FileRouteTypes {
     | '/_authenticated/security'
     | '/_authenticated/sites'
     | '/_authenticated/support'
+    | '/api/support-chat'
     | '/dominios/protecao-whois'
     | '/dominios/registrar'
     | '/dominios/transferir'
@@ -720,6 +732,7 @@ export interface RootRouteChildren {
   NossoEscritorioRoute: typeof NossoEscritorioRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  ApiSupportChatRoute: typeof ApiSupportChatRoute
   DominiosProtecaoWhoisRoute: typeof DominiosProtecaoWhoisRoute
   DominiosRegistrarRoute: typeof DominiosRegistrarRoute
   DominiosTransferirRoute: typeof DominiosTransferirRoute
@@ -943,6 +956,13 @@ declare module '@tanstack/react-router' {
       path: '/dominios/protecao-whois'
       fullPath: '/dominios/protecao-whois'
       preLoaderRoute: typeof DominiosProtecaoWhoisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/support-chat': {
+      id: '/api/support-chat'
+      path: '/api/support-chat'
+      fullPath: '/api/support-chat'
+      preLoaderRoute: typeof ApiSupportChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/support': {
@@ -1213,6 +1233,7 @@ const rootRouteChildren: RootRouteChildren = {
   NossoEscritorioRoute: NossoEscritorioRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  ApiSupportChatRoute: ApiSupportChatRoute,
   DominiosProtecaoWhoisRoute: DominiosProtecaoWhoisRoute,
   DominiosRegistrarRoute: DominiosRegistrarRoute,
   DominiosTransferirRoute: DominiosTransferirRoute,
