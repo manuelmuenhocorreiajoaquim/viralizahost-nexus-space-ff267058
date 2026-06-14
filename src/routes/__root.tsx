@@ -6,6 +6,7 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  useRouterState,
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
@@ -14,6 +15,7 @@ import { AuthProvider } from "@/lib/use-auth";
 import { CartProvider } from "@/lib/cart";
 import { CurrencyProvider } from "@/lib/currency";
 import { Toaster } from "sonner";
+import FloatingActions from "@/components/site/FloatingActions";
 
 function NotFoundComponent() {
   return (
@@ -126,9 +128,19 @@ function RootComponent() {
           <CartProvider>
             <Toaster richColors position="top-right" />
             <Outlet />
+            <PublicFloatingActions />
           </CartProvider>
         </CurrencyProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
+}
+
+function PublicFloatingActions() {
+  const matches = useRouterState({ select: (s) => s.matches });
+  const isAuthRoute = matches.some((m) =>
+    String(m.routeId).includes("_authenticated")
+  );
+  if (isAuthRoute) return null;
+  return <FloatingActions />;
 }
