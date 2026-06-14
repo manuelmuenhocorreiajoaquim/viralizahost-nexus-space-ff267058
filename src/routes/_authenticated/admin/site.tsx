@@ -661,7 +661,7 @@ function ContentsTab({ query = "" }: { query?: string }) {
           </Button>
         </div>
         <div className="space-y-3">
-          {(sections as any[]).map((s) => (
+          {(sections as any[]).filter((s) => matchesQuery(s, query)).map((s) => (
             <SectionEditor
               key={s.id}
               section={s}
