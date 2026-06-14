@@ -594,7 +594,7 @@ function PlanDialog({
 
 // ============ CONTENTS (sections + key-value) ============
 
-function ContentsTab() {
+function ContentsTab({ query = "" }: { query?: string }) {
   const qc = useQueryClient();
   const sectionsFn = useServerFn(adminListSiteSections);
   const upsertSectionFn = useServerFn(adminUpsertSiteSection);
