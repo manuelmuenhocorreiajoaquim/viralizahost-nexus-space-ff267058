@@ -74,7 +74,9 @@ export default function DomainsSection() {
           const priceAKZ = Number(d.price_aoa);
           const display =
             currency === "AKZ"
-              ? formatCurrency(priceAKZ, "AKZ")
+              ? (Number.isFinite(priceAKZ) && priceAKZ > 0
+                  ? formatCurrency(priceAKZ, "AKZ")
+                  : "Sob consulta")
               : formatCurrency(convertCurrency(priceBRL, currency, rates), currency);
           return (
             <motion.div

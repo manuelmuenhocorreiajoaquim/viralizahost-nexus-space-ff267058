@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Check, Zap, Crown, Cloud, Server, ArrowRight } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Section, SectionHeader } from "./Section";
-import { usePrice } from "@/lib/currency";
+import { useDisplayPrice } from "@/lib/currency";
 import { useCmsPlans } from "@/lib/use-cms-plans";
 
 const fallback = [
@@ -48,7 +48,7 @@ export default function HostingPlans() {
 }
 
 function PlanCard({ p, idx }: { p: typeof fallback[number]; idx: number }) {
-  const displayPrice = usePrice(p.price);
+  const displayPrice = useDisplayPrice(p.price, (p as any).priceAOA);
   return (
           <motion.div
             initial={{ opacity: 0, y: 30 }}

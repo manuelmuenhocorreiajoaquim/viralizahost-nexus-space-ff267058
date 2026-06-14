@@ -39,6 +39,7 @@ export function useCmsPlans<T extends Plan>(category: string, fallback: T[]): T[
     const next: any = { ...p };
     if (row.name) next.name = row.name;
     if (row.price_brl != null) next.price = `R$ ${Number(row.price_brl).toLocaleString("pt-BR")}`;
+    next.priceAOA = row.price_aoa != null ? Number(row.price_aoa) : null;
     if (Array.isArray(row.benefits) && row.benefits.length > 0) next.features = row.benefits;
     if (row.badge) next.tag = row.badge;
     return next as T;

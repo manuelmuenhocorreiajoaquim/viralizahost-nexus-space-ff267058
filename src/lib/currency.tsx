@@ -176,14 +176,17 @@ export function formatCurrency(amount: number, currency: Currency): string {
 }
 
 /**
- * Convert a BRL-formatted price string ("R$ 79", "R$ 1.500", "79", "Sob consulta")
- * into the target currency display using live rates.
+ * Format a BRL price into the target currency.
+ * IMPORTANT: AKZ is NEVER auto-converted from BRL — AKZ pricing is managed
+ * per-product in the Admin panel. Without an explicit AOA value, AKZ shows
+ * "Sob consulta". USD remains converted from BRL (informational only).
  */
 export function formatPrice(
   price: string,
   currency: Currency,
   rates: Rates = FALLBACK_RATES,
 ): string {
+  if (currency === "AKZ") return "Sob consulta";
   const amountBRL = parseBRL(price);
   if (amountBRL == null) return price;
   const converted = convertCurrency(amountBRL, currency, rates);
@@ -193,4 +196,27 @@ export function formatPrice(
 export function usePrice(price: string): string {
   const { currency, rates } = useCurrency();
   return formatPrice(price, currency, rates);
+}
+
+/**
+ * Dual-price hook for products with admin-managed prices in BOTH BRL and AKZ.
+ * - BRL: shows the BRL value.
+ * - AKZ: shows the AKZ value if provided; otherwise "Sob consulta". No conversion.
+ * - USD: converts from the BRL value (informational).
+ */
+export function useDisplayPrice(
+  priceBRL: string | number | null | undefined,
+  priceAOA?: number | string | null,
+): string {
+  const { currency, rates } = useCurrency();
+  if (currency === "AKZ") {
+    const aoa = typeof priceAOA === "string" ? parseFloat(priceAOA) : priceAOA;
+    if (aoa != null && Number.isFinite(aoa) && (aoa as number) > 0) {
+      return formatCurrency(aoa as number, "AKZ");
+    }
+    return "Sob consulta";
+  }
+  const brlStr =
+    typeof priceBRL === "number" ? String(priceBRL) : (priceBRL ?? "");
+  return formatPrice(brlStr, currency, rates);
 }
