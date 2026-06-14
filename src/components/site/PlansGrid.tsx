@@ -2,12 +2,13 @@ import { motion } from "framer-motion";
 import { Check, ArrowRight, type LucideIcon } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Section, SectionHeader } from "./Section";
-import { usePrice } from "@/lib/currency";
+import { useDisplayPrice } from "@/lib/currency";
 
 export type Plan = {
   icon: LucideIcon;
   name: string;
   price: string;
+  priceAOA?: number | null;
   per?: string;
   tag?: string;
   features: string[];
