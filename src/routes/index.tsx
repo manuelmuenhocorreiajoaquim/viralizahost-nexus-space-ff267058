@@ -12,7 +12,6 @@ import DesignPlans from "@/components/site/DesignPlans";
 import AudiovisualPlans from "@/components/site/AudiovisualPlans";
 import ServiceGrid from "@/components/site/ServiceGrid";
 import CTAFooter from "@/components/site/CTAFooter";
-import FloatingActions from "@/components/site/FloatingActions";
 
 export const Route = createFileRoute("/")({
   component: Index,
