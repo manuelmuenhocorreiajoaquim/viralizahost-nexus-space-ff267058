@@ -128,9 +128,19 @@ function RootComponent() {
           <CartProvider>
             <Toaster richColors position="top-right" />
             <Outlet />
+            <PublicFloatingActions />
           </CartProvider>
         </CurrencyProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
+}
+
+function PublicFloatingActions() {
+  const matches = useRouterState({ select: (s) => s.matches });
+  const isAuthRoute = matches.some((m) =>
+    String(m.routeId).includes("_authenticated")
+  );
+  if (isAuthRoute) return null;
+  return <FloatingActions />;
 }
