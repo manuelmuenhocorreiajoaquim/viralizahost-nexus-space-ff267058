@@ -75,12 +75,64 @@ const CurrencyContext = createContext<Ctx>({
   rates: FALLBACK_RATES,
 });
 
+const CURRENCY_KEY = "vh_currency_v1";
+
+function readStoredCurrency(): Currency | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = window.localStorage.getItem(CURRENCY_KEY);
+    if (v === "BRL" || v === "AKZ" || v === "USD") return v;
+  } catch {}
+  return null;
+}
+
+async function detectCountry(): Promise<string | null> {
+  const endpoints = ["https://ipapi.co/country/", "https://api.country.is/"];
+  for (const url of endpoints) {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) continue;
+      const text = (await r.text()).trim();
+      try {
+        const j = JSON.parse(text);
+        if (j?.country) return String(j.country).toUpperCase();
+      } catch {
+        if (text) return text.toUpperCase();
+      }
+    } catch {}
+  }
+  return null;
+}
+
 export function CurrencyProvider({ children }: { children: ReactNode }) {
-  const [currency, setCurrency] = useState<Currency>("BRL");
+  const [currency, setCurrencyState] = useState<Currency>(
+    () => readStoredCurrency() ?? "BRL",
+  );
+  const setCurrency = (c: Currency) => {
+    setCurrencyState(c);
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(CURRENCY_KEY, c);
+      } catch {}
+    }
+  };
   const [rates, setRates] = useState<Rates>(() => {
     const cached = readCache();
     return cached?.rates ?? FALLBACK_RATES;
   });
+
+  useEffect(() => {
+    if (readStoredCurrency()) return;
+    let cancelled = false;
+    detectCountry().then((country) => {
+      if (cancelled || !country) return;
+      if (readStoredCurrency()) return;
+      setCurrencyState(country === "AO" ? "AKZ" : "BRL");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
