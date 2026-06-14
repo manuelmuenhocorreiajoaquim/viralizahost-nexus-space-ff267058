@@ -408,7 +408,7 @@ function ServicesTab({ query = "" }: { query?: string }) {
             </tr>
           </thead>
           <tbody>
-            {(plans as any[]).map((p) => (
+            {(plans as any[]).filter((p) => matchesQuery(p, query)).map((p) => (
               <tr key={p.id} className="border-t">
                 <td className="p-2">
                   <div className="font-medium">{p.name}</div>
