@@ -968,7 +968,7 @@ function emptyDomainExt() {
   };
 }
 
-function DomainsTab() {
+function DomainsTab({ query = "" }: { query?: string }) {
   const qc = useQueryClient();
   const listFn = useServerFn(adminListDomainExtensions);
   const upsertFn = useServerFn(adminUpsertDomainExtension);
