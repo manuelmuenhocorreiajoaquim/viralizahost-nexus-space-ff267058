@@ -809,7 +809,7 @@ function KVEditor({
 
 // ============ IMAGES ============
 
-function ImagesTab() {
+function ImagesTab({ query = "" }: { query?: string }) {
   const qc = useQueryClient();
   const listFn = useServerFn(adminListSiteImages);
   const upsertFn = useServerFn(adminUpsertSiteImage);
