@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Loader2, Plus, Save, Trash2, ExternalLink } from "lucide-react";
+import { Loader2, Plus, Save, Trash2, ExternalLink, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/use-auth";
 import { Button } from "@/components/ui/button";
@@ -51,6 +51,8 @@ const CATEGORIES = [
 
 function Page() {
   const { isAdmin, loading, roleLoading } = useAuth();
+  const [query, setQuery] = useState("");
+  const [tab, setTab] = useState("prices");
 
   if (loading || roleLoading) {
     return (
@@ -62,6 +64,8 @@ function Page() {
   if (!isAdmin) {
     return <div className="p-8 text-center text-slate-600">Acesso restrito a administradores.</div>;
   }
+
+  const q = query.trim();
 
   return (
     <div className="space-y-6">
@@ -77,7 +81,28 @@ function Page() {
         </a>
       </div>
 
-      <Tabs defaultValue="prices" className="w-full">
+      <div className="relative">
+        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Pesquisar preços, serviços, domínios, conteúdos..."
+          className="pl-9 pr-24 h-10"
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 px-2 py-1 rounded text-xs text-slate-600 hover:bg-slate-100"
+          >
+            <X className="h-3 w-3" /> Limpar
+          </button>
+        )}
+      </div>
+
+      {q && <CrossTabResults query={q} currentTab={tab} onJump={setTab} />}
+
+      <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="prices">Preços</TabsTrigger>
           <TabsTrigger value="services">Serviços</TabsTrigger>
@@ -87,21 +112,129 @@ function Page() {
           <TabsTrigger value="settings">Configurações</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="prices"><PricesTab /></TabsContent>
-        <TabsContent value="services"><ServicesTab /></TabsContent>
-        <TabsContent value="domains"><DomainsTab /></TabsContent>
-        <TabsContent value="contents"><ContentsTab /></TabsContent>
-        <TabsContent value="images"><ImagesTab /></TabsContent>
-        <TabsContent value="settings"><SettingsTab /></TabsContent>
+        <TabsContent value="prices"><PricesTab query={q} /></TabsContent>
+        <TabsContent value="services"><ServicesTab query={q} /></TabsContent>
+        <TabsContent value="domains"><DomainsTab query={q} /></TabsContent>
+        <TabsContent value="contents"><ContentsTab query={q} /></TabsContent>
+        <TabsContent value="images"><ImagesTab query={q} /></TabsContent>
+        <TabsContent value="settings"><SettingsTab query={q} /></TabsContent>
       </Tabs>
 
     </div>
   );
 }
 
+// ============ Global search helpers ============
+
+function norm(s: any): string {
+  return String(s ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+/** Matches a query against any nested value (strings, numbers, arrays, booleans). */
+function matchesQuery(item: any, q: string): boolean {
+  if (!q) return true;
+  const needle = norm(q);
+  const walk = (v: any): boolean => {
+    if (v == null) return false;
+    if (typeof v === "string" || typeof v === "number") return norm(v).includes(needle);
+    if (typeof v === "boolean") {
+      const map = v ? ["sim", "ativo", "destaque", "true"] : ["nao", "inativo", "false"];
+      return map.some((s) => s.includes(needle));
+    }
+    if (Array.isArray(v)) return v.some(walk);
+    if (typeof v === "object") return Object.values(v).some(walk);
+    return false;
+  };
+  // currency aliases
+  if (["brl", "real", "reais"].some((s) => needle.includes(s)) && item?.price_brl != null) return true;
+  if (["aoa", "akz", "kwanza"].some((s) => needle.includes(s)) && item?.price_aoa != null) return true;
+  return walk(item);
+}
+
+const TAB_LABELS: Record<string, string> = {
+  prices: "Preços",
+  services: "Serviços",
+  domains: "Domínios",
+  contents: "Conteúdos",
+  images: "Imagens",
+  settings: "Configurações",
+};
+
+function CrossTabResults({
+  query,
+  currentTab,
+  onJump,
+}: {
+  query: string;
+  currentTab: string;
+  onJump: (t: string) => void;
+}) {
+  const plansFn = useServerFn(adminListServicePlans);
+  const sectionsFn = useServerFn(adminListSiteSections);
+  const contentsFn = useServerFn(adminListSiteContents);
+  const imagesFn = useServerFn(adminListSiteImages);
+  const settingsFn = useServerFn(adminListSiteSettings);
+  const domainsFn = useServerFn(adminListDomainExtensions);
+
+  const { data: plans = [] } = useQuery({ queryKey: ["admin-service-plans"], queryFn: () => plansFn() });
+  const { data: sections = [] } = useQuery({ queryKey: ["admin-site-sections"], queryFn: () => sectionsFn() });
+  const { data: contents = [] } = useQuery({ queryKey: ["admin-site-contents"], queryFn: () => contentsFn() });
+  const { data: images = [] } = useQuery({ queryKey: ["admin-site-images"], queryFn: () => imagesFn() });
+  const { data: settings = [] } = useQuery({ queryKey: ["admin-site-settings"], queryFn: () => settingsFn() });
+  const { data: domains = [] } = useQuery({ queryKey: ["admin-domain-extensions"], queryFn: () => domainsFn() });
+
+  const counts: Array<{ tab: string; count: number }> = [
+    { tab: "prices", count: (plans as any[]).filter((x) => matchesQuery(x, query)).length },
+    { tab: "services", count: (plans as any[]).filter((x) => matchesQuery(x, query)).length },
+    { tab: "domains", count: (domains as any[]).filter((x) => matchesQuery(x, query)).length },
+    {
+      tab: "contents",
+      count:
+        (sections as any[]).filter((x) => matchesQuery(x, query)).length +
+        (contents as any[]).filter((x) => matchesQuery(x, query)).length,
+    },
+    { tab: "images", count: (images as any[]).filter((x) => matchesQuery(x, query)).length },
+    { tab: "settings", count: (settings as any[]).filter((x) => matchesQuery(x, query)).length },
+  ];
+
+  const total = counts.reduce((s, c) => s + c.count, 0);
+  if (total === 0) {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 text-amber-900 text-sm px-4 py-2">
+        Nenhum resultado encontrado.
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs">
+      <span className="text-slate-500">Encontrado em:</span>
+      {counts
+        .filter((c) => c.count > 0)
+        .map((c) => (
+          <button
+            key={c.tab}
+            type="button"
+            onClick={() => onJump(c.tab)}
+            className={`px-2 py-1 rounded-full border transition ${
+              c.tab === currentTab
+                ? "bg-blue-600 text-white border-blue-600"
+                : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            {TAB_LABELS[c.tab]} ({c.count})
+          </button>
+        ))}
+    </div>
+  );
+}
+
 // ============ PRICES (quick inline edit) ============
 
-function PricesTab() {
+function PricesTab({ query = "" }: { query?: string }) {
   const qc = useQueryClient();
   const listFn = useServerFn(adminListServicePlans);
   const upsertFn = useServerFn(adminUpsertServicePlan);
@@ -122,9 +255,10 @@ function PricesTab() {
 
   if (isLoading) return <Loader />;
 
+  const filteredPlans = (plans as any[]).filter((p) => matchesQuery(p, query));
   const grouped = CATEGORIES.map((c) => ({
     ...c,
-    items: (plans as any[]).filter((p) => p.category === c.value),
+    items: filteredPlans.filter((p) => p.category === c.value),
   })).filter((g) => g.items.length > 0);
 
   return (
@@ -221,7 +355,7 @@ function emptyPlan() {
   };
 }
 
-function ServicesTab() {
+function ServicesTab({ query = "" }: { query?: string }) {
   const qc = useQueryClient();
   const listFn = useServerFn(adminListServicePlans);
   const upsertFn = useServerFn(adminUpsertServicePlan);
@@ -274,7 +408,7 @@ function ServicesTab() {
             </tr>
           </thead>
           <tbody>
-            {(plans as any[]).map((p) => (
+            {(plans as any[]).filter((p) => matchesQuery(p, query)).map((p) => (
               <tr key={p.id} className="border-t">
                 <td className="p-2">
                   <div className="font-medium">{p.name}</div>
@@ -461,7 +595,7 @@ function PlanDialog({
 
 // ============ CONTENTS (sections + key-value) ============
 
-function ContentsTab() {
+function ContentsTab({ query = "" }: { query?: string }) {
   const qc = useQueryClient();
   const sectionsFn = useServerFn(adminListSiteSections);
   const upsertSectionFn = useServerFn(adminUpsertSiteSection);
@@ -527,7 +661,7 @@ function ContentsTab() {
           </Button>
         </div>
         <div className="space-y-3">
-          {(sections as any[]).map((s) => (
+          {(sections as any[]).filter((s) => matchesQuery(s, query)).map((s) => (
             <SectionEditor
               key={s.id}
               section={s}
@@ -553,7 +687,7 @@ function ContentsTab() {
           </Button>
         </div>
         <div className="space-y-3">
-          {(contents as any[]).map((c) => (
+          {(contents as any[]).filter((c) => matchesQuery(c, query)).map((c) => (
             <KVEditor
               key={c.id}
               row={c}
@@ -676,7 +810,7 @@ function KVEditor({
 
 // ============ IMAGES ============
 
-function ImagesTab() {
+function ImagesTab({ query = "" }: { query?: string }) {
   const qc = useQueryClient();
   const listFn = useServerFn(adminListSiteImages);
   const upsertFn = useServerFn(adminUpsertSiteImage);
@@ -716,7 +850,7 @@ function ImagesTab() {
         <Plus className="h-4 w-4 mr-1" /> Nova imagem
       </Button>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {(images as any[]).map((img) => (
+        {(images as any[]).filter((i) => matchesQuery(i, query)).map((img) => (
           <ImageEditor
             key={img.id}
             image={img}
@@ -777,7 +911,7 @@ function ImageEditor({
 
 // ============ SETTINGS ============
 
-function SettingsTab() {
+function SettingsTab({ query = "" }: { query?: string }) {
   const qc = useQueryClient();
   const listFn = useServerFn(adminListSiteSettings);
   const upsertFn = useServerFn(adminUpsertSiteSetting);
@@ -806,7 +940,7 @@ function SettingsTab() {
       >
         <Plus className="h-4 w-4 mr-1" /> Nova configuração
       </Button>
-      {(settings as any[]).map((s) => (
+      {(settings as any[]).filter((s) => matchesQuery(s, query)).map((s) => (
         <KVEditor key={s.id} row={s} onSave={(v) => upsert.mutate(v)} onDelete={() => {}} />
       ))}
     </div>
@@ -835,7 +969,7 @@ function emptyDomainExt() {
   };
 }
 
-function DomainsTab() {
+function DomainsTab({ query = "" }: { query?: string }) {
   const qc = useQueryClient();
   const listFn = useServerFn(adminListDomainExtensions);
   const upsertFn = useServerFn(adminUpsertDomainExtension);
@@ -898,7 +1032,7 @@ function DomainsTab() {
             </tr>
           </thead>
           <tbody>
-            {(rows as any[]).map((r) => (
+            {(rows as any[]).filter((r) => matchesQuery(r, query)).map((r) => (
               <tr key={r.id} className="border-t">
                 <td className="p-2 font-mono font-semibold">{r.ext}</td>
                 <td className="p-2 text-slate-500">{r.slug}</td>
