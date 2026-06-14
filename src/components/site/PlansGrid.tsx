@@ -46,7 +46,7 @@ export default function PlansGrid({
 }
 
 function PlanCard({ p, i }: { p: Plan; i: number }) {
-  const displayPrice = usePrice(p.price);
+  const displayPrice = useDisplayPrice(p.price, p.priceAOA);
   return (
     <motion.div
             initial={{ opacity: 0, y: 24 }}
