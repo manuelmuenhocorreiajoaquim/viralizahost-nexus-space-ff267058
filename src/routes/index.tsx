@@ -41,7 +41,6 @@ function Index() {
       <AudiovisualPlans />
       <ServiceGrid />
       <CTAFooter />
-      <FloatingActions />
     </main>
   );
 }
