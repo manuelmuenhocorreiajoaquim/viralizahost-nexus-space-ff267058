@@ -910,7 +910,7 @@ function ImageEditor({
 
 // ============ SETTINGS ============
 
-function SettingsTab() {
+function SettingsTab({ query = "" }: { query?: string }) {
   const qc = useQueryClient();
   const listFn = useServerFn(adminListSiteSettings);
   const upsertFn = useServerFn(adminUpsertSiteSetting);
