@@ -354,7 +354,7 @@ function emptyPlan() {
   };
 }
 
-function ServicesTab() {
+function ServicesTab({ query = "" }: { query?: string }) {
   const qc = useQueryClient();
   const listFn = useServerFn(adminListServicePlans);
   const upsertFn = useServerFn(adminUpsertServicePlan);
