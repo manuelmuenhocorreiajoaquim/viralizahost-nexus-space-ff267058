@@ -234,7 +234,7 @@ function CrossTabResults({
 
 // ============ PRICES (quick inline edit) ============
 
-function PricesTab() {
+function PricesTab({ query = "" }: { query?: string }) {
   const qc = useQueryClient();
   const listFn = useServerFn(adminListServicePlans);
   const upsertFn = useServerFn(adminUpsertServicePlan);
