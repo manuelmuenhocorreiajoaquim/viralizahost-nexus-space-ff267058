@@ -255,9 +255,10 @@ function PricesTab({ query = "" }: { query?: string }) {
 
   if (isLoading) return <Loader />;
 
+  const filteredPlans = (plans as any[]).filter((p) => matchesQuery(p, query));
   const grouped = CATEGORIES.map((c) => ({
     ...c,
-    items: (plans as any[]).filter((p) => p.category === c.value),
+    items: filteredPlans.filter((p) => p.category === c.value),
   })).filter((g) => g.items.length > 0);
 
   return (
