@@ -1032,7 +1032,7 @@ function DomainsTab({ query = "" }: { query?: string }) {
             </tr>
           </thead>
           <tbody>
-            {(rows as any[]).map((r) => (
+            {(rows as any[]).filter((r) => matchesQuery(r, query)).map((r) => (
               <tr key={r.id} className="border-t">
                 <td className="p-2 font-mono font-semibold">{r.ext}</td>
                 <td className="p-2 text-slate-500">{r.slug}</td>
