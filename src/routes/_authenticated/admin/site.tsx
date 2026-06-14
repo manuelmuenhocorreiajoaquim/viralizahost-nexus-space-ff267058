@@ -687,7 +687,7 @@ function ContentsTab({ query = "" }: { query?: string }) {
           </Button>
         </div>
         <div className="space-y-3">
-          {(contents as any[]).map((c) => (
+          {(contents as any[]).filter((c) => matchesQuery(c, query)).map((c) => (
             <KVEditor
               key={c.id}
               row={c}
